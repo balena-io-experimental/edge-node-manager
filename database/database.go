@@ -1,119 +1,117 @@
 package database
 
 import (
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os/exec"
-	"time"
+	"encoding/json"
+	"fmt"
 
-	"log"
+	"github.com/HouzuoGuo/tiedot/db"
+	"github.com/fatih/structs"
+	"github.com/josephroberts/edge-node-manager/device"
+	"github.com/josephroberts/edge-node-manager/radio"
 )
+
+/*
+Uses the tiedot database
+https://github.com/HouzuoGuo/tiedot
+*/
 
 type Interface interface {
 	Start() error
-	Stop()
-	Query(key, value string) ([]byte, error)
-	Insert(device []byte) ([]byte, error)
-	Update(key string, device []byte) error
+	Stop() error
+	Create(i device.Interface) (int, error)
+	Remove(key int) error
+	Get(key int, deviceType device.SupportedDevice, radio radio.Interface) (device.Interface, error)
+	Update(key int, i device.Interface) error
+	Query(field, value string, deviceType device.SupportedDevice, radio radio.Interface) (map[int]device.Interface, error)
 }
 
 type Database struct {
-	Tiedot    string
-	Directory string
-	Port      string
+	Directory  string
+	connection *db.DB
 }
 
-func (d Database) Start() error {
-	/*
-		ENM uses the tiedot database
-		https://github.com/HouzuoGuo/tiedot
-	*/
-	err := exec.Command(d.Tiedot, "-mode=httpd", "-dir="+d.Directory, "-port="+d.Port).Start()
-	if err != nil {
-		log.Println("Failed to start database")
+func (d *Database) Start() error {
+	if temp, err := db.OpenDB(d.Directory); err != nil {
 		return err
+	} else {
+		/*
+			For some reason I cannot assign directly to d.Connection
+			http://stackoverflow.com/questions/21345274/go-fails-to-infer-type-in-assignment-non-name-on-left-side-of
+		*/
+		d.connection = temp
 	}
-
-	// Allow time for the database to start up before initialising
-	time.Sleep(1 * time.Second)
 
 	return d.initialise()
 }
 
-func (d Database) initialise() error {
-	resp, err := http.Get("http://localhost:" + d.Port + "/create?col=Devices")
-	if err != nil {
-		log.Println("Failed to create Devices collection")
-		return err
-	}
-	resp.Body.Close()
-
-	resp, err = http.Get("http://localhost:" + d.Port + "/index?col=Devices&path=applicationUUID")
-	if err != nil {
-		log.Println("Failed to add applicationUUID to index")
-		return err
-	}
-	resp.Body.Close()
-
-	resp, err = http.Get("http://localhost:" + d.Port + "/index?col=Devices&path=localUUID")
-	if err != nil {
-		log.Println("Failed to add localUUID to index")
-		return err
-	}
-	resp.Body.Close()
-
-	return nil
-}
-
-func (d Database) Stop() {
-	resp, _ := http.Get("http://localhost:" + d.Port + "/shutdown")
-	resp.Body.Close()
-}
-
-func (d Database) Query(key, value string) ([]byte, error) {
-	resp, err := http.PostForm("http://localhost:"+d.Port+"/query?",
-		url.Values{"q": {`{"eq": "` + value + `", "in": ["` + key + `"]}`}, "col": {"Devices"}})
-	defer resp.Body.Close()
-
-	if err != nil {
-		log.Println("Failed to query database")
-		return nil, err
-	}
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Failed to parse return from database")
-		return nil, err
-	}
-
-	return b, nil
-}
-
-func (d Database) Insert(device []byte) ([]byte, error) {
-	resp, err := http.PostForm("http://localhost:"+d.Port+"/insert?",
-		url.Values{"doc": {string(device)}, "col": {"Devices"}})
-	defer resp.Body.Close()
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Failed to parse return from database")
-		return nil, err
-	}
-
-	return b, nil
-}
-
-func (d Database) Update(key string, device []byte) error {
-	resp, err := http.PostForm("http://localhost:"+d.Port+"/update?",
-		url.Values{"doc": {string(device)}, "id": {key}, "col": {"Devices"}})
-	defer resp.Body.Close()
-
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Failed to parse return from database")
-		return err
-	}
-
+func (d *Database) Stop() error {
+	err := d.connection.Close()
 	return err
+}
+
+func (d *Database) initialise() error {
+	if err := d.connection.Create("Devices"); err != nil {
+		return err
+	}
+
+	devices := d.connection.Use("Devices")
+	if err := devices.Index([]string{"ApplicationUUID"}); err != nil {
+		return err
+	}
+	return devices.Index([]string{"LocalUUID"})
+}
+
+func (d *Database) Create(i device.Interface) (int, error) {
+	devices := d.connection.Use("Devices")
+	return devices.Insert(structs.Map(i.GetDevice()))
+}
+
+func (d *Database) Remove(key int) error {
+	devices := d.connection.Use("Devices")
+	return devices.Delete(key)
+}
+
+func (d *Database) Get(key int, deviceType device.SupportedDevice, radio radio.Interface) (device.Interface, error) {
+	devices := d.connection.Use("Devices")
+	if readBack, err := devices.Read(key); err != nil {
+		return nil, err
+	} else {
+		if b, err := json.Marshal(readBack); err != nil {
+			return nil, err
+		} else {
+			i := device.Create(deviceType)
+			i.GetDevice().Deserialise(b)
+			i.GetDevice().Radio = radio
+			return i, nil
+		}
+	}
+}
+
+func (d *Database) Update(key int, i device.Interface) error {
+	devices := d.connection.Use("Devices")
+	return devices.Update(key, structs.Map(i.GetDevice()))
+}
+
+func (d *Database) Query(field, value string, deviceType device.SupportedDevice, radio radio.Interface) (map[int]device.Interface, error) {
+	query := fmt.Sprintf(`[{"eq": "%s", "in": ["%s"]}]`, value, field)
+	var q interface{}
+	json.Unmarshal([]byte(query), &q)
+
+	queryResult := make(map[int]struct{})
+	devices := d.connection.Use("Devices")
+	if err := db.EvalQuery(q, devices, &queryResult); err != nil {
+		return nil, err
+	}
+
+	result := make(map[int]device.Interface)
+	for key := range queryResult {
+		if i, err := d.Get(key, deviceType, radio); err != nil {
+			return nil, err
+		} else {
+			result[key] = i
+		}
+	}
+
+	return result, nil
+
 }

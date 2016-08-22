@@ -17,9 +17,7 @@ import (
 
 func main() {
 	db := &database.Database{
-		Tiedot:    config.GetTiedot(),
 		Directory: path.Join(config.GetPersistantDirectory(), config.GetDbDirectory()),
-		Port:      config.GetDbPort(),
 	}
 	tidyOnExit(db)
 	db.Start()

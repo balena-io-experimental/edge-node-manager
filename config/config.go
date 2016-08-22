@@ -10,20 +10,12 @@ func GetProxyPort() string {
 	return getEnv("ENM_CONFIG_PROXY_PORT", "3000")
 }
 
-func GetDbPort() string {
-	return getEnv("ENM_CONFIG_DB_PORT", "5000")
-}
-
 func GetDbDirectory() string {
 	return getEnv("ENM_CONFIG_DB_DIR", "/database")
 }
 
 func GetPersistantDirectory() string {
 	return getEnv("ENM_CONFIG_PERSISTANT_DIR", "/data")
-}
-
-func GetTiedot() string {
-	return getEnv("ENM_CONFIG_TIEDOT", "/home/joe/Go/bin/tiedot")
 }
 
 func GetLoopDelay() (time.Duration, error) {
