@@ -16,6 +16,8 @@ import (
 type ApplicationInterface interface {
 	Process() error
 	loadDevices() (map[string]device.DeviceInterface, error)
+	updateDevices(devices map[string]device.DeviceInterface) error
+	createDevice(localUUID string) (device.DeviceInterface, string, error)
 }
 
 type Application struct {
@@ -42,9 +44,6 @@ func (a *Application) Process() error {
 	log.Printf("%d application devices found\r\n", len(applicationDevices))
 	for key, applicationDevice := range applicationDevices {
 		log.Printf("Id: %s, %s\r\n", key, applicationDevice)
-		//testing correct device type and radio
-		applicationDevice.Update("", "")
-		applicationDevice.GetDevice().Radio.Scan("", 1*time.Second)
 	}
 
 	onlineDevices, err := a.Radio.Scan(a.Name, 10)
@@ -86,14 +85,15 @@ func (a *Application) Process() error {
 
 		if online {
 			applicationDevice.GetDevice().State = device.ONLINE
-			applicationDevice.Update(application, commit)
+			applicationDevice.GetDevice().LastSeen = time.Now()
+			//applicationDevice.Update(application, commit)
 		} else {
 			applicationDevice.GetDevice().State = device.OFFLINE
 		}
 
 	}
 
-	//Serialse and save all devices to db
+	a.updateDevices(applicationDevices)
 
 	return nil
 }
@@ -118,6 +118,22 @@ func (a *Application) loadDevices() (map[string]device.DeviceInterface, error) {
 	}
 
 	return devices, err
+}
+
+func (a *Application) updateDevices(devices map[string]device.DeviceInterface) error {
+	for key, value := range devices {
+		buffer, err := value.Serialise()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = database.Update(key, buffer)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return nil
 }
 
 func (a *Application) createDevice(localUUID string) (device.DeviceInterface, string, error) {
