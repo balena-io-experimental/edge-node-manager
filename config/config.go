@@ -1,29 +1,40 @@
-/*
-Package config contains edge node manager settings
-*/
 package config
 
-/*
-ProxyPort defines the proxy visor port
-*/
-const ProxyPort string = "3000"
+import (
+	"os"
+	"strconv"
+	"time"
+)
 
-// /*
-// EnmPort defines the ENM port
-// */
-// const EnmPort string = ":4000"
+func GetProxyPort() string {
+	return getEnv("ENM_CONFIG_PROXY_PORT", "3000")
+}
 
-/*
-DbPort defines the ENM port
-*/
-const DbPort string = "5000"
+func GetDbPort() string {
+	return getEnv("ENM_CONFIG_DB_PORT", "5000")
+}
 
-/*
-Db defines the database name
-*/
-const Db string = "database"
+func GetDbDirectory() string {
+	return getEnv("ENM_CONFIG_DB_DIR", "/database")
+}
 
-/*
-Persistant defines the location containing the database and dependant device firmware
-*/
-const Persistant string = "/data"
+func GetPersistantDirectory() string {
+	return getEnv("ENM_CONFIG_PERSISTANT_DIR", "/data")
+}
+
+func GetTiedot() string {
+	return getEnv("ENM_CONFIG_TIEDOT", "/home/joe/Go/bin/tiedot")
+}
+
+func GetLoopDelay() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "5"))
+	return time.Duration(value), err
+}
+
+func getEnv(key, fallback string) string {
+	result := os.Getenv(key)
+	if result == "" {
+		result = fallback
+	}
+	return result
+}

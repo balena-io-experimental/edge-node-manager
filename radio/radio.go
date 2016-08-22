@@ -11,11 +11,11 @@ type SupportedRadio string
 
 const (
 	BLUETOOTH SupportedRadio = "Bluetooth"
-	WIFI      SupportedRadio = "WiFi"
-	ZIGBEE    SupportedRadio = "ZigBee"
+	WIFI                     = "WiFi"
+	ZIGBEE                   = "ZigBee"
 )
 
-func Create(d SupportedRadio) RadioInterface {
+func Create(d SupportedRadio) Interface {
 	switch d {
 	case BLUETOOTH:
 		d, _ := gatt.NewDevice(option.DefaultClientOptions...)
@@ -32,7 +32,7 @@ func Create(d SupportedRadio) RadioInterface {
 	return nil
 }
 
-type RadioInterface interface {
+type Interface interface {
 	GetRadio() *Radio
 	Scan(name string, timeout time.Duration) ([]string, error)
 	Online(id string, timeout time.Duration) (bool, error)

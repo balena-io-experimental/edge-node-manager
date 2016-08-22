@@ -4,44 +4,59 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"time"
-
-	"github.com/josephroberts/edge-node-manager/config"
 
 	"log"
 )
 
-func Start() error {
-	err := exec.Command(os.Getenv("GOPATH")+"/bin/tiedot", "-mode=httpd", "-dir="+filepath.Join(config.Persistant, config.Db), "-port="+config.DbPort).Start()
+type Interface interface {
+	Start() error
+	Stop()
+	Query(key, value string) ([]byte, error)
+	Insert(device []byte) ([]byte, error)
+	Update(key string, device []byte) error
+}
+
+type Database struct {
+	Tiedot    string
+	Directory string
+	Port      string
+}
+
+func (d Database) Start() error {
+	/*
+		ENM uses the tiedot database
+		https://github.com/HouzuoGuo/tiedot
+	*/
+	err := exec.Command(d.Tiedot, "-mode=httpd", "-dir="+d.Directory, "-port="+d.Port).Start()
 	if err != nil {
 		log.Println("Failed to start database")
 		return err
 	}
 
+	// Allow time for the database to start up before initialising
 	time.Sleep(1 * time.Second)
 
-	return initialise()
+	return d.initialise()
 }
 
-func initialise() error {
-	resp, err := http.Get("http://localhost:" + config.DbPort + "/create?col=Devices")
+func (d Database) initialise() error {
+	resp, err := http.Get("http://localhost:" + d.Port + "/create?col=Devices")
 	if err != nil {
 		log.Println("Failed to create Devices collection")
 		return err
 	}
 	resp.Body.Close()
 
-	resp, err = http.Get("http://localhost:" + config.DbPort + "/index?col=Devices&path=applicationUUID")
+	resp, err = http.Get("http://localhost:" + d.Port + "/index?col=Devices&path=applicationUUID")
 	if err != nil {
 		log.Println("Failed to add applicationUUID to index")
 		return err
 	}
 	resp.Body.Close()
 
-	resp, err = http.Get("http://localhost:" + config.DbPort + "/index?col=Devices&path=localUUID")
+	resp, err = http.Get("http://localhost:" + d.Port + "/index?col=Devices&path=localUUID")
 	if err != nil {
 		log.Println("Failed to add localUUID to index")
 		return err
@@ -51,13 +66,13 @@ func initialise() error {
 	return nil
 }
 
-func Stop() {
-	resp, _ := http.Get("http://localhost:" + config.DbPort + "/shutdown")
+func (d Database) Stop() {
+	resp, _ := http.Get("http://localhost:" + d.Port + "/shutdown")
 	resp.Body.Close()
 }
 
-func Query(key, value string) ([]byte, error) {
-	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/query?",
+func (d Database) Query(key, value string) ([]byte, error) {
+	resp, err := http.PostForm("http://localhost:"+d.Port+"/query?",
 		url.Values{"q": {`{"eq": "` + value + `", "in": ["` + key + `"]}`}, "col": {"Devices"}})
 	defer resp.Body.Close()
 
@@ -75,8 +90,8 @@ func Query(key, value string) ([]byte, error) {
 	return b, nil
 }
 
-func Insert(device []byte) ([]byte, error) {
-	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/insert?",
+func (d Database) Insert(device []byte) ([]byte, error) {
+	resp, err := http.PostForm("http://localhost:"+d.Port+"/insert?",
 		url.Values{"doc": {string(device)}, "col": {"Devices"}})
 	defer resp.Body.Close()
 
@@ -89,8 +104,8 @@ func Insert(device []byte) ([]byte, error) {
 	return b, nil
 }
 
-func Update(key string, device []byte) error {
-	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/update?",
+func (d Database) Update(key string, device []byte) error {
+	resp, err := http.PostForm("http://localhost:"+d.Port+"/update?",
 		url.Values{"doc": {string(device)}, "id": {key}, "col": {"Devices"}})
 	defer resp.Body.Close()
 

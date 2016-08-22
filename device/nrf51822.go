@@ -4,55 +4,56 @@ import "log"
 
 type operation byte
 
+/*
+Operations defined by device
+https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
+*/
 const (
-	START_DFU                   operation = 0x01 //Can I use iota here?
-	INITIALISE_DFU              operation = 0x02
-	RECEIVE_FIRMWARE_IMAGE      operation = 0x03
-	VALIDATE_FIRMWARE_IMAGE     operation = 0x04
-	ACTIVATE_FIRMWARE_AND_RESET operation = 0x05
-	SYSTEM_RESET                operation = 0x06
-	REPORT_RECEIVED             operation = 0x07
-	PKT_RCPT_NOTIF_REQ          operation = 0x08
-	RESPONSE                    operation = 0x10
-	PKT_RCPT_NOTIF              operation = 0x11
-)
-
-type procedure byte
-
-const (
-	START          procedure = 0x01 //Can I use iota here?
-	INITIALISE     procedure = 0x02
-	RECEIVE_APP    procedure = 0x03
-	VALIDATE       procedure = 0x04
-	IMAGE_SIZE_REQ procedure = 0x07
-	PKT_RCPT_REQ   procedure = 0x08
+	START_DFU                   operation = 0x01
+	INITIALISE_DFU                        = 0x02
+	RECEIVE_FIRMWARE_IMAGE                = 0x03
+	VALIDATE_FIRMWARE_IMAGE               = 0x04
+	ACTIVATE_FIRMWARE_AND_RESET           = 0x05
+	SYSTEM_RESET                          = 0x06
+	REPORT_RECEIVED_IMG_SIZE              = 0x07
+	PKT_RCPT_NOTIF_REQ                    = 0x08
+	RESPONSE                              = 0x10
+	PKT_RCPT_NOTIF                        = 0x11
 )
 
 type response byte
 
+/* Responses defined by device
+https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
+*/
 const (
-	SUCCESS          response = 0x01 //Can I use iota here?
-	INVALID_STATE    response = 0x02
-	NOT_SUPPORTED    response = 0x03
-	DATA_SIZE        response = 0x04
-	CRC_ERROR        response = 0x05
-	OPERATION_FAILED response = 0x06
+	SUCCESS          response = 0x01
+	INVALID_STATE             = 0x02
+	NOT_SUPPORTED             = 0x03
+	DATA_SIZE                 = 0x04
+	CRC_ERROR                 = 0x05
+	OPERATION_FAILED          = 0x06
 )
 
 type updateType byte
 
+/* Update type defined by device
+https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
+*/
 const (
-	SOFT_DEVICE            updateType = 0x01 //Can I use iota here?
-	BOOTLOADER             updateType = 0x02
-	SOFT_DEVICE_BOOTLOADER updateType = 0x03
-	APPLICATION            updateType = 0x04
+	SOFT_DEVICE            updateType = 0x01
+	BOOTLOADER                        = 0x02
+	SOFT_DEVICE_BOOTLOADER            = 0x03
+	APPLICATION                       = 0x04
 )
 
 type handle byte
 
+/* Handles defined by device
+https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state*/
 const (
 	CONTROL handle = 0x10
-	PACKET  handle = 0x0E
+	PACKET         = 0x0E
 )
 
 type Nrf51822 struct {

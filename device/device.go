@@ -12,11 +12,11 @@ type SupportedDevice string
 
 const (
 	NRF51822 SupportedDevice = "NRF51822"
-	ESP8266  SupportedDevice = "ESP8266"
-	MICROBIT SupportedDevice = "MicroBit"
+	ESP8266                  = "ESP8266"
+	MICROBIT                 = "MicroBit"
 )
 
-func Create(d SupportedDevice) DeviceInterface {
+func Create(d SupportedDevice) Interface {
 	switch d {
 	case NRF51822:
 		return &Nrf51822{
@@ -35,7 +35,7 @@ func Create(d SupportedDevice) DeviceInterface {
 	return nil
 }
 
-type DeviceInterface interface {
+type Interface interface {
 	String() string
 	Serialise() ([]byte, error)
 	Deserialise(b []byte) error
@@ -52,20 +52,20 @@ type State string
 
 const (
 	UPDATING    State = "Updating"
-	ONLINE      State = "Online"
-	OFFLINE     State = "Offline"
-	DOWNLOADING State = "Downloading"
+	ONLINE            = "Online"
+	OFFLINE           = "Offline"
+	DOWNLOADING       = "Downloading"
 )
 
 type Device struct {
-	LocalUUID       string               `json:"localUUID"`
-	ApplicationUUID string               `json:"applicationUUID"`
-	ResinUUID       string               `json:"resinUUID"`
-	Commit          string               `json:"commit"`
-	LastSeen        time.Time            `json:"lastSeen, string"`
-	State           State                `json:"state, string"`
-	Progress        float32              `json:"progress, float32"`
-	Radio           radio.RadioInterface `json:"-"`
+	LocalUUID       string          `json:"localUUID"`
+	ApplicationUUID string          `json:"applicationUUID"`
+	ResinUUID       string          `json:"resinUUID"`
+	Commit          string          `json:"commit"`
+	LastSeen        time.Time       `json:"lastSeen, string"`
+	State           State           `json:"state, string"`
+	Progress        float32         `json:"progress, float32"`
+	Radio           radio.Interface `json:"-"`
 }
 
 func (d Device) String() string {

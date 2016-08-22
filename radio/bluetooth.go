@@ -7,6 +7,9 @@ import (
 	"github.com/paypal/gatt"
 )
 
+/* Uses the paypal Gatt package
+https://github.com/paypal/gatt
+*/
 type Bluetooth struct {
 	*Radio
 	gatt gatt.Device

@@ -1,19 +1,21 @@
 package proxyvisor
 
+import (
+	"math/rand"
+	"time"
+)
+
 func Provision() (string, error) {
-	return "PIo0c6fYkQN0liVOPAVs7WA4WtP8NYChlDjRKPO75xpmT1Kj0wk1nPJFIwDStv", nil
-	// resp, err := http.Post("http://localhost:3000/v1/device", "", nil)
-	// defer resp.Body.Close()
+	// Simulate proxyvisor whilst we wait for it to be released by returning a random 62 char string
+	return random(62), nil
+}
 
-	// if err != nil {
-	// 	log.Println("Failed to query proxyvisor")
-	// 	return "", err
-	// }
-
-	// b, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	log.Println("Failed to parse response")
-	// 	return "", err
-	// }
-	// return string(b), nil
+func random(strlen int) string {
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, strlen)
+	for i := 0; i < strlen; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
 }

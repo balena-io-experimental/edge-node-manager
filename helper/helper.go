@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 )
 
-func GetApplication(applicationsPath, applicationUUID string) (application, commit string, err error) {
-	commit, err = getCommit(applicationsPath, applicationUUID)
+func GetApplication(applicationsPath, applicationUUID string) (string, string, error) {
+	commit, err := getCommit(applicationsPath, applicationUUID)
 	if err != nil {
 		log.Printf("Failed to get commit. Error: %s\r\n", err)
 		return "", "", err
@@ -19,7 +19,7 @@ func GetApplication(applicationsPath, applicationUUID string) (application, comm
 
 	basePath := filepath.Join(applicationsPath, applicationUUID, commit)
 	tarball := filepath.Join(basePath, "binary.tar")
-	application = filepath.Join(basePath, "application.zip")
+	application := filepath.Join(basePath, "application.zip")
 
 	_, err = os.Stat(application)
 	if err != nil {
@@ -30,7 +30,7 @@ func GetApplication(applicationsPath, applicationUUID string) (application, comm
 		}
 	}
 
-	return
+	return application, commit, err
 }
 
 func untar(tarball, target string) error {
@@ -39,13 +39,10 @@ func untar(tarball, target string) error {
 		return err
 	}
 	defer reader.Close()
-	tarReader := tar.NewReader(reader)
 
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
+	tarReader := tar.NewReader(reader)
+	for header, err := tarReader.Next(); err != io.EOF; header, err = tarReader.Next() {
+		if err != nil {
 			return err
 		}
 
@@ -63,6 +60,7 @@ func untar(tarball, target string) error {
 			return err
 		}
 		defer file.Close()
+
 		_, err = io.Copy(file, tarReader)
 		if err != nil {
 			return err

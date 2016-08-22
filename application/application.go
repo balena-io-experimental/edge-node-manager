@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
 	"github.com/josephroberts/edge-node-manager/helper"
@@ -13,17 +12,16 @@ import (
 	"github.com/josephroberts/edge-node-manager/radio"
 )
 
-type ApplicationInterface interface {
+type Interface interface {
 	Process() error
-	loadDevices() (map[string]device.DeviceInterface, error)
-	updateDevices(devices map[string]device.DeviceInterface) error
-	createDevice(localUUID string) (device.DeviceInterface, string, error)
 }
 
 type Application struct {
-	Name   string
-	Device device.SupportedDevice
-	Radio  radio.RadioInterface
+	Name      string
+	Directory string
+	Database  database.Interface
+	Device    device.SupportedDevice
+	Radio     radio.Interface
 }
 
 func (a *Application) Process() error {
@@ -32,7 +30,7 @@ func (a *Application) Process() error {
 	log.Printf("Application device type: %s\r\n", a.Device)
 	log.Printf("Application radio type: %T\r\n", a.Radio)
 
-	application, commit, err := helper.GetApplication(config.Persistant, a.Name)
+	application, commit, err := helper.GetApplication(a.Directory, a.Name)
 	if err != nil {
 		log.Printf("No application location or commit found\r\n")
 	} else {
@@ -40,10 +38,14 @@ func (a *Application) Process() error {
 		log.Printf("Application commit: %s\r\n", commit)
 	}
 
-	applicationDevices, _ := a.loadDevices()
-	log.Printf("%d application devices found\r\n", len(applicationDevices))
-	for key, applicationDevice := range applicationDevices {
-		log.Printf("Id: %s, %s\r\n", key, applicationDevice)
+	applicationDevices, err := a.loadDevices()
+	if err != nil {
+		log.Printf("Failed to load devices\r\n")
+	} else {
+		log.Printf("%d application devices found\r\n", len(applicationDevices))
+		for key, applicationDevice := range applicationDevices {
+			log.Printf("Key: %s, %s\r\n", key, applicationDevice)
+		}
 	}
 
 	onlineDevices, err := a.Radio.Scan(a.Name, 10)
@@ -86,11 +88,9 @@ func (a *Application) Process() error {
 		if online {
 			applicationDevice.GetDevice().State = device.ONLINE
 			applicationDevice.GetDevice().LastSeen = time.Now()
-			//applicationDevice.Update(application, commit)
 		} else {
 			applicationDevice.GetDevice().State = device.OFFLINE
 		}
-
 	}
 
 	a.updateDevices(applicationDevices)
@@ -98,16 +98,16 @@ func (a *Application) Process() error {
 	return nil
 }
 
-func (a *Application) loadDevices() (map[string]device.DeviceInterface, error) {
-	resp, err := database.Query("applicationUUID", a.Name)
+func (a *Application) loadDevices() (map[string]device.Interface, error) {
+	resp, err := a.Database.Query("applicationUUID", a.Name)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	buffer := make(map[string]interface{})
 	err = json.Unmarshal(resp, &buffer)
 
-	devices := make(map[string]device.DeviceInterface)
+	devices := make(map[string]device.Interface)
 
 	for key, value := range buffer {
 		b, _ := json.Marshal(value)
@@ -120,30 +120,30 @@ func (a *Application) loadDevices() (map[string]device.DeviceInterface, error) {
 	return devices, err
 }
 
-func (a *Application) updateDevices(devices map[string]device.DeviceInterface) error {
+func (a *Application) updateDevices(devices map[string]device.Interface) error {
 	for key, value := range devices {
 		buffer, err := value.Serialise()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
-		err = database.Update(key, buffer)
+		err = a.Database.Update(key, buffer)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (a *Application) createDevice(localUUID string) (device.DeviceInterface, string, error) {
+func (a *Application) createDevice(localUUID string) (device.Interface, string, error) {
 	i := device.Create(a.Device)
 	d := i.GetDevice()
 	d.LocalUUID = localUUID
 	d.ApplicationUUID = a.Name
 	resinUUID, err := proxyvisor.Provision()
 	if err != nil {
-		log.Fatal("Failed to provision device")
+		return nil, "", err
 	}
 	d.ResinUUID = resinUUID
 	d.Commit = ""
@@ -154,12 +154,12 @@ func (a *Application) createDevice(localUUID string) (device.DeviceInterface, st
 
 	b, err := d.Serialise()
 	if err != nil {
-		log.Fatal("Failed to provision device")
+		return nil, "", err
 	}
 
-	b, err = database.Insert(b)
+	b, err = a.Database.Insert(b)
 	if err != nil {
-		log.Fatal("Failed to provision device")
+		return nil, "", err
 	}
 
 	return i, string(b), nil
