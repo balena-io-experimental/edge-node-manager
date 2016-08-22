@@ -23,7 +23,7 @@ func (r Bluetooth) Scan(name string, timeout time.Duration) ([]string, error) {
 	r.gatt.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
 	r.gatt.Init(onStateChanged)
 
-	devices := make([]string, 10)
+	devices := make([]string, 0, 10)
 	for {
 		select {
 		case <-time.After(timeout * time.Second):
