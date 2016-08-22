@@ -81,11 +81,11 @@ func (d Nrf51822) Online() (bool, error) {
 }
 
 func (d Nrf51822) Identify() error {
-	//return nil
-	return d.GetDevice().Radio.WriteCharacteristic(d.identifyHandle, 0x01) //How to get access to underlying type
+	return nil
+	//return d.GetDevice().Radio.WriteCharacteristic(d.identifyHandle, 0x01) //How to get access to underlying type
 }
 
 func (d Nrf51822) Restart() error {
-	//return nil
-	return d.GetDevice().Radio.WriteCharacteristic(d.restartHandle, 0x01) //How to get access to underlying type
+	return nil
+	//return d.GetDevice().Radio.WriteCharacteristic(d.restartHandle, 0x01) //How to get access to underlying type
 }

@@ -8,25 +8,13 @@ import (
 	"github.com/josephroberts/edge-node-manager/radio"
 )
 
-type SupportedDevice int
+type SupportedDevice string
 
 const (
-	NRF51822 SupportedDevice = iota
-	ESP8266
-	MICROBIT
+	NRF51822 SupportedDevice = "NRF51822"
+	ESP8266  SupportedDevice = "ESP8266"
+	MICROBIT SupportedDevice = "MicroBit"
 )
-
-func (d SupportedDevice) String() string {
-	switch d {
-	case NRF51822:
-		return "NRF51822"
-	case ESP8266:
-		return "ESP8266"
-	case MICROBIT:
-		return "MicroBit"
-	}
-	return "Not supported"
-}
 
 func Create(d SupportedDevice) DeviceInterface {
 	switch d {
@@ -60,13 +48,13 @@ type DeviceInterface interface {
 	Restart() error
 }
 
-type State int
+type State string
 
 const (
-	UPDATING State = iota
-	ONLINE
-	OFFLINE
-	DOWNLOADING
+	UPDATING    State = "Updating"
+	ONLINE      State = "Online"
+	OFFLINE     State = "Offline"
+	DOWNLOADING State = "Downloading"
 )
 
 type Device struct {
@@ -75,20 +63,20 @@ type Device struct {
 	ResinUUID       string               `json:"resinUUID"`
 	Commit          string               `json:"commit"`
 	LastSeen        time.Time            `json:"lastSeen, string"`
-	State           State                `json:"state, int"`
+	State           State                `json:"state, string"`
 	Progress        float32              `json:"progress, float32"`
 	Radio           radio.RadioInterface `json:"-"`
 }
 
 func (d Device) String() string {
-	return fmt.Sprintf("Device type: %T"+
+	return fmt.Sprintf("Device type: %T "+
 		"LocalUUID: %s, "+
 		"ApplicationUUID: %s, "+
 		"ResinUUID: %s, "+
 		"Commit: %s, "+
 		"LastSeen: %s, "+
 		"State: %s, "+
-		"Progress: %f"+
+		"Progress: %f "+
 		"Radio type: %T",
 		d, //How to make this print actual device type rather than just device.Device
 		d.LocalUUID,
@@ -98,7 +86,7 @@ func (d Device) String() string {
 		d.LastSeen.Format(time.RFC3339),
 		d.State,
 		d.Progress,
-		d.Radio.GetRadio()) //How to make this print actual radio type rather than just radio.Device
+		d.Radio) //How to make this print actual radio type rather than just radio.Device
 }
 
 func (d Device) Serialise() ([]byte, error) {
