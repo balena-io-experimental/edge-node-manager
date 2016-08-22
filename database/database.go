@@ -57,7 +57,7 @@ func Stop() {
 }
 
 func Query(key, value string) ([]byte, error) {
-	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/query?col=Devices",
+	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/query?",
 		url.Values{"q": {`{"eq": "` + value + `", "in": ["` + key + `"]}`}, "col": {"Devices"}})
 	defer resp.Body.Close()
 
@@ -76,7 +76,7 @@ func Query(key, value string) ([]byte, error) {
 }
 
 func Insert(device []byte) ([]byte, error) {
-	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/insert?col=Devices",
+	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/insert?",
 		url.Values{"doc": {string(device)}, "col": {"Devices"}})
 	defer resp.Body.Close()
 
@@ -87,4 +87,18 @@ func Insert(device []byte) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func Update(key string, device []byte) error {
+	resp, err := http.PostForm("http://localhost:"+config.DbPort+"/update?",
+		url.Values{"doc": {string(device)}, "id": {key}, "col": {"Devices"}})
+	defer resp.Body.Close()
+
+	_, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Failed to parse return from database")
+		return err
+	}
+
+	return err
 }
