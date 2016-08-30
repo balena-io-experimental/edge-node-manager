@@ -3,62 +3,66 @@ package database
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
-	"github.com/HouzuoGuo/tiedot/db"
+	log "github.com/Sirupsen/logrus"
+
+	tiedotDb "github.com/HouzuoGuo/tiedot/db"
 	"github.com/fatih/structs"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/device"
 )
 
 /*
-Uses the tiedot database
-https://github.com/HouzuoGuo/tiedot
-*/
+ * Uses the tiedot database
+ * https://github.com/HouzuoGuo/tiedot
+ */
 
-var directory string
-var connection *db.DB
+var (
+	directory  string
+	connection *tiedotDb.DB
+)
 
-func LoadDevices(uuid string, t *device.Type) (map[int]device.Interface, error) {
-	initialise()
-	query := fmt.Sprintf(`[{"eq": "%s", "in": ["ApplicationUUID"]}]`, uuid)
-	var q interface{}
-	if err := json.Unmarshal([]byte(query), &q); err != nil {
+func LoadDevices(uuid string) (map[string]*device.Device, error) {
+	results, err := query(uuid, "ApplicationUUID")
+	if err != nil {
 		return nil, err
 	}
 
-	queryResult := make(map[int]struct{})
-	devices := connection.Use("Devices")
-	if err := db.EvalQuery(q, devices, &queryResult); err != nil {
-		return nil, err
-	}
-
-	result := make(map[int]device.Interface)
-	for key := range queryResult {
-		if device, err := loadDevice(key, t); err != nil {
+	devices := make(map[string]*device.Device)
+	for result := range results {
+		device, err := loadDevice(result)
+		if err != nil {
 			return nil, err
-		} else {
-			result[key] = device
 		}
+		devices[device.LocalUUID] = device
 	}
 
-	return result, nil
+	return devices, nil
 }
 
-func SaveDevice(d device.Interface) (int, error) {
-	devices := connection.Use("Devices")
-	return devices.Insert(interfaceToMap(d))
+func SaveDevice(newDevice *device.Device) (*device.Device, error) {
+	collection := connection.Use("Devices")
+	key, err := collection.Insert(structs.Map(newDevice))
+	if err != nil {
+		return &device.Device{}, err
+	}
+
+	newDevice.DatabaseUUID = key
+	if err := updateDevice(newDevice); err != nil {
+		return &device.Device{}, err
+	}
+
+	return loadDevice(key)
 }
 
 func RemoveDevice(key int) error {
-	devices := connection.Use("Devices")
-	return devices.Delete(key)
+	collection := connection.Use("Devices")
+	return collection.Delete(key)
 }
 
-func UpdateDevices(d map[int]device.Interface) error {
-	initialise()
-	for key, value := range d {
-		if err := updateDevice(key, value); err != nil {
+func UpdateDevices(existingDevices map[string]*device.Device) error {
+	for _, existingDevice := range existingDevices {
+		if err := updateDevice(existingDevice); err != nil {
 			return err
 		}
 	}
@@ -66,86 +70,81 @@ func UpdateDevices(d map[int]device.Interface) error {
 	return nil
 }
 
-func Stop() {
-	if connection != nil {
-		if err := connection.Close(); err != nil {
-			log.Fatalf("Unable to close database connection: %v", err)
-		}
-	}
-}
-
-func initialise() {
-	if directory == "" {
-		directory = config.GetDbDirectory()
-	}
+func Stop() error {
 	if connection == nil {
-		var err error
-		if connection, err = db.OpenDB(directory); err != nil {
-			log.Fatalf("Unable to open database connection: %v", err)
-		} else {
-			collection := createCollection("Devices")
-			createIndex("ApplicationUUID", collection)
-		}
-		log.Printf("Opened database connection to %s", directory)
+		return nil
 	}
+	return connection.Close()
 }
 
-func createCollection(name string) *db.Col {
-	exists := false
-	collections := connection.AllCols()
-	for _, collection := range collections {
-		if collection == name {
-			exists = true
-			break
-		}
-	}
-	if !exists {
-		connection.Create(name)
-	}
-	return connection.Use(name)
-}
+func init() {
+	directory = config.GetDbDirectory()
 
-func createIndex(name string, collection *db.Col) {
-	exists := false
-	paths := collection.AllIndexes()
-	for _, path := range paths {
-		for _, index := range path {
-			if index == name {
-				exists = true
-				break
-			}
-		}
-		if exists {
-			break
-		}
-	}
-	if !exists {
-		collection.Index([]string{name})
-	}
-}
-
-func loadDevice(key int, t *device.Type) (device.Interface, error) {
-	devices := connection.Use("Devices")
-	if readBack, err := devices.Read(key); err != nil {
-		return nil, err
+	var err error
+	if connection, err = tiedotDb.OpenDB(directory); err != nil {
+		log.WithFields(log.Fields{
+			"Directory": directory,
+			"Error":     err,
+		}).Fatal("Unable to open database connection")
 	} else {
-		if bytes, err := json.Marshal(readBack); err != nil { // How can we avoid marshalling and then unmarshalling to populate the device
-			return nil, err
-		} else {
-			device := device.Create(t)
-			json.Unmarshal(bytes, device.GetDevice()) // See comment above
-			return device, nil
-		}
+		// Ignore error as the Devices collection could already exist
+		connection.Create("Devices")
+		collection := connection.Use("Devices")
+		// Ignore error as the ApplicationUUID index could already exist
+		collection.Index([]string{"ApplicationUUID"})
 	}
+
+	log.WithFields(log.Fields{
+		"Directory": directory,
+	}).Debug("Opened database connection")
 }
 
-func updateDevice(key int, d device.Interface) error {
-	devices := connection.Use("Devices")
-	return devices.Update(key, interfaceToMap(d))
+func query(value, field string) (map[int]struct{}, error) {
+	query := fmt.Sprintf(`[{"eq": "%s", "in": ["%s"]}]`, value, field)
+
+	// TODO: Research how to avoid this unmarshalling step
+	var q interface{}
+	if err := json.Unmarshal([]byte(query), &q); err != nil {
+		return nil, err
+	}
+
+	queryResult := make(map[int]struct{})
+	collection := connection.Use("Devices")
+	if err := tiedotDb.EvalQuery(q, collection, &queryResult); err != nil {
+		return nil, err
+	}
+
+	return queryResult, nil
 }
 
-func interfaceToMap(d device.Interface) map[string]interface{} {
-	device := structs.Map(d.GetDevice())
-	delete(device, "Type")
-	return device
+func loadDevice(key int) (*device.Device, error) {
+	collection := connection.Use("Devices")
+	readBack, err := collection.Read(key)
+	if err != nil {
+		return &device.Device{}, err
+	}
+	/*
+	 * Set the DatabaseUUID
+	 * This is neccessary as the DB does not store the DatabaseUUID field correctly
+	 * Save 4170124961882522202, and get 1.1229774266282973e+18 back (looks like overflow)
+	 */
+	readBack["DatabaseUUID"] = key
+
+	// TODO: Research how to avoid this marshalling step
+	bytes, err := json.Marshal(readBack)
+	if err != nil {
+		return &device.Device{}, err
+	}
+
+	existingDevice := &device.Device{}
+	if err := json.Unmarshal(bytes, existingDevice); err != nil {
+		return &device.Device{}, err
+	}
+
+	return existingDevice, nil
+}
+
+func updateDevice(existingDevice *device.Device) error {
+	collection := connection.Use("Devices")
+	return collection.Update(existingDevice.DatabaseUUID, structs.Map(existingDevice))
 }

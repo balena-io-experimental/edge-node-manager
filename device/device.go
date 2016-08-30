@@ -4,67 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/josephroberts/edge-node-manager/device/deviceType"
-	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
-	"github.com/josephroberts/edge-node-manager/radio/radioType"
-	"github.com/josephroberts/edge-node-manager/radio/wifi"
-	"github.com/josephroberts/edge-node-manager/radio/zigbee"
+	"github.com/josephroberts/edge-node-manager/micro"
+	"github.com/josephroberts/edge-node-manager/radio"
 )
 
-type Type struct {
-	Device deviceType.Type
-	Radio  radioType.Type
-}
-
-func (t Type) Scan(name string, timeout time.Duration) ([]string, error) {
-	switch t.Radio {
-	case radioType.BLUETOOTH:
-		return bluetooth.Scan(name, timeout)
-	case radioType.WIFI:
-		return wifi.Scan(name, timeout)
-	case radioType.ZIGBEE:
-		return zigbee.Scan(name, timeout)
-	default:
-		return nil, fmt.Errorf("Radio %s does not exist", t.Radio)
-	}
-}
-
-func Create(t *Type) Interface {
-	switch t.Device {
-	case deviceType.NRF51822:
-		return &Nrf51822{
-			Device: &Device{
-				Type: t,
-			},
-		}
-	case deviceType.ESP8266:
-		return &Esp8266{
-			Device: &Device{
-				Type: t,
-			},
-		}
-	}
-
-	return nil
-}
-
-func Provision(t *Type, localUUID, applicationUUID, resinUUID string) Interface {
-	device := Create(t)
-	device.GetDevice().LocalUUID = localUUID
-	device.GetDevice().ApplicationUUID = applicationUUID
-	device.GetDevice().LastSeen = time.Now()
-	device.GetDevice().State = ONLINE
-	return device
-}
-
-type Interface interface {
-	String() string
-
-	GetDevice() *Device
-	Update(application, commit string) error
-	Online() (bool, error)
-	Identify() error
-	Restart() error
+type DeviceType struct {
+	Micro micro.MicroType `json:"Micro"`
+	Radio radio.RadioType `json:"Radio"`
 }
 
 type State string
@@ -77,34 +23,57 @@ const (
 )
 
 type Device struct {
-	*Type
-	LocalUUID       string
-	ApplicationUUID string
-	ResinUUID       string
-	Commit          string
-	LastSeen        time.Time
-	State           State
-	Progress        float32
+	DeviceType      `json:"DeviceType"`
+	LocalUUID       string    `json:"LocalUUID"`
+	ApplicationUUID string    `json:"ApplicationUUID"`
+	ResinUUID       string    `json:"ResinUUID"`
+	DatabaseUUID    int       `json:"DatabaseUUID"`
+	Commit          string    `json:"Commit"`
+	LastSeen        time.Time `json:"LastSeen"`
+	State           State     `json:"State"`
+	Progress        float32   `json:"Progress"`
+}
+
+type Interface interface {
+	String() string
+	Update(application, commit string) error
+	Online() (bool, error)
+	Identify() error
+	Restart() error
 }
 
 func (d Device) String() string {
 	return fmt.Sprintf(
-		"Device type: %s, "+
+		"Micro type: %s, "+
 			"Radio type: %s, "+
 			"LocalUUID: %s, "+
 			"ApplicationUUID: %s, "+
 			"ResinUUID: %s, "+
+			"DatabaseUUID: %d, "+
 			"Commit: %s, "+
 			"LastSeen: %s, "+
 			"State: %s, "+
-			"Progress: %.2f",
-		d.Type.Device,
-		d.Type.Radio,
+			"Progress: %2.2f",
+		d.DeviceType.Micro,
+		d.DeviceType.Radio,
 		d.LocalUUID,
 		d.ApplicationUUID,
 		d.ResinUUID,
+		d.DatabaseUUID,
 		d.Commit,
-		d.LastSeen.Format(time.RFC3339),
+		d.LastSeen,
 		d.State,
 		d.Progress)
+}
+
+func (d Device) ChooseType() Interface {
+	switch d.DeviceType.Micro {
+	case micro.NRF51822:
+		return (Nrf51822)(d)
+	case micro.ESP8266:
+		return (Esp8266)(d)
+	}
+
+	return nil
+
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func Provision() (string, error) {
+func NewDevice(appUUID string) (string, error) {
 	// Simulate proxyvisor whilst we wait for it to be released by returning a random 62 char string
 	return random(62), nil
 }

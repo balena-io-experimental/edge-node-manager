@@ -1,13 +1,11 @@
 package wifi
 
 import (
-	"log"
 	"net/http"
 	"time"
 )
 
-func Scan(name string, timeout time.Duration) ([]string, error) {
-	log.Printf("Scanning for wifi devices named %s\r\n", name)
+func Scan(name string, timeout time.Duration) (map[string]bool, error) {
 
 	http.Get("http://example.com/")
 
@@ -15,7 +13,6 @@ func Scan(name string, timeout time.Duration) ([]string, error) {
 }
 
 func Online(id string, timeout time.Duration) (bool, error) {
-	log.Printf("Checking if wifi device %s is online\r\n", id)
 
 	http.Get("http://example.com/")
 
@@ -23,7 +20,6 @@ func Online(id string, timeout time.Duration) (bool, error) {
 }
 
 func Post(id, value string) error {
-	log.Printf("Checking if wifi device %s is online\r\n", id)
 
 	http.Get("http://example.com/")
 

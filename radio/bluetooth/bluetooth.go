@@ -1,28 +1,30 @@
 package bluetooth
 
 import (
-	"log"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/paypal/gatt"
 	"github.com/paypal/gatt/examples/option"
 )
 
 /*
-Uses the gatt package
-https://github.com/paypal/gatt
-*/
+ * Uses the gatt package
+ * https://github.com/paypal/gatt
+ */
+var (
+	radio            gatt.Device
+	bluetoothChannel = make(chan gatt.Peripheral)
+)
 
-var radio gatt.Device
-var bluetoothChannel = make(chan gatt.Peripheral)
-
-func Scan(name string, timeout time.Duration) ([]string, error) {
-	log.Printf("Scanning for bluetooth devices named %s\r\n", name)
-	initialise()
+func Scan(name string, timeout time.Duration) (map[string]bool, error) {
 	radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
-	radio.Init(onStateChanged)
+	if err := radio.Init(onStateChanged); err != nil {
+		return nil, err
+	}
 
-	devices := make([]string, 0, 10)
+	devices := make(map[string]bool)
 
 	for {
 		select {
@@ -31,17 +33,17 @@ func Scan(name string, timeout time.Duration) ([]string, error) {
 			return devices, nil
 		case onlineDevice := <-bluetoothChannel:
 			if onlineDevice.Name() == name {
-				devices = append(devices, onlineDevice.ID())
+				devices[onlineDevice.ID()] = true
 			}
 		}
 	}
 }
 
 func Online(id string, timeout time.Duration) (bool, error) {
-	log.Printf("Checking if bluetooth device %s is online\r\n", id)
-	initialise()
 	radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
-	radio.Init(onStateChanged)
+	if err := radio.Init(onStateChanged); err != nil {
+		return false, err
+	}
 
 	for {
 		select {
@@ -64,14 +66,18 @@ func ReadCharacteristic(handle byte) ([]byte, error) {
 	return nil, nil
 }
 
-func initialise() {
-	if radio == nil {
-		var err error
-		if radio, err = gatt.NewDevice(option.DefaultClientOptions...); err != nil {
-			log.Fatalf("Unable to create a new gatt device: %v", err)
-		}
-		log.Println("Created a new gatt device")
+func init() {
+	var err error
+	if radio, err = gatt.NewDevice(option.DefaultClientOptions...); err != nil {
+		log.WithFields(log.Fields{
+			"Options": option.DefaultClientOptions,
+			"Error":   err,
+		}).Fatal("Unable to create a new gatt device")
 	}
+
+	log.WithFields(log.Fields{
+		"Options": option.DefaultClientOptions,
+	}).Debug("Created new gatt device")
 }
 
 func onStateChanged(device gatt.Device, state gatt.State) {
