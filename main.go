@@ -79,6 +79,12 @@ func init() {
 			}).Fatal("Unable to stop database")
 		}
 
+		// if err := bluetooth.Disconnect; err != nil {
+		// 	log.WithFields(log.Fields{
+		// 		"Error": err,
+		// 	}).Fatal("Unable to disconnect bluetooth")
+		// }
+
 		os.Exit(0)
 	}()
 }
