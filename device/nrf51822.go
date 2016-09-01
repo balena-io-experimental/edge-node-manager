@@ -1,9 +1,11 @@
 package device
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/mholt/archiver"
@@ -110,40 +112,46 @@ func (d Nrf51822) Update(firmware firmware.Firmware) error {
 		"Commit":             firmware.Commit,
 	}).Info("Update")
 
-	if err := d.extractFirmware(firmware); err != nil {
+	var err error
+
+	if err = d.extractFirmware(firmware); err != nil {
 		return err
 	}
 
-	// 	bluetooth.Radio.Handle(
-	// 		gatt.PeripheralDiscovered(d.onPeriphDiscovered),
-	// 		gatt.PeripheralConnected(d.onPeriphConnected),
-	// 		gatt.PeripheralDisconnected(d.onPeriphDisconnected),
-	// 	)
-	// if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
-	// 	return err
-	// }
+	fota.state = "starting"
 
-	// for {
-	// 	select {
-	// 	case err = <-errChanel:
-	// 	case fota := <-fotaChannel:
-	// 		if fota.connected == true {
-	// 			log.Debug("Connected")
-	// 		} else {
-	// 			log.WithFields(log.Fields{
-	// 				"FOTA state": fota.state,
-	// 			}).Debug("Disconnected")
+	bluetooth.Radio.Handle(
+		gatt.PeripheralDiscovered(d.onPeriphDiscovered),
+		gatt.PeripheralConnected(d.onPeriphConnected),
+		gatt.PeripheralDisconnected(d.onPeriphDisconnected),
+	)
+	if err = bluetooth.Radio.Init(d.onStateChanged); err != nil {
+		return err
+	}
 
-	// 			if fota.state == "bootloader" {
-	// 				if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
-	// 					return err
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+	for {
+		select {
+		case err = <-errChanel:
+		case fota := <-fotaChannel:
+			if fota.connected == true {
+				log.Debug("Connected")
+			} else {
+				log.WithFields(log.Fields{
+					"FOTA state": fota.state,
+				}).Debug("Disconnected")
 
-	return nil
+				if fota.state == "startBootloader" {
+					if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
+						return err
+					}
+				} else if fota.state == "checkFOTA" {
+					return err
+				}
+			}
+		}
+	}
+
+	return err
 }
 
 func (d Nrf51822) Online() (bool, error) {
@@ -214,6 +222,7 @@ func (d Nrf51822) getName(periph gatt.Peripheral) (string, error) {
 }
 
 func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
+	fota.state = "startBootloader"
 
 	name, err := d.getName(periph)
 	if err != nil {
@@ -223,6 +232,8 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 	if name == "DfuTarg" {
 		log.Debug("In bootloader mode")
 		return nil
+	} else {
+		log.Debug("Started bootloader mode")
 	}
 
 	serviceUUID, err := gatt.ParseUUID("000015301212efde1523785feabcd123")
@@ -243,6 +254,7 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 	service := gatt.NewService(serviceUUID)
 	characteristic := gatt.NewCharacteristic(characteristicUUID, service, 0x18, 15, 16)
 	descriptor := gatt.NewDescriptor(descriptorUUID, 17, characteristic)
+	characteristic.SetDescriptor(descriptor)
 
 	if err := periph.WriteDescriptor(descriptor, []byte{0x01, 0x00}); err != nil {
 		return err
@@ -252,18 +264,78 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 		return err
 	}
 
-	log.Debug("Started bootloader mode")
-
-	fota.state = "bootloader"
-
 	return nil
 }
 
-func (d Nrf51822) checkFOTA() error {
-	return nil
+func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
+	fota.state = "checkFOTA"
+
+	log.Debug("Checking FOTA") //Why does this get printed twice?
+
+	serviceUUID, err := gatt.ParseUUID("000015301212efde1523785feabcd123")
+	if err != nil {
+		return err
+	}
+
+	characteristicUUID, err := gatt.ParseUUID("000015311212efde1523785feabcd123")
+	if err != nil {
+		return err
+	}
+
+	descriptorUUID, err := gatt.ParseUUID("2902")
+	if err != nil {
+		return err
+	}
+
+	service := gatt.NewService(serviceUUID)
+	characteristic := gatt.NewCharacteristic(characteristicUUID, service, 0x18, 15, 16)
+	descriptor := gatt.NewDescriptor(descriptorUUID, 17, characteristic)
+	characteristic.SetDescriptor(descriptor)
+
+	if err := periph.WriteDescriptor(descriptor, []byte{0x01, 0x00}); err != nil {
+		return err
+	}
+
+	notifiedChannel := make(chan []byte)
+	callback := func(c *gatt.Characteristic, b []byte, err error) {
+		notifiedChannel <- b
+	}
+
+	if err := periph.SetNotifyValue(characteristic, callback); err != nil {
+		return err
+	}
+
+	if err := periph.WriteCharacteristic(characteristic, []byte{0x07}, false); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			return fmt.Errorf("Timed out waiting for notification")
+		case response := <-notifiedChannel:
+			if (int)(response[0]) != 16 || (int)(response[1]) != 7 || (int)(response[2]) != 1 {
+				return fmt.Errorf("Incorrect notification received")
+			}
+
+			fota.startBlock = 0
+			fota.startBlock += ((int)(response[6]) << 24)
+			fota.startBlock += ((int)(response[5]) << 16)
+			fota.startBlock += ((int)(response[4]) << 8)
+			fota.startBlock += ((int)(response[3]) << 0)
+			break
+		}
+		break
+	}
+
+	log.WithFields(log.Fields{
+		"Start block": fota.startBlock,
+	}).Debug("Checked FOTA")
+
+	return err
 }
 
-func (d Nrf51822) initFOTA() error {
+func (d Nrf51822) initFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
@@ -310,7 +382,22 @@ func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
 		return
 	}
 
-	// // Discovery services
+	// Time delay to allow device to restart in bootloader mode
+	time.Sleep(1 * time.Second)
+
+	if err := d.checkFOTA(periph); err != nil {
+		errChanel <- err
+		return
+	}
+
+	if fota.startBlock == 0 {
+		if err := d.initFOTA(periph); err != nil { //Do this next
+			errChanel <- err
+			return
+		}
+	}
+
+	// Discovery services
 	// ss, err := periph.DiscoverServices(nil)
 	// if err != nil {
 	// 	fmt.Printf("Failed to discover services, err: %s\n", err)
