@@ -3,6 +3,7 @@ package device
 import (
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/josephroberts/edge-node-manager/firmware"
 	"github.com/josephroberts/edge-node-manager/radio/wifi"
 )
 
@@ -12,11 +13,11 @@ func (d Esp8266) String() string {
 	return (Device)(d).String()
 }
 
-func (d Esp8266) Update(application, commit string) error {
+func (d Esp8266) Update(firmware firmware.Firmware) error {
 	log.WithFields(log.Fields{
-		"Device":           d,
-		"Application UUID": application,
-		"Commit":           commit,
+		"Device":             d,
+		"Firmware directory": firmware.Directory,
+		"Commit":             firmware.Commit,
 	}).Debug("Update")
 	return nil
 }

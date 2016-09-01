@@ -119,10 +119,15 @@ func (a *Application) Process() error {
 		} else if online {
 			appDevice.State = device.ONLINE
 			appDevice.LastSeen = time.Now()
+
+			if err := appDevice.ChooseType().Update(a.Firmware); err != nil {
+				return err
+			}
 		}
 	}
 
 	// Update DB with device changes
+	//TODO: should probably update after every action or at least cache
 	if err := database.UpdateDevices(appDevices); err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/josephroberts/edge-node-manager/firmware"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
 )
@@ -36,7 +37,7 @@ type Device struct {
 
 type Interface interface {
 	String() string
-	Update(application, commit string) error
+	Update(firmware firmware.Firmware) error
 	Online() (bool, error)
 	Identify() error
 	Restart() error
