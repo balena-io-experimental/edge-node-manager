@@ -1,9 +1,12 @@
 package device
 
 import (
+	"io/ioutil"
+	"path"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/mholt/archiver"
 	"github.com/paypal/gatt"
 
 	"github.com/josephroberts/edge-node-manager/firmware"
@@ -80,10 +83,20 @@ import (
 
 type Nrf51822 Device
 
+type FOTA struct {
+	progress   float32
+	startBlock int
+	binary     []byte
+	data       []byte
+	size       int
+	state      string
+	connected  bool
+}
+
 var (
-	connectedChannel = make(chan bool)
-	errChanel        = make(chan error)
-	stateChannel     = make(chan string)
+	errChanel   = make(chan error)
+	fotaChannel = make(chan FOTA)
+	fota        = FOTA{}
 )
 
 func (d Nrf51822) String() string {
@@ -97,40 +110,40 @@ func (d Nrf51822) Update(firmware firmware.Firmware) error {
 		"Commit":             firmware.Commit,
 	}).Info("Update")
 
-	bluetooth.Radio.Handle(
-		gatt.PeripheralDiscovered(d.onPeriphDiscovered),
-		gatt.PeripheralConnected(d.onPeriphConnected),
-		gatt.PeripheralDisconnected(d.onPeriphDisconnected),
-	)
-	if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
+	if err := d.extractFirmware(firmware); err != nil {
 		return err
 	}
 
-	var err error
-	for {
-		select {
-		case err = <-errChanel:
-		case connected := <-connectedChannel:
-			if connected {
-				log.Debug("Connected")
-			} else {
-				// Need to make this non blocking, incase of disconnect without state
-				state := <-stateChannel
+	// 	bluetooth.Radio.Handle(
+	// 		gatt.PeripheralDiscovered(d.onPeriphDiscovered),
+	// 		gatt.PeripheralConnected(d.onPeriphConnected),
+	// 		gatt.PeripheralDisconnected(d.onPeriphDisconnected),
+	// 	)
+	// if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
+	// 	return err
+	// }
 
-				log.WithFields(log.Fields{
-					"State": state,
-				}).Debug("Disconnected")
+	// for {
+	// 	select {
+	// 	case err = <-errChanel:
+	// 	case fota := <-fotaChannel:
+	// 		if fota.connected == true {
+	// 			log.Debug("Connected")
+	// 		} else {
+	// 			log.WithFields(log.Fields{
+	// 				"FOTA state": fota.state,
+	// 			}).Debug("Disconnected")
 
-				if state == "bootloader" {
-					if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
+	// 			if fota.state == "bootloader" {
+	// 				if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
+	// 					return err
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
-	return err
+	return nil
 }
 
 func (d Nrf51822) Online() (bool, error) {
@@ -151,6 +164,30 @@ func (d Nrf51822) Restart() error {
 	log.WithFields(log.Fields{
 		"Device": d,
 	}).Debug("Restart")
+	return nil
+}
+
+func (d Nrf51822) extractFirmware(firmware firmware.Firmware) error {
+	//TODO: maybe worth passing in the final directory instead of directory and commit
+	directory := path.Join(firmware.Directory, firmware.Commit)
+	var err error
+
+	if err = archiver.Unzip(path.Join(directory, "application.zip"), directory); err != nil {
+		return err
+	}
+
+	fota.binary, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.bin"))
+	if err != nil {
+		return err
+	}
+
+	fota.data, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.dat"))
+	if err != nil {
+		return err
+	}
+
+	fota.size = len(fota.binary)
+
 	return nil
 }
 
@@ -217,7 +254,7 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 
 	log.Debug("Started bootloader mode")
 
-	stateChannel <- "bootloader"
+	fota.state = "bootloader"
 
 	return nil
 }
@@ -258,7 +295,9 @@ func (d Nrf51822) onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertise
 }
 
 func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
-	connectedChannel <- true
+	fota.connected = true
+	fotaChannel <- fota
+
 	defer periph.Device().CancelConnection(periph)
 
 	if err := periph.SetMTU(500); err != nil {
@@ -356,5 +395,6 @@ func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
 }
 
 func (d Nrf51822) onPeriphDisconnected(periph gatt.Peripheral, err error) {
-	connectedChannel <- false
+	fota.connected = false
+	fotaChannel <- fota
 }
