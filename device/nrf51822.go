@@ -146,6 +146,8 @@ func (d Nrf51822) Update(firmware firmware.Firmware) error {
 					}
 				} else if fota.state == "checkFOTA" {
 					return err
+				} else if fota.state == "initFOTA" {
+					return err
 				}
 			}
 		}
@@ -336,6 +338,87 @@ func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
 }
 
 func (d Nrf51822) initFOTA(periph gatt.Peripheral) error {
+	fota.state = "initFOTA"
+
+	log.Debug("Initialising FOTA")
+
+	serviceUUID, err := gatt.ParseUUID("000015301212efde1523785feabcd123")
+	if err != nil {
+		return err
+	}
+
+	characteristicUUID, err := gatt.ParseUUID("000015311212efde1523785feabcd123")
+	if err != nil {
+		return err
+	}
+
+	descriptorUUID, err := gatt.ParseUUID("2902")
+	if err != nil {
+		return err
+	}
+
+	service := gatt.NewService(serviceUUID)
+	characteristic := gatt.NewCharacteristic(characteristicUUID, service, 0x18, 15, 16)
+	descriptor := gatt.NewDescriptor(descriptorUUID, 17, characteristic)
+	characteristic.SetDescriptor(descriptor)
+
+	if err := periph.WriteDescriptor(descriptor, []byte{0x01, 0x00}); err != nil {
+		return err
+	}
+
+	if err := periph.WriteCharacteristic(characteristic, []byte{0x01, 0x04}, false); err != nil {
+		return err
+	}
+
+	fmt.Println("YAY")
+
+	characteristicUUID, err = gatt.ParseUUID("000015321212efde1523785feabcd123")
+	if err != nil {
+		return err
+	}
+
+	characteristic = gatt.NewCharacteristic(characteristicUUID, service, 0x04, 13, 14)
+	characteristic.SetDescriptor(descriptor)
+
+	size := []byte{0, 0, 0, 0, 0, 0, 0, 0,
+		(byte)(fota.size >> 0 & 0xFF),
+		(byte)(fota.size >> 8 & 0xFF),
+		(byte)(fota.size >> 16 & 0xFF),
+		(byte)(fota.size >> 24 & 0xFF)}
+
+	notifiedChannel := make(chan []byte)
+	callback := func(c *gatt.Characteristic, b []byte, err error) {
+		notifiedChannel <- b
+	}
+
+	if err := periph.SetNotifyValue(characteristic, callback); err != nil {
+		return err
+	}
+
+	if err := periph.WriteCharacteristic(characteristic, size, false); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-time.After(5 * time.Second):
+			return fmt.Errorf("Timed out waiting for notification")
+		case response := <-notifiedChannel:
+			if (int)(response[0]) != 16 || (int)(response[1]) != 1 || (int)(response[2]) != 1 {
+				fmt.Println("yoyoyoy")
+				fmt.Println((int)(response[0]))
+				fmt.Println((int)(response[1]))
+				fmt.Println((int)(response[2]))
+				return fmt.Errorf("Incorrect notification received")
+			}
+
+			break
+		}
+		break
+	}
+
+	fmt.Println("YAY")
+
 	return nil
 }
 
@@ -398,87 +481,87 @@ func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
 	}
 
 	// Discovery services
-	// ss, err := periph.DiscoverServices(nil)
-	// if err != nil {
-	// 	fmt.Printf("Failed to discover services, err: %s\n", err)
-	// 	return
-	// }
+	ss, err := periph.DiscoverServices(nil)
+	if err != nil {
+		fmt.Printf("Failed to discover services, err: %s\n", err)
+		return
+	}
 
-	// for _, s := range ss {
-	// 	msg := "Service: " + s.UUID().String()
-	// 	if len(s.Name()) > 0 {
-	// 		msg += " (" + s.Name() + ")"
-	// 	}
-	// 	fmt.Println(msg)
+	for _, s := range ss {
+		msg := "Service: " + s.UUID().String()
+		if len(s.Name()) > 0 {
+			msg += " (" + s.Name() + ")"
+		}
+		fmt.Println(msg)
 
-	// 	// Discovery characteristics
-	// 	cs, err := periph.DiscoverCharacteristics(nil, s)
-	// 	if err != nil {
-	// 		fmt.Printf("Failed to discover characteristics, err: %s\n", err)
-	// 		continue
-	// 	}
+		// Discovery characteristics
+		cs, err := periph.DiscoverCharacteristics(nil, s)
+		if err != nil {
+			fmt.Printf("Failed to discover characteristics, err: %s\n", err)
+			continue
+		}
 
-	// 	for _, c := range cs {
+		for _, c := range cs {
 
-	// 		msg := "  Characteristic  " + c.UUID().String()
-	// 		if len(c.Name()) > 0 {
-	// 			msg += " (" + c.Name() + ")"
-	// 		}
-	// 		msg += "\n    properties    " + c.Properties().String()
-	// 		fmt.Println(msg)
+			msg := "  Characteristic  " + c.UUID().String()
+			if len(c.Name()) > 0 {
+				msg += " (" + c.Name() + ")"
+			}
+			msg += "\n    properties    " + c.Properties().String()
+			fmt.Println(msg)
 
-	// 		fmt.Println("H:", c.Handle())
-	// 		fmt.Println("VH: ", c.VHandle())
+			fmt.Println("H:", c.Handle())
+			fmt.Println("VH: ", c.VHandle())
 
-	// 		// Read the characteristic, if possible.
-	// 		if (c.Properties() & gatt.CharRead) != 0 {
-	// 			b, err := periph.ReadCharacteristic(c)
-	// 			if err != nil {
-	// 				fmt.Printf("Failed to read characteristic, err: %s\n", err)
-	// 				continue
-	// 			}
-	// 			fmt.Printf("    value         %x | %q\n", b, b)
-	// 		}
+			// Read the characteristic, if possible.
+			if (c.Properties() & gatt.CharRead) != 0 {
+				b, err := periph.ReadCharacteristic(c)
+				if err != nil {
+					fmt.Printf("Failed to read characteristic, err: %s\n", err)
+					continue
+				}
+				fmt.Printf("    value         %x | %q\n", b, b)
+			}
 
-	// 		// Discovery descriptors
-	// 		ds, err := periph.DiscoverDescriptors(nil, c)
-	// 		if err != nil {
-	// 			fmt.Printf("Failed to discover descriptors, err: %s\n", err)
-	// 			continue
-	// 		}
+			// Discovery descriptors
+			ds, err := periph.DiscoverDescriptors(nil, c)
+			if err != nil {
+				fmt.Printf("Failed to discover descriptors, err: %s\n", err)
+				continue
+			}
 
-	// 		for _, d := range ds {
-	// 			msg := "  Descriptor      " + d.UUID().String()
-	// 			if len(d.Name()) > 0 {
-	// 				msg += " (" + d.Name() + ")"
-	// 			}
-	// 			fmt.Println(msg)
+			for _, d := range ds {
+				msg := "  Descriptor      " + d.UUID().String()
+				if len(d.Name()) > 0 {
+					msg += " (" + d.Name() + ")"
+				}
+				fmt.Println(msg)
 
-	// 			fmt.Println("H:", d.Handle())
-	// 			// Read descriptor (could fail, if it's not readable)
-	// 			b, err := periph.ReadDescriptor(d)
-	// 			if err != nil {
-	// 				fmt.Printf("Failed to read descriptor, err: %s\n", err)
-	// 				continue
-	// 			}
-	// 			fmt.Printf("    value         %x | %q\n", b, b)
+				fmt.Println("H:", d.Handle())
+				// Read descriptor (could fail, if it's not readable)
+				b, err := periph.ReadDescriptor(d)
+				if err != nil {
+					fmt.Printf("Failed to read descriptor, err: %s\n", err)
+					continue
+				}
+				fmt.Printf("    value         %x | %q\n", b, b)
 
-	// 		}
+			}
 
-	// 		// Subscribe the characteristic, if possible.
-	// 		if (c.Properties() & (gatt.CharNotify | gatt.CharIndicate)) != 0 {
-	// 			f := func(c *gatt.Characteristic, b []byte, err error) {
-	// 				fmt.Printf("notified: % X | %q\n", b, b)
-	// 			}
-	// 			if err := periph.SetNotifyValue(c, f); err != nil {
-	// 				fmt.Printf("Failed to subscribe characteristic, err: %s\n", err)
-	// 				continue
-	// 			}
-	// 		}
+			// Subscribe the characteristic, if possible.
+			if (c.Properties() & (gatt.CharNotify | gatt.CharIndicate)) != 0 {
+				f := func(c *gatt.Characteristic, b []byte, err error) {
+					fmt.Printf("notified: % X | %q\n", b, b)
+				}
+				if err := periph.SetNotifyValue(c, f); err != nil {
+					fmt.Printf("Failed to subscribe characteristic, err: %s\n", err)
+					continue
+				}
+			}
 
-	// 	}
-	// 	fmt.Println()
-	// }
+		}
+		fmt.Println()
+	}
 }
 
 func (d Nrf51822) onPeriphDisconnected(periph gatt.Peripheral, err error) {
