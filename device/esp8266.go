@@ -16,7 +16,7 @@ func (d Esp8266) String() string {
 func (d Esp8266) Update(firmware firmware.Firmware) error {
 	log.WithFields(log.Fields{
 		"Device":             d,
-		"Firmware directory": firmware.Directory,
+		"Firmware directory": firmware.Dir,
 		"Commit":             firmware.Commit,
 	}).Debug("Update")
 	return nil

@@ -1,6 +1,6 @@
 package firmware
 
 type Firmware struct {
-	Directory string
-	Commit    string
+	Dir    string
+	Commit string
 }

@@ -16,11 +16,64 @@ import (
 	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 )
 
+//TODOS
+//Identify and restart
+
 /*
- * Operations defined by device
+ * Please see the links below for an explanation of FOTA on an NRF51822 board
+ * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleprofile.html
  * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
  */
-// TODO: Make these generic for operation and procedure
+
+/*
+ * Output from the print function
+ *
+ * Service: 1800 (Generic Access)
+ *   Characteristic  2a00 (Device Name)
+ *     properties    read write
+ * H:  2  VH:  3
+ *     value         726573696e | "resin"
+ *   Characteristic  2a01 (Appearance)
+ *     properties    read
+ * H:  4  VH:  5
+ *     value         0000 | "\x00\x00"
+ *   Characteristic  2a04 (Peripheral Preferred Connection Parameters)
+ *     properties    read
+ * H:  6  VH:  7
+ *     value         0600200000009001 | "\x06\x00 \x00\x00\x00\x90\x01"
+ *
+ * Service: 1801 (Generic Attribute)
+ *   Characteristic  2a05 (Service Changed)
+ *     properties    indicate
+ * H:  9  VH:  10
+ *   Descriptor      2902 (Client Characteristic Configuration)
+ * H:  9
+ *     value         0000 | "\x00\x00"
+ *
+ * Service: 000015301212efde1523785feabcd123
+ *   Characteristic  000015321212efde1523785feabcd123
+ *     properties    writeWithoutResponse
+ * H:  13  VH:  14
+ *   Characteristic  000015311212efde1523785feabcd123
+ *     properties    write notify
+ * H:  15  VH:  16
+ *   Descriptor      2902 (Client Characteristic Configuration)
+ * H:  15
+ *     value         0000 | "\x00\x00"
+ *   Characteristic  000015341212efde1523785feabcd123
+ *     properties    read
+ * H:  18  VH:  19
+ *     value         0100 | "\x01\x00"
+ *
+ * Service: 0000f00d1212efde1523785fef13d123
+ *   Characteristic  0000beef1212efde1523785fef13d123
+ *     properties    write
+ * H:  21  VH:  22
+ *   Characteristic  0000feed1212efde1523785fef13d123
+ *     properties    write
+ * H:  23  VH:  24
+ */
+
 const (
 	START_DFU                   byte = 0x01
 	INITIALISE_DFU                   = 0x02
@@ -34,10 +87,6 @@ const (
 	PKT_RCPT_NOTIF                   = 0x11
 )
 
-/*
- * Responses defined by device
- * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
- */
 const (
 	SUCCESS          byte = 0x01
 	INVALID_STATE         = 0x02
@@ -47,20 +96,11 @@ const (
 	OPERATION_FAILED      = 0x06
 )
 
-/*
- * Update type defined by device
- * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
- */
-//TODO: the comment above
 const (
 	START_DATA  byte = 0x00
 	FINISH_DATA      = 0x01
 )
 
-/*
- * Update type defined by device
- * https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
- */
 const (
 	SOFT_DEVICE            byte = 0x01
 	BOOTLOADER                  = 0x02
@@ -71,13 +111,13 @@ const (
 type Nrf51822 Device
 
 type FOTA struct {
-	progress   float32
-	startBlock int
-	binary     []byte
-	data       []byte
-	size       int32
-	state      string
-	connected  bool
+	progress     float32
+	currentBlock int
+	binary       []byte
+	data         []byte
+	size         int
+	restart      bool
+	connected    bool
 }
 
 var (
@@ -93,19 +133,15 @@ func (d Nrf51822) String() string {
 func (d Nrf51822) Update(firmware firmware.Firmware) error {
 	log.WithFields(log.Fields{
 		"Device":             d,
-		"Firmware directory": firmware.Directory,
+		"Firmware directory": firmware.Dir,
 		"Commit":             firmware.Commit,
 	}).Info("Update")
 
 	var err error
 
-	fota.state = "extractingFOTA"
-
 	if err = d.extractFirmware(firmware); err != nil {
 		return err
 	}
-
-	fota.state = "startingFOTA"
 
 	bluetooth.Radio.Handle(
 		gatt.PeripheralDiscovered(d.onPeriphDiscovered),
@@ -120,27 +156,24 @@ func (d Nrf51822) Update(firmware firmware.Firmware) error {
 		select {
 		case err = <-errChanel:
 		case fota := <-fotaChannel:
-			if fota.connected == true {
+			if fota.connected {
 				log.Debug("Connected")
 			} else {
-				log.WithFields(log.Fields{
-					"FOTA state": fota.state,
-				}).Debug("Disconnected")
+				log.Debug("Disconnected")
 
-				if fota.state == "startBootloader" {
+				if fota.restart {
+					/*
+					 * The device is expected to restart after being placed into bootloader mode
+					 * so it is necessary to re-connect afterwards
+					 */
 					if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
 						return err
 					}
-				} else if fota.state == "checkFOTA" {
-					return err
-				} else if fota.state == "initFOTA" {
-					return err
 				}
+				return err
 			}
 		}
 	}
-
-	return err
 }
 
 func (d Nrf51822) Online() (bool, error) {
@@ -154,6 +187,25 @@ func (d Nrf51822) Identify() error {
 	log.WithFields(log.Fields{
 		"Device": d,
 	}).Debug("Identify")
+
+	// serviceUUID, err := gatt.ParseUUID("0000f00d1212efde1523785fef13d123")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// characteristicUUID, err := gatt.ParseUUID("0000beef1212efde1523785fef13d123")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// service := gatt.NewService(serviceUUID)
+	// characteristic := gatt.NewCharacteristic(characteristicUUID, service, gatt.CharWrite, 21, 22)
+
+	// err := periph.WriteCharacteristic(characteristic, []byte{0x01}, false)
+	// if err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
 
@@ -161,29 +213,46 @@ func (d Nrf51822) Restart() error {
 	log.WithFields(log.Fields{
 		"Device": d,
 	}).Debug("Restart")
+
+	// serviceUUID, err := gatt.ParseUUID("0000f00d1212efde1523785fef13d123")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// characteristicUUID, err := gatt.ParseUUID("0000feed1212efde1523785fef13d123")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// service := gatt.NewService(serviceUUID)
+	// characteristic := gatt.NewCharacteristic(characteristicUUID, service, gatt.CharWrite, 23, 24)
+
+	// err := periph.WriteCharacteristic(characteristic, []byte{0x01}, false)
+	// if err != nil {
+	// 	return err
+	// }
+
 	return nil
 }
 
 func (d Nrf51822) extractFirmware(firmware firmware.Firmware) error {
-	//TODO: maybe worth passing in the final directory instead of directory and commit
-	directory := path.Join(firmware.Directory, firmware.Commit)
 	var err error
 
-	if err = archiver.Unzip(path.Join(directory, "application.zip"), directory); err != nil {
+	if err = archiver.Unzip(path.Join(firmware.Dir, "application.zip"), firmware.Dir); err != nil {
 		return err
 	}
 
-	fota.binary, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.bin"))
+	fota.binary, err = ioutil.ReadFile(path.Join(firmware.Dir, "nrf51422_xxac_s130.bin"))
 	if err != nil {
 		return err
 	}
 
-	fota.data, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.dat"))
+	fota.data, err = ioutil.ReadFile(path.Join(firmware.Dir, "nrf51422_xxac_s130.dat"))
 	if err != nil {
 		return err
 	}
 
-	fota.size = (int32)(len(fota.binary))
+	fota.size = len(fota.binary)
 
 	return nil
 }
@@ -208,12 +277,17 @@ func (d Nrf51822) onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertise
 }
 
 func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
+	defer periph.Device().CancelConnection(periph)
+
 	fota.connected = true
 	fotaChannel <- fota
 
-	//d.print(periph)
-
-	defer periph.Device().CancelConnection(periph)
+	if log.GetLevel() == log.DebugLevel {
+		if err := d.print(periph); err != nil {
+			errChanel <- err
+			return
+		}
+	}
 
 	if err := periph.SetMTU(500); err != nil {
 		errChanel <- err
@@ -225,7 +299,7 @@ func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
 		return
 	}
 
-	// Time delay to allow device to restart in bootloader mode
+	// Time delay to allow device restart after being placed into bootloader mode
 	time.Sleep(1 * time.Second)
 
 	if err := d.checkFOTA(periph); err != nil {
@@ -233,7 +307,7 @@ func (d Nrf51822) onPeriphConnected(periph gatt.Peripheral, err error) {
 		return
 	}
 
-	if fota.startBlock == 0 {
+	if fota.currentBlock == 0 {
 		if err := d.initFOTA(periph); err != nil {
 			errChanel <- err
 			return
@@ -284,8 +358,6 @@ func (d Nrf51822) getName(periph gatt.Peripheral) (string, error) {
 }
 
 func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
-	fota.state = "startBootloader"
-
 	log.Debug("Starting bootloader mode")
 
 	name, err := d.getName(periph)
@@ -295,14 +367,17 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 
 	if name == "DfuTarg" {
 		log.Debug("In bootloader mode")
+		fota.restart = false
 		return nil
 	}
+
+	fota.restart = true
 
 	if err := d.enableCCCD(periph); err != nil {
 		return err
 	}
 
-	if err := d.writeDFUControlPoint(periph, []byte{START_DFU, APPLICATION}); err != nil {
+	if err := d.writeDFUControlPoint(periph, []byte{START_DFU, APPLICATION}, false); err != nil {
 		return err
 	}
 
@@ -312,114 +387,211 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 }
 
 func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
-	fota.state = "checkFOTA"
-
-	// TODO: figure out why we get this twice - something wierd going on with the control flow
+	// TODO: figure out why we get this twice - something weird going on with the control flow
 	log.Debug("Checking FOTA")
 
 	if err := d.enableCCCD(periph); err != nil {
 		return err
 	}
 
-	response, err := d.notifyDFUControlPoint(periph, []byte{REPORT_RECEIVED_IMG_SIZE})
+	resp, err := d.notifyDFUControlPoint(periph, []byte{REPORT_RECEIVED_IMG_SIZE})
 	if err != nil {
 		return err
 	}
 
-	if response[0] != RESPONSE || response[1] != REPORT_RECEIVED_IMG_SIZE || response[2] != SUCCESS {
+	if resp[0] != RESPONSE || resp[1] != REPORT_RECEIVED_IMG_SIZE || resp[2] != SUCCESS {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	// TODO: encode package
-	// Something like ...
-	// result := (uint32)(0)
-	// b := []byte{0, 0, 0, 0, 0, 0, 0}
-	// buf := bytes.NewReader(b[3:])
-	// err := binary.Read(buf, binary.LittleEndian, &result)
-	// if err != nil {
-	// 	fmt.Println("binary.Read failed:", err)
-	// }
-	// fmt.Print(result)
-	fota.startBlock = 0
-	fota.startBlock += ((int)(response[3]) << 0)
-	fota.startBlock += ((int)(response[4]) << 8)
-	fota.startBlock += ((int)(response[5]) << 16)
-	fota.startBlock += ((int)(response[6]) << 24)
+	fota.currentBlock, err = d.parseResp(resp[3:])
+	if err != nil {
+		return err
+	}
 
 	log.WithFields(log.Fields{
-		"Start block": fota.startBlock,
+		"Start block": fota.currentBlock,
 	}).Debug("Checked FOTA")
 
 	return err
 }
 
 func (d Nrf51822) initFOTA(periph gatt.Peripheral) error {
-	fota.state = "initFOTA"
-
 	log.Debug("Initialising FOTA")
 
 	if err := d.enableCCCD(periph); err != nil {
 		return err
 	}
 
-	if err := d.writeDFUControlPoint(periph, []byte{START_DFU, APPLICATION}); err != nil {
+	if err := d.writeDFUControlPoint(periph, []byte{START_DFU, APPLICATION}, false); err != nil {
 		return err
 	}
 
 	buf := new(bytes.Buffer)
 
 	// Pad the buffer with 8 zeroed bytes
-	buf.Write(make([]byte, 8))
-	if err := binary.Write(buf, binary.LittleEndian, fota.size); err != nil {
+	if _, err := buf.Write(make([]byte, 8)); err != nil {
 		return err
 	}
 
-	response, err := d.notifyDFUPacket(periph, buf.Bytes())
+	if err := binary.Write(buf, binary.LittleEndian, (int32)(fota.size)); err != nil {
+		return err
+	}
+
+	resp, err := d.notifyDFUPacket(periph, buf.Bytes())
 	if err != nil {
 		return err
 	}
 
-	if response[0] != RESPONSE || response[1] != START_DFU || response[2] != SUCCESS {
+	if resp[0] != RESPONSE || resp[1] != START_DFU || resp[2] != SUCCESS {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	if err := d.writeDFUControlPoint(periph, []byte{INITIALISE_DFU, START_DATA}); err != nil {
+	if err := d.writeDFUControlPoint(periph, []byte{INITIALISE_DFU, START_DATA}, false); err != nil {
 		return err
 	}
 
-	if err := d.writeDFUPacket(periph, fota.data); err != nil {
+	if err := d.writeDFUPacket(periph, fota.data, false); err != nil {
 		return err
 	}
 
-	response, err = d.notifyDFUControlPoint(periph, []byte{INITIALISE_DFU, FINISH_DATA})
+	resp, err = d.notifyDFUControlPoint(periph, []byte{INITIALISE_DFU, FINISH_DATA})
 	if err != nil {
 		return err
 	}
 
-	if response[0] != RESPONSE || response[1] != INITIALISE_DFU || response[2] != SUCCESS {
+	if resp[0] != RESPONSE || resp[1] != INITIALISE_DFU || resp[2] != SUCCESS {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	if err := d.writeDFUControlPoint(periph, []byte{PKT_RCPT_NOTIF_REQ, 0x64, 0x00}); err != nil {
+	if err := d.writeDFUControlPoint(periph, []byte{PKT_RCPT_NOTIF_REQ, 0x64, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err := d.writeDFUControlPoint(periph, []byte{RECEIVE_FIRMWARE_IMAGE}); err != nil {
+	if err := d.writeDFUControlPoint(periph, []byte{RECEIVE_FIRMWARE_IMAGE}, false); err != nil {
 		return err
 	}
+
+	log.Debug("Initialised FOTA")
 
 	return nil
 }
 
 func (d Nrf51822) transferFOTA(periph gatt.Peripheral) error {
+	blockCounter := 1
+	blockSize := 20
+	if fota.currentBlock != 0 {
+		/*
+		 * Set block counter to the current block, this is used to resume FOTA if
+		 * the previous FOTA was cancelled/failed mid way though
+		 */
+		blockCounter += (fota.currentBlock / blockSize)
+	}
+
+	fota.progress = ((float32)(fota.currentBlock) / (float32)(fota.size)) * 100.0
+
+	log.WithFields(log.Fields{
+		"Block counter": blockCounter,
+		"Progress %":    fota.progress,
+	}).Debug("Transferring FOTA")
+
+	notifyChannel, err := d.initNotify(periph)
+	if err != nil {
+		return err
+	}
+
+	for i := fota.currentBlock; i < fota.size; i += blockSize {
+		// Extract the block from the binary
+		sliceIndex := i + blockSize
+		if sliceIndex > fota.size {
+			// Limit the slice to fota.Size to avoid extra zeros being tagged on the end of the block
+			sliceIndex = fota.size
+		}
+		block := fota.binary[i:sliceIndex]
+
+		if err := d.writeDFUPacket(periph, block, false); err != nil {
+			return err
+		}
+
+		if (blockCounter % 100) == 0 {
+			resp, err := d.timeoutNotify(notifyChannel)
+			if err != nil {
+				return err
+			}
+
+			if resp[0] != PKT_RCPT_NOTIF {
+				return fmt.Errorf("Incorrect notification received")
+			}
+
+			currentBlock, err := d.parseResp(resp[1:])
+			if err != nil {
+				return err
+			}
+
+			if (i + blockSize) != currentBlock {
+				return fmt.Errorf("FOTA transer out of sync")
+			}
+
+			fota.progress = ((float32)(currentBlock) / (float32)(fota.size)) * 100.0
+
+			log.WithFields(log.Fields{
+				"Block counter": blockCounter,
+				"Progress %":    fota.progress,
+			}).Debug("Transferring FOTA")
+		}
+
+		blockCounter++
+	}
+
+	fota.progress = 100
+
+	resp, err := d.timeoutNotify(notifyChannel)
+	if err != nil {
+		return err
+	}
+
+	if resp[0] != RESPONSE || resp[1] != RECEIVE_FIRMWARE_IMAGE || resp[2] != SUCCESS {
+		return fmt.Errorf("Incorrect notification received")
+	}
+
+	log.Debug("Transferred FOTA")
+
 	return nil
 }
 
 func (d Nrf51822) validateFOTA(periph gatt.Peripheral) error {
+	log.Debug("Validating FOTA")
+
+	if err := d.checkFOTA(periph); err != nil {
+		return err
+	}
+
+	if fota.currentBlock != fota.size {
+		return fmt.Errorf("Bytes received does not match binary size")
+	}
+
+	resp, err := d.notifyDFUControlPoint(periph, []byte{VALIDATE_FIRMWARE_IMAGE})
+	if err != nil {
+		return err
+	}
+
+	if resp[0] != RESPONSE || resp[1] != VALIDATE_FIRMWARE_IMAGE || resp[2] != SUCCESS {
+		return fmt.Errorf("Incorrect notification received")
+	}
+
+	log.Debug("Validated FOTA")
+
 	return nil
 }
 
 func (d Nrf51822) finaliseFOTA(periph gatt.Peripheral) error {
+	log.Debug("Finalising FOTA")
+
+	if err := d.writeDFUControlPoint(periph, []byte{ACTIVATE_FIRMWARE_AND_RESET}, false); err != nil {
+		return err
+	}
+
+	log.Debug("Finalised FOTA")
+
 	return nil
 }
 
@@ -456,22 +628,22 @@ func (d Nrf51822) enableCCCD(periph gatt.Peripheral) error {
 	return periph.WriteDescriptor(characteristic.Descriptor(), []byte{START_DFU, 0x00})
 }
 
-func (d Nrf51822) writeDFUControlPoint(periph gatt.Peripheral, value []byte) error {
+func (d Nrf51822) writeDFUControlPoint(periph gatt.Peripheral, value []byte, noRsp bool) error {
 	characteristic, err := d.getChar("000015311212efde1523785feabcd123", gatt.CharWrite+gatt.CharNotify, 15, 16)
 	if err != nil {
 		return err
 	}
 
-	return periph.WriteCharacteristic(characteristic, value, false)
+	return periph.WriteCharacteristic(characteristic, value, noRsp)
 }
 
-func (d Nrf51822) writeDFUPacket(periph gatt.Peripheral, value []byte) error {
+func (d Nrf51822) writeDFUPacket(periph gatt.Peripheral, value []byte, noRsp bool) error {
 	characteristic, err := d.getChar("000015321212efde1523785feabcd123", gatt.CharWriteNR, 13, 14)
 	if err != nil {
 		return err
 	}
 
-	return periph.WriteCharacteristic(characteristic, value, false)
+	return periph.WriteCharacteristic(characteristic, value, noRsp)
 }
 
 func (d Nrf51822) notifyDFUControlPoint(periph gatt.Peripheral, value []byte) ([]byte, error) {
@@ -480,7 +652,7 @@ func (d Nrf51822) notifyDFUControlPoint(periph gatt.Peripheral, value []byte) ([
 		return nil, err
 	}
 
-	if err := d.writeDFUControlPoint(periph, value); err != nil {
+	if err := d.writeDFUControlPoint(periph, value, false); err != nil {
 		return nil, err
 	}
 
@@ -494,7 +666,7 @@ func (d Nrf51822) notifyDFUPacket(periph gatt.Peripheral, value []byte) ([]byte,
 		return nil, err
 	}
 
-	if err := d.writeDFUPacket(periph, value); err != nil {
+	if err := d.writeDFUPacket(periph, value, false); err != nil {
 		return nil, err
 	}
 
@@ -513,27 +685,34 @@ func (d Nrf51822) initNotify(periph gatt.Peripheral) (chan []byte, error) {
 		notifyChannel <- b
 	}
 
-	if err := periph.SetNotifyValue(characteristic, callback); err != nil {
-		return notifyChannel, err
-	}
+	err = periph.SetNotifyValue(characteristic, callback)
 
-	return notifyChannel, nil
+	return notifyChannel, err
 }
 
 func (d Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
 	for {
 		select {
-		case <-time.After(10 * time.Second): // TODO: set to 1 sec
+		case <-time.After(10 * time.Second):
 			return nil, fmt.Errorf("Timed out waiting for notification")
-		case response := <-notifyChannel:
+		case resp := <-notifyChannel:
 			log.WithFields(log.Fields{
-				"[0]": response[0],
-				"[1]": response[1],
-				"[2]": response[2],
+				"[0]": resp[0],
+				"[1]": resp[1],
+				"[2]": resp[2],
 			}).Debug("notification")
-			return response, nil
+			return resp, nil
 		}
 	}
+}
+
+func (d Nrf51822) parseResp(resp []byte) (int, error) {
+	var result int32
+	buf := bytes.NewReader(resp)
+	if err := binary.Read(buf, binary.LittleEndian, &result); err != nil {
+		return 0, err
+	}
+	return (int)(result), nil
 }
 
 func (d Nrf51822) print(periph gatt.Peripheral) error {
@@ -564,8 +743,7 @@ func (d Nrf51822) print(periph gatt.Peripheral) error {
 			msg += "\n    properties    " + c.Properties().String()
 			fmt.Println(msg)
 
-			fmt.Println("H:", c.Handle())
-			fmt.Println("VH: ", c.VHandle())
+			fmt.Println("H: ", c.Handle(), " VH: ", c.VHandle())
 
 			if (c.Properties() & gatt.CharRead) != 0 {
 				b, err := periph.ReadCharacteristic(c)
@@ -589,7 +767,7 @@ func (d Nrf51822) print(periph gatt.Peripheral) error {
 				}
 				fmt.Println(msg)
 
-				fmt.Println("H:", d.Handle())
+				fmt.Println("H: ", c.Handle())
 
 				b, err := periph.ReadDescriptor(d)
 				if err != nil {
@@ -598,18 +776,6 @@ func (d Nrf51822) print(periph gatt.Peripheral) error {
 				}
 				fmt.Printf("    value         %x | %q\n", b, b)
 			}
-
-			// Subscribe the characteristic, if possible.
-			if (c.Properties() & (gatt.CharNotify | gatt.CharIndicate)) != 0 {
-				f := func(c *gatt.Characteristic, b []byte, err error) {
-					fmt.Printf("notified: % X | %q\n", b, b)
-				}
-				if err := periph.SetNotifyValue(c, f); err != nil {
-					fmt.Printf("Failed to subscribe characteristic, err: %s\n", err)
-					continue
-				}
-			}
-
 		}
 		fmt.Println()
 	}
