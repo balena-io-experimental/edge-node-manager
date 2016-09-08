@@ -66,7 +66,7 @@ func main() {
 
 func init() {
 	log.SetFormatter(&log.TextFormatter{})
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	channel := make(chan os.Signal, 1)
 	signal.Notify(channel, os.Interrupt)

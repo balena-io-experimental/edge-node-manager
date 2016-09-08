@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -35,8 +36,8 @@ func (a *Application) Process() error {
 		return err
 	}
 	log.WithFields(log.Fields{
-		"Directory": a.Directory,
-		"Commit":    a.Commit,
+		"Firmware directory": a.Dir,
+		"Commit":             a.Commit,
 	}).Info("Firmware")
 
 	// Load application devices i.e. already provisioned
@@ -67,14 +68,14 @@ func (a *Application) Process() error {
 
 	// TODO: research how to loop within the logger so that this loop only runs
 	// when the log level is set to debug
-	for onlineDevice, _ := range onlineDevices {
+	for onlineDevice := range onlineDevices {
 		log.WithFields(log.Fields{
 			"Device": onlineDevice,
 		}).Debug("Online devices")
 	}
 
 	//Provision online devices
-	for onlineDevice, _ := range onlineDevices {
+	for onlineDevice := range onlineDevices {
 		if _, exists := appDevices[onlineDevice]; exists {
 			log.WithFields(log.Fields{
 				"Device": onlineDevice,
@@ -112,30 +113,33 @@ func (a *Application) Process() error {
 			continue
 		}
 
-		online, err := appDevice.ChooseType().Online()
+		online, err := appDevice.Cast().Online()
 
 		if err != nil {
 			return err
 		} else if online {
 			appDevice.State = device.ONLINE
 			appDevice.LastSeen = time.Now()
+
+			if appDevice.Commit == a.Commit {
+				continue
+			}
+
+			if err := appDevice.Cast().Update(a.Firmware); err != nil {
+				return err
+			}
 		}
 	}
 
 	// Update DB with device changes
-	if err := database.UpdateDevices(appDevices); err != nil {
-		return err
-	}
-
-	return nil
+	//TODO: should probably update after every action or at least cache
+	return database.UpdateDevices(appDevices)
 }
 
 func (a *Application) parseCommit() error {
-	if a.Directory == "" {
-		a.Directory = filepath.Join(config.GetPersistantDirectory(), a.UUID)
-	}
+	appDir := filepath.Join(config.GetPersistantDirectory(), a.UUID)
 
-	commitDirectories, err := ioutil.ReadDir(a.Directory)
+	commitDirectories, err := ioutil.ReadDir(appDir)
 	if err != nil {
 		return err
 	} else if len(commitDirectories) == 0 {
@@ -150,14 +154,10 @@ func (a *Application) parseCommit() error {
 	}
 
 	a.Commit = commit
+	a.Dir = path.Join(appDir, a.Commit)
 
-	tarDirectory := filepath.Join(a.Directory, a.Commit)
-	tarPath := filepath.Join(tarDirectory, "binary.tar")
-	if err := tarinator.UnTarinate(tarDirectory, tarPath); err != nil {
-		return err
-	}
-
-	return nil
+	tarPath := filepath.Join(a.Dir, "binary.tar")
+	return tarinator.UnTarinate(a.Dir, tarPath)
 }
 
 func (a *Application) newDevice(onlineDevice string) (*device.Device, error) {

@@ -14,13 +14,13 @@ import (
  * https://github.com/paypal/gatt
  */
 var (
-	radio            gatt.Device
-	bluetoothChannel = make(chan gatt.Peripheral)
+	Radio         gatt.Device
+	periphChannel = make(chan gatt.Peripheral)
 )
 
-func Scan(name string, timeout time.Duration) (map[string]bool, error) {
-	radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
-	if err := radio.Init(onStateChanged); err != nil {
+func Scan(id string, timeout time.Duration) (map[string]bool, error) {
+	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
+	if err := Radio.Init(onStateChanged); err != nil {
 		return nil, err
 	}
 
@@ -29,10 +29,10 @@ func Scan(name string, timeout time.Duration) (map[string]bool, error) {
 	for {
 		select {
 		case <-time.After(timeout * time.Second):
-			radio.StopScanning()
+			Radio.StopScanning()
 			return devices, nil
-		case onlineDevice := <-bluetoothChannel:
-			if onlineDevice.Name() == name {
+		case onlineDevice := <-periphChannel:
+			if onlineDevice.Name() == id {
 				devices[onlineDevice.ID()] = true
 			}
 		}
@@ -40,35 +40,28 @@ func Scan(name string, timeout time.Duration) (map[string]bool, error) {
 }
 
 func Online(id string, timeout time.Duration) (bool, error) {
-	radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
-	if err := radio.Init(onStateChanged); err != nil {
+	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
+	if err := Radio.Init(onStateChanged); err != nil {
 		return false, err
 	}
 
 	for {
 		select {
 		case <-time.After(timeout * time.Second):
-			radio.StopScanning()
+			Radio.StopScanning()
 			return false, nil
-		case onlineDevice := <-bluetoothChannel:
+		case onlineDevice := <-periphChannel:
 			if onlineDevice.ID() == id {
+				Radio.StopScanning()
 				return true, nil
 			}
 		}
 	}
 }
 
-func WriteCharacteristic(handle, val byte, request bool) error {
-	return nil
-}
-
-func ReadCharacteristic(handle byte) ([]byte, error) {
-	return nil, nil
-}
-
 func init() {
 	var err error
-	if radio, err = gatt.NewDevice(option.DefaultClientOptions...); err != nil {
+	if Radio, err = gatt.NewDevice(option.DefaultClientOptions...); err != nil {
 		log.WithFields(log.Fields{
 			"Options": option.DefaultClientOptions,
 			"Error":   err,
@@ -89,6 +82,6 @@ func onStateChanged(device gatt.Device, state gatt.State) {
 	}
 }
 
-func onPeriphDiscovered(peripheral gatt.Peripheral, advertisment *gatt.Advertisement, rssi int) {
-	bluetoothChannel <- peripheral
+func onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
+	periphChannel <- periph
 }
