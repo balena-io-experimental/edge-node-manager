@@ -1,9 +1,10 @@
 package micro
 
-type MicroType string
+// Type defines the supported micro types
+type Type string
 
 const (
-	NRF51822 MicroType = "NRF51822"
-	ESP8266            = "ESP8266"
-	MICROBIT           = "MicroBit"
+	NRF51822 Type = "NRF51822"
+	ESP8266       = "ESP8266"
+	MICROBIT      = "MicroBit"
 )

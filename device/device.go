@@ -9,11 +9,13 @@ import (
 	"github.com/josephroberts/edge-node-manager/radio"
 )
 
-type DeviceType struct {
-	Micro micro.MicroType `json:"Micro"`
-	Radio radio.RadioType `json:"Radio"`
+// Type contains the micro and radio that make up a device type
+type Type struct {
+	Micro micro.Type `json:"Micro"`
+	Radio radio.Type `json:"Radio"`
 }
 
+// State defines the device states
 type State string
 
 const (
@@ -23,8 +25,9 @@ const (
 	DOWNLOADING       = "Downloading"
 )
 
+// Device contains all the variables needed to define a device
 type Device struct {
-	DeviceType      `json:"DeviceType"`
+	Type            `json:"Type"`
 	LocalUUID       string    `json:"LocalUUID"`
 	ApplicationUUID string    `json:"ApplicationUUID"`
 	ResinUUID       string    `json:"ResinUUID"`
@@ -35,6 +38,7 @@ type Device struct {
 	Progress        float32   `json:"Progress"`
 }
 
+// Interface defines the common functions a device must implement
 type Interface interface {
 	String() string
 	Update(firmware firmware.Firmware) error
@@ -55,8 +59,8 @@ func (d Device) String() string {
 			"LastSeen: %s, "+
 			"State: %s, "+
 			"Progress: %2.2f",
-		d.DeviceType.Micro,
-		d.DeviceType.Radio,
+		d.Type.Micro,
+		d.Type.Radio,
 		d.LocalUUID,
 		d.ApplicationUUID,
 		d.ResinUUID,
@@ -67,8 +71,9 @@ func (d Device) String() string {
 		d.Progress)
 }
 
+// Cast converts the base device type to its actual type
 func (d Device) Cast() Interface {
-	switch d.DeviceType.Micro {
+	switch d.Type.Micro {
 	case micro.NRF51822:
 		return (Nrf51822)(d)
 	case micro.ESP8266:
