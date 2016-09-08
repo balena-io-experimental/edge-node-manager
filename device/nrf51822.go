@@ -21,53 +21,49 @@ import (
 // https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleservice.html&anchor=ota_spec_control_state
 
 /*
- * Output from the print function
- *
- * Service: 1800 (Generic Access)
- *   Characteristic  2a00 (Device Name)
- *     properties    read write
- * H:  2  VH:  3
- *     value         726573696e | "resin"
- *   Characteristic  2a01 (Appearance)
- *     properties    read
- * H:  4  VH:  5
- *     value         0000 | "\x00\x00"
- *   Characteristic  2a04 (Peripheral Preferred Connection Parameters)
- *     properties    read
- * H:  6  VH:  7
- *     value         0600200000009001 | "\x06\x00 \x00\x00\x00\x90\x01"
- *
- * Service: 1801 (Generic Attribute)
- *   Characteristic  2a05 (Service Changed)
- *     properties    indicate
- * H:  9  VH:  10
- *   Descriptor      2902 (Client Characteristic Configuration)
- * H:  9
- *     value         0000 | "\x00\x00"
- *
- * Service: 000015301212efde1523785feabcd123
- *   Characteristic  000015321212efde1523785feabcd123
- *     properties    writeWithoutResponse
- * H:  13  VH:  14
- *   Characteristic  000015311212efde1523785feabcd123
- *     properties    write notify
- * H:  15  VH:  16
- *   Descriptor      2902 (Client Characteristic Configuration)
- * H:  15
- *     value         0000 | "\x00\x00"
- *   Characteristic  000015341212efde1523785feabcd123
- *     properties    read
- * H:  18  VH:  19
- *     value         0100 | "\x01\x00"
- *
- * Service: 0000f00d1212efde1523785fef13d123
- *   Characteristic  0000beef1212efde1523785fef13d123
- *     properties    write
- * H:  21  VH:  22
- *   Characteristic  0000feed1212efde1523785fef13d123
- *     properties    write
- * H:  23  VH:  24
- */
+Output from the print function
+Service: 1800 (Generic Access)
+  Characteristic  2a00 (Device Name)
+    properties    read write
+H:  2  VH:  3
+    value         726573696e | "resin"
+  Characteristic  2a01 (Appearance)
+    properties    read
+H:  4  VH:  5
+    value         0000 | "\x00\x00"
+  Characteristic  2a04 (Peripheral Preferred Connection Parameters)
+    properties    read
+H:  6  VH:  7
+    value         0600200000009001 | "\x06\x00 \x00\x00\x00\x90\x01"
+Service: 1801 (Generic Attribute)
+  Characteristic  2a05 (Service Changed)
+    properties    indicate
+H:  9  VH:  10
+  Descriptor      2902 (Client Characteristic Configuration)
+H:  9
+    value         0000 | "\x00\x00"
+Service: 000015301212efde1523785feabcd123
+  Characteristic  000015321212efde1523785feabcd123
+    properties    writeWithoutResponse
+H:  13  VH:  14
+  Characteristic  000015311212efde1523785feabcd123
+    properties    write notify
+H:  15  VH:  16
+  Descriptor      2902 (Client Characteristic Configuration)
+H:  15
+    value         0000 | "\x00\x00"
+  Characteristic  000015341212efde1523785feabcd123
+    properties    read
+H:  18  VH:  19
+    value         0100 | "\x01\x00"
+Service: 0000f00d1212efde1523785fef13d123
+  Characteristic  0000beef1212efde1523785fef13d123
+    properties    write
+H:  21  VH:  22
+  Characteristic  0000feed1212efde1523785fef13d123
+    properties    write
+H:  23  VH:  24
+*/
 
 const (
 	success            byte = 0x01
@@ -141,9 +137,9 @@ func (d Nrf51822) Update(firmware firmware.Firmware) error {
 
 				if state.restart {
 					/*
-					 * The device is expected to restart after being placed into bootloader mode
-					 * so it is necessary to re-connect afterwards
-					 */
+						The device is expected to restart after being placed into bootloader mode
+						so it is necessary to re-connect afterwards
+					*/
 					if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
 						return err
 					}
@@ -431,9 +427,9 @@ func (d Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 	blockSize := 20
 	if fota.currentBlock != 0 {
 		/*
-		 * Set block counter to the current block, this is used to resume FOTA if
-		 * the previous FOTA was cancelled/failed mid way though
-		 */
+			Set block counter to the current block, this is used to resume FOTA if
+			the previous FOTA was cancelled/failed mid way though
+		*/
 		blockCounter += (fota.currentBlock / blockSize)
 	}
 
