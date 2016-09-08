@@ -503,7 +503,10 @@ func (d Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	log.Debug("Transferred FOTA")
+	log.WithFields(log.Fields{
+		"Block counter": blockCounter,
+		"Progress %":    fota.progress,
+	}).Debug("Transferred FOTA")
 
 	return nil
 }

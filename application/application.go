@@ -125,11 +125,7 @@ func (a *Application) Process() error {
 				continue
 			}
 
-			// if err := appDevice.Cast().Update(a.Firmware); err != nil {
-			// 	return err
-			// }
-
-			if err := appDevice.Cast().Restart(); err != nil {
+			if err := appDevice.Cast().Update(a.Firmware); err != nil {
 				return err
 			}
 		}
