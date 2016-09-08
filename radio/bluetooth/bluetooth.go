@@ -10,16 +10,14 @@ import (
 )
 
 /*
-Uses the gatt package
-https://github.com/paypal/gatt
-*/
-
+ * Uses the gatt package
+ * https://github.com/paypal/gatt
+ */
 var (
 	Radio         gatt.Device
 	periphChannel = make(chan gatt.Peripheral)
 )
 
-// Scan scans for online devices where the device name matches the id passed in
 func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
 	if err := Radio.Init(onStateChanged); err != nil {
@@ -41,7 +39,6 @@ func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	}
 }
 
-// Online checks if a device is online where the device name matches the id passed in
 func Online(id string, timeout time.Duration) (bool, error) {
 	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
 	if err := Radio.Init(onStateChanged); err != nil {

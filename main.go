@@ -19,23 +19,23 @@ import (
 func main() {
 	log.Info("Starting edge node manager")
 
-	nrf51822 := device.Type{
+	nrf51822 := device.DeviceType{
 		Micro: micro.NRF51822,
 		Radio: radio.BLUETOOTH,
 	}
-	esp8266 := device.Type{
+	esp8266 := device.DeviceType{
 		Micro: micro.ESP8266,
 		Radio: radio.WIFI,
 	}
 
 	apps := []*application.Application{
 		&application.Application{
-			UUID: "resin",
-			Type: nrf51822,
+			UUID:       "resin",
+			DeviceType: nrf51822,
 		},
 		&application.Application{
-			UUID: "resin_esp8266",
-			Type: esp8266,
+			UUID:       "resin_esp8266",
+			DeviceType: esp8266,
 		}}
 
 	delay, err := config.GetLoopDelay()

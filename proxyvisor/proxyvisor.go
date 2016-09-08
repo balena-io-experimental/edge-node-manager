@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// NewDevice creates a new device on the resin dashboard and returns its UUID
 func NewDevice(appUUID string) (string, error) {
 	// Simulate proxyvisor whilst we wait for it to be released by returning a random 62 char string
 	return random(62), nil
