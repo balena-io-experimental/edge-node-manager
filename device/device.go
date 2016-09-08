@@ -67,7 +67,7 @@ func (d Device) String() string {
 		d.Progress)
 }
 
-func (d Device) ChooseType() Interface {
+func (d Device) Cast() Interface {
 	switch d.DeviceType.Micro {
 	case micro.NRF51822:
 		return (Nrf51822)(d)

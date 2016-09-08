@@ -113,7 +113,7 @@ func (a *Application) Process() error {
 			continue
 		}
 
-		online, err := appDevice.ChooseType().Online()
+		online, err := appDevice.Cast().Online()
 
 		if err != nil {
 			return err
@@ -125,7 +125,11 @@ func (a *Application) Process() error {
 				continue
 			}
 
-			if err := appDevice.ChooseType().Update(a.Firmware); err != nil {
+			// if err := appDevice.Cast().Update(a.Firmware); err != nil {
+			// 	return err
+			// }
+
+			if err := appDevice.Cast().Restart(); err != nil {
 				return err
 			}
 		}
