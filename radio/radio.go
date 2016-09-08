@@ -9,15 +9,17 @@ import (
 	"github.com/josephroberts/edge-node-manager/radio/zigbee"
 )
 
-type RadioType string
+// Type defines the supported radio types
+type Type string
 
 const (
-	BLUETOOTH RadioType = "Bluetooth"
-	WIFI                = "WiFi"
-	ZIGBEE              = "ZigBee"
+	BLUETOOTH Type = "Bluetooth"
+	WIFI           = "WiFi"
+	ZIGBEE         = "ZigBee"
 )
 
-func (r RadioType) Scan(name string, timeout time.Duration) (map[string]bool, error) {
+// Scan calls Scan on the underlying radio type
+func (r Type) Scan(name string, timeout time.Duration) (map[string]bool, error) {
 	switch r {
 	case BLUETOOTH:
 		return bluetooth.Scan(name, timeout)
