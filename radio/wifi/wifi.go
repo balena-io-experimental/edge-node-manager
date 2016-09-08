@@ -5,7 +5,6 @@ import (
 	"time"
 )
 
-// Scan scans for online devices where the device name matches the id passed in
 func Scan(name string, timeout time.Duration) (map[string]bool, error) {
 
 	http.Get("http://example.com/")
@@ -13,10 +12,16 @@ func Scan(name string, timeout time.Duration) (map[string]bool, error) {
 	return nil, nil
 }
 
-// Online checks if a device is online where the device name matches the id passed in
 func Online(id string, timeout time.Duration) (bool, error) {
 
 	http.Get("http://example.com/")
 
 	return true, nil
+}
+
+func Post(id, value string) error {
+
+	http.Get("http://example.com/")
+
+	return nil
 }

@@ -17,20 +17,18 @@ import (
 	"github.com/verybluebot/tarinator-go"
 )
 
-// Application contains all the variables needed to run the application
 type Application struct {
 	UUID string
-	device.Type
+	device.DeviceType
 	firmware.Firmware
 }
 
-// Process processes the application, checking for new commits, provisioning and updating devices
 func (a *Application) Process() error {
 	log.Info("----------------------------------------------------------------------------------------------------")
 	log.WithFields(log.Fields{
 		"Application UUID":       a.UUID,
-		"Application micro type": a.Type.Micro,
-		"Application radio type": a.Type.Radio,
+		"Application micro type": a.DeviceType.Micro,
+		"Application radio type": a.DeviceType.Radio,
 	}).Info("Processing application")
 
 	// Check for latest commit, extract firmware if needed
@@ -60,7 +58,7 @@ func (a *Application) Process() error {
 	}
 
 	// Get online devices associated with this application
-	onlineDevices, err := a.Type.Radio.Scan(a.UUID, 10)
+	onlineDevices, err := a.DeviceType.Radio.Scan(a.UUID, 10)
 	if err != nil {
 		return err
 	}
@@ -169,7 +167,7 @@ func (a *Application) newDevice(onlineDevice string) (*device.Device, error) {
 	}
 
 	newDevice := &device.Device{
-		Type:            a.Type,
+		DeviceType:      a.DeviceType,
 		LocalUUID:       onlineDevice,
 		ApplicationUUID: a.UUID,
 		ResinUUID:       resinUUID,

@@ -7,15 +7,12 @@ import (
 	"github.com/josephroberts/edge-node-manager/radio/wifi"
 )
 
-// Esp8266 is an ESP8266 based device
-// https://en.wikipedia.org/wiki/ESP8266
 type Esp8266 Device
 
 func (d Esp8266) String() string {
 	return (Device)(d).String()
 }
 
-// Update updates the device following the firmware-over-the-air update process
 func (d Esp8266) Update(firmware firmware.Firmware) error {
 	log.WithFields(log.Fields{
 		"Device":             d,
@@ -25,7 +22,6 @@ func (d Esp8266) Update(firmware firmware.Firmware) error {
 	return nil
 }
 
-// Online checks whether the device is online
 func (d Esp8266) Online() (bool, error) {
 	log.WithFields(log.Fields{
 		"Device": d,
@@ -33,18 +29,16 @@ func (d Esp8266) Online() (bool, error) {
 	return wifi.Online(d.LocalUUID, 10)
 }
 
-// Identify flashes LEDs' on the device
 func (d Esp8266) Identify() error {
 	log.WithFields(log.Fields{
 		"Device": d,
 	}).Debug("Identify")
-	return nil
+	return wifi.Post(d.LocalUUID, "hey")
 }
 
-// Restart restarts the device
 func (d Esp8266) Restart() error {
 	log.WithFields(log.Fields{
 		"Device": d,
 	}).Debug("Restart")
-	return nil
+	return wifi.Post(d.LocalUUID, "hey again")
 }

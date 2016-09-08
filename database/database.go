@@ -13,16 +13,15 @@ import (
 )
 
 /*
-Uses the tiedot database
-https://github.com/HouzuoGuo/tiedot
-*/
+ * Uses the tiedot database
+ * https://github.com/HouzuoGuo/tiedot
+ */
 
 var (
 	directory  string
 	connection *tiedotDb.DB
 )
 
-// LoadDevices loads and returns all devices from the database for a specific application
 func LoadDevices(uuid string) (map[string]*device.Device, error) {
 	results, err := query(uuid, "ApplicationUUID")
 	if err != nil {
@@ -41,7 +40,6 @@ func LoadDevices(uuid string) (map[string]*device.Device, error) {
 	return devices, nil
 }
 
-// SaveDevice saves a new device to the database and returns the new device
 func SaveDevice(newDevice *device.Device) (*device.Device, error) {
 	collection := connection.Use("Devices")
 	key, err := collection.Insert(structs.Map(newDevice))
@@ -57,13 +55,11 @@ func SaveDevice(newDevice *device.Device) (*device.Device, error) {
 	return loadDevice(key)
 }
 
-// RemoveDevice deletes a device from the database
 func RemoveDevice(key int) error {
 	collection := connection.Use("Devices")
 	return collection.Delete(key)
 }
 
-// UpdateDevices updates devices in the database
 func UpdateDevices(existingDevices map[string]*device.Device) error {
 	for _, existingDevice := range existingDevices {
 		if err := updateDevice(existingDevice); err != nil {
@@ -74,7 +70,6 @@ func UpdateDevices(existingDevices map[string]*device.Device) error {
 	return nil
 }
 
-// Stop closes the database connection
 func Stop() error {
 	if connection == nil {
 		return nil
@@ -130,7 +125,7 @@ func loadDevice(key int) (*device.Device, error) {
 	}
 	/*
 	 * Set the DatabaseUUID
-	 * This is necessary as the DB does not store the DatabaseUUID field correctly
+	 * This is neccessary as the DB does not store the DatabaseUUID field correctly
 	 * Save 4170124961882522202, and get 1.1229774266282973e+18 back (looks like overflow)
 	 */
 	readBack["DatabaseUUID"] = key
