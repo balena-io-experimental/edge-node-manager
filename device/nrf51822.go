@@ -136,10 +136,8 @@ func (d Nrf51822) Update(firmware firmware.Firmware) error {
 				log.Debug("Disconnected")
 
 				if state.restart {
-					/*
-						The device is expected to restart after being placed into bootloader mode
-						so it is necessary to re-connect afterwards
-					*/
+					// The device is expected to restart after being placed into bootloader mode
+					// so it is necessary to re-connect afterwards
 					if err := bluetooth.Radio.Init(d.onStateChanged); err != nil {
 						return err
 					}
@@ -426,10 +424,8 @@ func (d Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 	blockCounter := 1
 	blockSize := 20
 	if fota.currentBlock != 0 {
-		/*
-			Set block counter to the current block, this is used to resume FOTA if
-			the previous FOTA was cancelled/failed mid way though
-		*/
+		// Set block counter to the current block, this is used to resume FOTA if
+		// the previous FOTA was cancelled/failed mid way though
 		blockCounter += (fota.currentBlock / blockSize)
 	}
 

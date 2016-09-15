@@ -9,10 +9,8 @@ import (
 	"github.com/paypal/gatt/examples/option"
 )
 
-/*
-Uses the gatt package
-https://github.com/paypal/gatt
-*/
+// Uses the gatt package
+// https://github.com/paypal/gatt
 
 var (
 	Radio         gatt.Device
