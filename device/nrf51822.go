@@ -12,7 +12,6 @@ import (
 	"github.com/mholt/archiver"
 	"github.com/paypal/gatt"
 
-	"github.com/josephroberts/edge-node-manager/firmware"
 	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 )
 
@@ -105,14 +104,14 @@ func (d Nrf51822) String() string {
 }
 
 // Update updates the device following the firmware-over-the-air update process
-func (d Nrf51822) Update(firmware firmware.Firmware) error {
+func (d Nrf51822) Update(commit, directory string) error {
 	log.WithFields(log.Fields{
-		"Device":             d,
-		"Firmware directory": firmware.Dir,
-		"Commit":             firmware.Commit,
+		"Device":    d,
+		"Commit":    commit,
+		"Directory": directory,
 	}).Info("Update")
 
-	if err := d.extractFirmware(firmware); err != nil {
+	if err := d.extractFirmware(directory); err != nil {
 		return err
 	}
 
@@ -681,19 +680,19 @@ func (d Nrf51822) processRequest(f func(gatt.Peripheral, error)) error {
 	}
 }
 
-func (d Nrf51822) extractFirmware(firmware firmware.Firmware) error {
-	if err := archiver.Unzip(path.Join(firmware.Dir, "application.zip"), firmware.Dir); err != nil {
+func (d Nrf51822) extractFirmware(directory string) error {
+	if err := archiver.Unzip(path.Join(directory, "application.zip"), directory); err != nil {
 		return err
 	}
 
 	var err error
 
-	fota.binary, err = ioutil.ReadFile(path.Join(firmware.Dir, "nrf51422_xxac_s130.bin"))
+	fota.binary, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.bin"))
 	if err != nil {
 		return err
 	}
 
-	fota.data, err = ioutil.ReadFile(path.Join(firmware.Dir, "nrf51422_xxac_s130.dat"))
+	fota.data, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.dat"))
 	if err != nil {
 		return err
 	}

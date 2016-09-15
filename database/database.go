@@ -21,8 +21,8 @@ var (
 )
 
 // LoadDevices loads and returns all devices from the database for a specific application
-func LoadDevices(uuid string) (map[string]*device.Device, error) {
-	results, err := query(uuid, "ApplicationUUID")
+func LoadDevices(UUID int) (map[string]*device.Device, error) {
+	results, err := query((string)(UUID), "ApplicationUUID")
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/josephroberts/edge-node-manager/firmware"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
 )
@@ -29,8 +28,9 @@ const (
 type Device struct {
 	Type            `json:"Type"`
 	LocalUUID       string    `json:"LocalUUID"`
-	ApplicationUUID string    `json:"ApplicationUUID"`
 	ResinUUID       string    `json:"ResinUUID"`
+	ApplicationUUID int       `json:"ApplicationUUID"`
+	ApplicationName string    `json:"ApplicationName"`
 	DatabaseUUID    int       `json:"DatabaseUUID"`
 	Commit          string    `json:"Commit"`
 	LastSeen        time.Time `json:"LastSeen"`
@@ -41,7 +41,7 @@ type Device struct {
 // Interface defines the common functions a device must implement
 type Interface interface {
 	String() string
-	Update(firmware firmware.Firmware) error
+	Update(commit, directory string) error
 	Online() (bool, error)
 	Identify() error
 	Restart() error
@@ -51,10 +51,11 @@ func (d Device) String() string {
 	return fmt.Sprintf(
 		"Micro type: %s, "+
 			"Radio type: %s, "+
-			"LocalUUID: %s, "+
-			"ApplicationUUID: %s, "+
-			"ResinUUID: %s, "+
-			"DatabaseUUID: %d, "+
+			"Local UUID: %s, "+
+			"Resin UUID: %s, "+
+			"Application UUID: %s, "+
+			"Application Name: %s, "+
+			"Database UUID: %d, "+
 			"Commit: %s, "+
 			"LastSeen: %s, "+
 			"State: %s, "+
@@ -62,8 +63,9 @@ func (d Device) String() string {
 		d.Type.Micro,
 		d.Type.Radio,
 		d.LocalUUID,
-		d.ApplicationUUID,
 		d.ResinUUID,
+		d.ApplicationUUID,
+		d.ApplicationName,
 		d.DatabaseUUID,
 		d.Commit,
 		d.LastSeen,
@@ -81,5 +83,4 @@ func (d Device) Cast() Interface {
 	}
 
 	return nil
-
 }

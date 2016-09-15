@@ -23,9 +23,14 @@ func GetDbDirectory() string {
 	return path.Join(GetPersistantDirectory(), getEnv("ENM_CONFIG_DB_DIR", "/database"))
 }
 
-// GetProxyPort returns the port used to communicate with the proxy visor
-func GetProxyPort() string {
-	return getEnv("ENM_CONFIG_PROXY_PORT", "3000")
+// GetResinSupervisorAddress returns the address used to communicate with the supervisor
+func GetResinSupervisorAddress() string {
+	return getEnv("RESIN_SUPERVISOR_ADDRESS", "http://localhost:3000")
+}
+
+// GetResinSupervisorAPIKey returns the API key used to communicate with the supervisor
+func GetResinSupervisorAPIKey() string {
+	return getEnv("RESIN_SUPERVISOR_API_KEY", "test")
 }
 
 func getEnv(key, fallback string) string {
