@@ -6,10 +6,8 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
-	"time"
 
 	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
@@ -20,7 +18,7 @@ type Application struct {
 	Name       string      `json:"name"`
 	Commit     string      `json:"commit"`
 	Env        interface{} `json:"env"`
-	DeviceType string      `json:"device_type"` // not used as always set to edge - see device.Type
+	DeviceType string      `json:"device_type"` // not used as always set to edge - see device.Type instead
 	device.Type
 	Directory string
 }
@@ -45,6 +43,7 @@ func (a Application) String() string {
 		a.Directory)
 }
 
+// ParseCommit finds and extracts the firmware tar belonging to this application
 func (a *Application) ParseCommit() error {
 	appDir := filepath.Join(config.GetPersistantDirectory(), (string)(a.UUID))
 
@@ -67,18 +66,4 @@ func (a *Application) ParseCommit() error {
 
 	tarPath := filepath.Join(a.Directory, "binary.tar")
 	return tarinator.UnTarinate(a.Directory, tarPath)
-}
-
-func (a Application) NewDevice(localUUID, resinUUID string) (*device.Device, error) {
-	newDevice := &device.Device{
-		Type:            a.Type,
-		LocalUUID:       localUUID,
-		ResinUUID:       resinUUID,
-		ApplicationUUID: a.UUID,
-		ApplicationName: a.Name,
-		LastSeen:        time.Now(),
-		State:           device.ONLINE,
-	}
-
-	return database.SaveDevice(newDevice)
 }

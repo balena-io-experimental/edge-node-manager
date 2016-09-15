@@ -77,11 +77,13 @@ func Process(app *application.Application) error {
 			"Device": onlineDevice,
 		}).Info("Device not provisioned")
 
-		resinUUID, err := proxyvisor.NewDevice(app.UUID)
+		resinUUID, err := proxyvisor.Provision(app.UUID)
 		if err != nil {
 			return err
 		}
-		newDevice, err := app.NewDevice(onlineDevice, resinUUID)
+
+		newDevice := device.New(app.Type, onlineDevice, resinUUID, app.Name, app.UUID)
+		newDevice, err = database.SaveDevice(newDevice)
 		if err != nil {
 			return err
 		}

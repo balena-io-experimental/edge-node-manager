@@ -18,6 +18,25 @@ var (
 	key     string
 )
 
+// DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
+/*
+[
+	{
+		"id": 13015,
+		"device_type": "edge",
+		"name": "edgeApp1",
+		"commit": "d43bea5e16658e653088ce4b9a91b6606c3c2a0d",
+		"env": null
+	},
+	{
+		"id": 13016,
+		"device_type": "edge",
+		"name": "edgeApp2",
+		"commit": "d0f6624d6410fa079159fa3ebe0d3af46753d75d",
+		"env": null
+	}
+]
+*/
 func DependantApplicationsList() (map[string]*application.Application, error) {
 	target, err := url.ParseRequestURI(address)
 	if err != nil {
@@ -58,8 +77,8 @@ func DependantApplicationsList() (map[string]*application.Application, error) {
 	return applications, nil
 }
 
-// NewDevice creates a new device on the resin dashboard and returns its UUID
-func NewDevice(appUUID int) (string, error) {
+// Provision creates a new device on the resin dashboard and returns its UUID
+func Provision(appUUID int) (string, error) {
 	// Simulate proxyvisor whilst we wait for it to be released by returning a random 62 char string
 	return random(62), nil
 }

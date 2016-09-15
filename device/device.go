@@ -73,6 +73,21 @@ func (d Device) String() string {
 		d.Progress)
 }
 
+// New creates a new device
+func New(deviceType Type, localUUID, resinUUID, appName string, appUUID int) *Device {
+	newDevice := &Device{
+		Type:            deviceType,
+		LocalUUID:       localUUID,
+		ResinUUID:       resinUUID,
+		ApplicationUUID: appUUID,
+		ApplicationName: appName,
+		LastSeen:        time.Now(),
+		State:           ONLINE,
+	}
+
+	return newDevice
+}
+
 // Cast converts the base device type to its actual type
 func (d Device) Cast() Interface {
 	switch d.Type.Micro {
