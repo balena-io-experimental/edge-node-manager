@@ -8,10 +8,8 @@ import (
 	"github.com/jacobsa/go-serial/serial"
 )
 
-/*
-Uses the go-serial package
-github.com/jacobsa/go-serial/serial
-*/
+// Uses the go-serial package
+// github.com/jacobsa/go-serial/serial
 
 var options serial.OpenOptions
 

@@ -12,10 +12,8 @@ import (
 	"github.com/josephroberts/edge-node-manager/device"
 )
 
-/*
-Uses the tiedot database
-https://github.com/HouzuoGuo/tiedot
-*/
+// Uses the tiedot database
+// https://github.com/HouzuoGuo/tiedot
 
 var (
 	directory  string
@@ -128,11 +126,9 @@ func loadDevice(key int) (*device.Device, error) {
 	if err != nil {
 		return &device.Device{}, err
 	}
-	/*
-	 * Set the DatabaseUUID
-	 * This is necessary as the DB does not store the DatabaseUUID field correctly
-	 * Save 4170124961882522202, and get 1.1229774266282973e+18 back (looks like overflow)
-	 */
+	// Set the DatabaseUUID
+	// This is necessary as the DB does not store the DatabaseUUID field correctly
+	// Save 4170124961882522202, and get 1.1229774266282973e+18 back (looks like overflow)
 	readBack["DatabaseUUID"] = key
 
 	// TODO: Research how to avoid this marshalling step
