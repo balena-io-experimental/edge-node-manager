@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -8,6 +9,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/josephroberts/edge-node-manager/api"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
@@ -18,6 +20,9 @@ import (
 
 func main() {
 	log.Info("Starting edge node manager")
+
+	router := api.NewRouter()
+	log.Fatal(http.ListenAndServe(":8080", router))
 
 	nrf51822 := device.Type{
 		Micro: micro.NRF51822,
