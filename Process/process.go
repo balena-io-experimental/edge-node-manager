@@ -77,7 +77,7 @@ func Process(app *application.Application) error {
 			"Device": onlineDevice,
 		}).Info("Device not provisioned")
 
-		resinUUID, err := proxyvisor.Provision(app.UUID)
+		resinUUID, err := proxyvisor.DependantDeviceProvision(app.UUID)
 		if err != nil {
 			return err
 		}

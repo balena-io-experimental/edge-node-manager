@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"strconv"
 
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/device"
@@ -14,7 +15,7 @@ import (
 
 // Application contains all the variables needed to run the application
 type Application struct {
-	UUID       int         `json:"id"`
+	UUID       int         `json:"appId"`
 	Name       string      `json:"name"`
 	Commit     string      `json:"commit"`
 	Env        interface{} `json:"env"`
@@ -45,9 +46,10 @@ func (a Application) String() string {
 
 // ParseCommit finds and extracts the firmware tar belonging to this application
 func (a *Application) ParseCommit() error {
-	appDir := filepath.Join(config.GetPersistantDirectory(), (string)(a.UUID))
+	filePath := config.GetAssetsDir()
+	filePath = path.Join(filePath, strconv.Itoa(a.UUID))
 
-	commitDirectories, err := ioutil.ReadDir(appDir)
+	commitDirectories, err := ioutil.ReadDir(filePath)
 	if err != nil {
 		return err
 	} else if len(commitDirectories) == 0 {
@@ -62,7 +64,7 @@ func (a *Application) ParseCommit() error {
 	}
 
 	a.Commit = commit
-	a.Directory = path.Join(appDir, a.Commit)
+	a.Directory = path.Join(filePath, a.Commit)
 
 	tarPath := filepath.Join(a.Directory, "binary.tar")
 	return tarinator.UnTarinate(a.Directory, tarPath)

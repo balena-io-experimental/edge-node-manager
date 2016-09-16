@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"path"
 	"strconv"
 	"time"
 )
@@ -13,24 +12,29 @@ func GetLoopDelay() (time.Duration, error) {
 	return time.Duration(value), err
 }
 
-// GetPersistantDirectory returns the root directory used to store the database and application commits
-func GetPersistantDirectory() string {
-	return getEnv("ENM_CONFIG_PERSISTENT_DIR", "/data")
+// GetAssetsDir returns the root directory used to store the database and application commits
+func GetAssetsDir() string {
+	return getEnv("ENM_ASSETS_DIRECTORY", "/data/assets")
 }
 
-// GetDbDirectory returns the directory used to store the database
-func GetDbDirectory() string {
-	return path.Join(GetPersistantDirectory(), getEnv("ENM_CONFIG_DB_DIR", "/database"))
+// GetDbDir returns the directory used to store the database
+func GetDbDir() string {
+	return getEnv("ENM_DB_DIRECTORY", "/data/database")
 }
 
-// GetResinSupervisorAddress returns the address used to communicate with the supervisor
-func GetResinSupervisorAddress() string {
+// GetSuperAddr returns the address used to communicate with the supervisor
+func GetSuperAddr() string {
 	return getEnv("RESIN_SUPERVISOR_ADDRESS", "http://localhost:3000")
 }
 
-// GetResinSupervisorAPIKey returns the API key used to communicate with the supervisor
-func GetResinSupervisorAPIKey() string {
+// GetSuperAPIKey returns the API key used to communicate with the supervisor
+func GetSuperAPIKey() string {
 	return getEnv("RESIN_SUPERVISOR_API_KEY", "test")
+}
+
+// GetSuperAPIVer returns the API key used to communicate with the supervisor
+func GetSuperAPIVer() string {
+	return getEnv("RESIN_SUPERVISOR_API_KEY", "v1")
 }
 
 func getEnv(key, fallback string) string {

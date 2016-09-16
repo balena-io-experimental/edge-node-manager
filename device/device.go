@@ -74,7 +74,7 @@ func (d Device) String() string {
 }
 
 // New creates a new device
-func New(deviceType Type, localUUID, resinUUID, appName string, appUUID int) *Device {
+func New(deviceType Type, localUUID, resinUUID, appName string, appUUID int) *Device { //TODO pass in app somehow
 	newDevice := &Device{
 		Type:            deviceType,
 		LocalUUID:       localUUID,

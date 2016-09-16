@@ -21,7 +21,7 @@ var (
 )
 
 // LoadDevices loads and returns all devices from the database for a specific application
-func LoadDevices(UUID int) (map[string]*device.Device, error) {
+func LoadDevices(UUID int) (map[string]*device.Device, error) { // TODO pointers
 	results, err := query((string)(UUID), "ApplicationUUID")
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func Stop() error {
 }
 
 func init() {
-	directory = config.GetDbDirectory()
+	directory = config.GetDbDir()
 
 	var err error
 	if connection, err = tiedotDb.OpenDB(directory); err != nil {
