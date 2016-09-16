@@ -2,71 +2,51 @@ package proxyvisor
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path"
 	"strconv"
+	"time"
+
+	"encoding/json"
 
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/device"
+	"github.com/parnurzeal/gorequest"
 )
 
 var (
 	address string
-	key     string
 	version string
+	key     string
 )
 
 // TODO handle no connection
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
-func DependantApplicationsList() (map[string]application.Application, error) { //TODO set req type
-	target, err := url.ParseRequestURI(address)
+func DependantApplicationsList() (map[string]application.Application, []error) {
+	url, err := buildPath(address, []string{version, "applications"})
 	if err != nil {
-		return nil, err
+		return nil, []error{err}
 	}
 
-	target.Path = buildPath([]string{version, "applications"})
-	data := url.Values{}
-	data.Set("apikey", key)
+	request := gorequest.New()
+	request.Get(url)
+	request.Query(key)
+	resp, body, errs := request.EndBytes()
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", target.String(), bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	logReq(req)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("invalid response received: %s", resp.Status)
-	}
-	log.WithFields(log.Fields{
-		"Response": resp.Status,
-	}).Debug("Valid response received")
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	if errs := handleResp(resp, errs); errs != nil {
+		return nil, errs
 	}
 
 	var buffer []application.Application
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return nil, err
+		return nil, []error{err}
 	}
 
 	applications := make(map[string]application.Application)
@@ -79,95 +59,72 @@ func DependantApplicationsList() (map[string]application.Application, error) { /
 
 // DependantApplicationUpdate downloads the binary.tar for a specific application and commit,
 // saving it to {ENM_ASSETS_DIRECTORY}/{appUUID}/{commit}/binary.tar
-func DependantApplicationUpdate(appUUID int, commit string) error {
-	target, err := url.ParseRequestURI(address)
+// Not convinced this works, perhaps try https://github.com/cavaliercoder/grab
+func DependantApplicationUpdate(appUUID int, commit string) []error {
+	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(appUUID), commit})
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
-	target.Path = buildPath([]string{version, "assets", strconv.Itoa(appUUID), commit})
-	data := url.Values{}
-	data.Set("apikey", key)
+	request := gorequest.New()
+	request.Get(url)
+	request.Query(key)
+	resp, body, errs := request.EndBytes()
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", target.String(), bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return err
+	if errs := handleResp(resp, errs); errs != nil {
+		return errs
 	}
-	logReq(req)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("invalid response received: %s", resp.Status)
-	}
-	log.WithFields(log.Fields{
-		"Response": resp.Status,
-	}).Debug("Valid response received")
 
 	filePath := config.GetAssetsDir()
 	filePath = path.Join(filePath, strconv.Itoa(appUUID))
 	filePath = path.Join(filePath, commit)
 	if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-		return err
+		return []error{err}
 	}
-
-	// TODO delete old commit after download
-
 	filePath = path.Join(filePath, "binary.tar")
+
 	out, err := os.Create(filePath)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	defer out.Close()
 
-	if _, err = io.Copy(out, resp.Body); err != nil {
-		return err
+	if _, err = io.Copy(out, bytes.NewReader(body)); err != nil {
+		return []error{err}
 	}
 
 	return nil
 }
 
-func DependantDeviceLog(resinUUID, message string) error {
-	target, err := url.ParseRequestURI(address)
+// DependantDeviceLog transmits a log message and timestamp for a specific device
+func DependantDeviceLog(resinUUID, message string) []error {
+	url, err := buildPath(address, []string{version, "devices", resinUUID, "logs"})
 	if err != nil {
-		return err
+		return []error{err}
 	}
-	target.Path = buildPath([]string{version, "devices", resinUUID, "logs"})
 
-	data := url.Values{}
-	data.Set("apikey", key)
-	//data.Set("message", message)
-	//data.Set("timestamp", strconv.FormatInt(time.Now().UTC().Unix(), 10))
+	type dependantDeviceLog struct {
+		Message   string `json:"message"`
+		TimeStamp int64  `json:"timestamp"`
+	}
 
-	var jsonStr = []byte(`{"title":"Buy cheese and bread for breakfast."}`)
-	req, err := http.NewRequest("PUT", target.String(), bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
+	content := &dependantDeviceLog{
+		Message:   message,
+		TimeStamp: time.Now().UTC().Unix(),
+	}
+
+	bytes, err := json.Marshal(content)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
-	logReq(req)
+	request := gorequest.New()
+	request.Put(url)
+	request.Query(key)
+	request.Send((string)(bytes))
+	resp, _, errs := request.End()
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("invalid response received: %s", resp.Status)
-	}
-	log.WithFields(log.Fields{
-		"Response": resp.Status,
-	}).Debug("Valid response received")
-
-	return nil
+	return handleResp(resp, errs)
 }
 
 func DependantDeviceInfoUpdate(device device.Device) error {
@@ -188,31 +145,52 @@ func DependantDevicesList() (map[string]*device.Device, error) {
 
 func init() {
 	address = config.GetSuperAddr()
-	key = config.GetSuperAPIKey()
 	version = config.GetSuperAPIVer()
-}
+	key = config.GetSuperAPIKey()
 
-func buildPath(paths []string) string {
-	var u url.URL
-	for _, p := range paths {
-		u.Path = path.Join(u.Path, p)
-	}
-	return u.String()
-}
-
-func logReq(req *http.Request) error {
-	if log.GetLevel() != log.DebugLevel {
-		return nil
+	type apiKey struct {
+		APIKey string `json:"apikey"`
 	}
 
-	requestDump, err := httputil.DumpRequestOut(req, true)
+	content := &apiKey{
+		APIKey: key,
+	}
+
+	bytes, err := json.Marshal(content)
 	if err != nil {
-		return err
+		log.WithFields(log.Fields{
+			"Key":   key,
+			"Error": err,
+		}).Fatal("Unable to marshall API key")
+	}
+	key = (string)(bytes)
+}
+
+func buildPath(base string, paths []string) (string, error) {
+	url, err := url.ParseRequestURI(address)
+	if err != nil {
+		return "", err
+	}
+
+	for _, p := range paths {
+		url.Path = path.Join(url.Path, p)
+	}
+
+	return url.String(), nil
+}
+
+func handleResp(resp gorequest.Response, errs []error) []error {
+	if errs != nil {
+		return errs
+	}
+
+	if resp.StatusCode != 200 {
+		return []error{fmt.Errorf("invalid response received: %s", resp.Status)}
 	}
 
 	log.WithFields(log.Fields{
-		"Request dump": (string)(requestDump),
-	}).Debug("HTTP request")
+		"Response": resp.Status,
+	}).Debug("Valid response received")
 
 	return nil
 }
