@@ -14,31 +14,38 @@ import (
 func main() {
 	log.Info("Starting edge node manager")
 
-	apps, errs := proxyvisor.DependantApplicationsList()
-	if errs != nil {
-		log.WithFields(log.Fields{
-			"Errors": errs,
-		}).Fatal("Unable to get the dependant application list")
-	}
-	for key, app := range apps {
-		log.WithFields(log.Fields{
-			"Key":   key,
-			"Value": app,
-		}).Debug("Application")
-	}
-
-	// err := proxyvisor.DependantApplicationUpdate(13015, "d43bea5e16658e653088ce4b9a91b6606c3c2a0d")
-	// if err != nil {
+	// apps, errs := proxyvisor.DependantApplicationsList()
+	// if errs != nil {
 	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Fatal("Unable to get the dependant application update")
+	// 		"Errors": errs,
+	// 	}).Fatal("Unable to get the dependant application list")
 	// }
+	// for key, app := range apps {
+	// 	log.WithFields(log.Fields{
+	// 		"Key":   key,
+	// 		"Value": app,
+	// 	}).Debug("Application")
+	// }
+
+	err := proxyvisor.DependantApplicationUpdate(13015, "d43bea5e16658e653088ce4b9a91b6606c3c2a0d")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to get the dependant application update")
+	}
 
 	// errs := proxyvisor.DependantDeviceLog("fef6e0b23f65ecef1c10bd49ef155694720194940f3e990477f7b21d54ddfa", "hello")
 	// if errs != nil {
 	// 	log.WithFields(log.Fields{
 	// 		"Errors": errs,
 	// 	}).Fatal("Unable to set the dependant device log")
+	// }
+
+	// errs := proxyvisor.DependantDeviceInfoUpdate("fef6e0b23f65ecef1c10bd49ef155694720194940f3e990477f7b21d54ddfa", "updating", true)
+	// if errs != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Errors": errs,
+	// 	}).Fatal("Unable to set the dependant device info")
 	// }
 
 	// router := api.NewRouter()

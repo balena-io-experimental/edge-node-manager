@@ -1,9 +1,7 @@
 package proxyvisor
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"path"
@@ -13,6 +11,7 @@ import (
 	"encoding/json"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/cavaliercoder/grab"
 
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
@@ -24,11 +23,11 @@ var (
 	address string
 	version string
 	key     string
+	rawKey  string
 )
 
-// TODO handle no connection
-
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
+// NOT USED
 func DependantApplicationsList() (map[string]application.Application, []error) {
 	url, err := buildPath(address, []string{version, "applications"})
 	if err != nil {
@@ -40,7 +39,7 @@ func DependantApplicationsList() (map[string]application.Application, []error) {
 	request.Query(key)
 	resp, body, errs := request.EndBytes()
 
-	if errs := handleResp(resp, errs); errs != nil {
+	if errs = handleResp(resp, errs); errs != nil {
 		return nil, errs
 	}
 
@@ -59,41 +58,34 @@ func DependantApplicationsList() (map[string]application.Application, []error) {
 
 // DependantApplicationUpdate downloads the binary.tar for a specific application and commit,
 // saving it to {ENM_ASSETS_DIRECTORY}/{appUUID}/{commit}/binary.tar
-// Not convinced this works, perhaps try https://github.com/cavaliercoder/grab
-func DependantApplicationUpdate(appUUID int, commit string) []error {
+func DependantApplicationUpdate(appUUID int, commit string) error {
 	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(appUUID), commit})
 	if err != nil {
-		return []error{err}
+		return err
 	}
 
-	request := gorequest.New()
-	request.Get(url)
-	request.Query(key)
-	resp, body, errs := request.EndBytes()
-
-	if errs := handleResp(resp, errs); errs != nil {
-		return errs
+	req, err := grab.NewRequest(url)
+	if err != nil {
+		return err
 	}
+
+	q := req.HTTPRequest.URL.Query()
+	q.Set("apikey", rawKey)
+	req.HTTPRequest.URL.RawQuery = q.Encode()
 
 	filePath := config.GetAssetsDir()
 	filePath = path.Join(filePath, strconv.Itoa(appUUID))
 	filePath = path.Join(filePath, commit)
-	if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-		return []error{err}
+	if err = os.MkdirAll(filePath, os.ModePerm); err != nil {
+		return err
 	}
 	filePath = path.Join(filePath, "binary.tar")
+	req.Filename = filePath
 
-	out, err := os.Create(filePath)
-	if err != nil {
-		return []error{err}
-	}
-	defer out.Close()
+	client := grab.NewClient()
+	_, err = client.Do(req)
 
-	if _, err = io.Copy(out, bytes.NewReader(body)); err != nil {
-		return []error{err}
-	}
-
-	return nil
+	return err
 }
 
 // DependantDeviceLog transmits a log message and timestamp for a specific device
@@ -127,39 +119,104 @@ func DependantDeviceLog(resinUUID, message string) []error {
 	return handleResp(resp, errs)
 }
 
-func DependantDeviceInfoUpdate(device device.Device) error {
-	return nil
+// DependantDeviceInfoUpdate transmits status and is_online for a specific device
+func DependantDeviceInfoUpdate(resinUUID, status string, online bool) []error {
+	url, err := buildPath(address, []string{version, "devices", resinUUID})
+	if err != nil {
+		return []error{err}
+	}
+
+	type dependantDeviceInfo struct {
+		Status string `json:"status"`
+		Online bool   `json:"is_online"`
+	}
+
+	content := &dependantDeviceInfo{
+		Status: status,
+		Online: online,
+	}
+
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		return []error{err}
+	}
+
+	request := gorequest.New()
+	request.Put(url)
+	request.Query(key)
+	request.Send((string)(bytes))
+	resp, _, errs := request.End()
+
+	return handleResp(resp, errs)
 }
 
-func DependantDeviceInfo(device *device.Device) error {
-	return nil
+// DependantDeviceInfo returns a single dependant device assigned to the edge-node-manager
+// NOT USED
+func DependantDeviceInfo(resinUUID string) (device.Device, error) {
+	return device.Device{}, fmt.Errorf("Not implemented")
 }
 
-func DependantDeviceProvision(appUUID int) (*device.Device, error) {
-	return nil, nil
+// DependantDeviceProvision provisions a single dependant device to a specific application
+func DependantDeviceProvision(appUUID int) (string, []error) {
+	url, err := buildPath(address, []string{version, "devices"})
+	if err != nil {
+		return "", []error{err}
+	}
+
+	type dependantDeviceProvision struct {
+		AppUUID int `json:"appId"`
+	}
+
+	content := &dependantDeviceProvision{
+		AppUUID: appUUID,
+	}
+
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		return "", []error{err}
+	}
+
+	request := gorequest.New()
+	request.Post(url)
+	request.Query(key)
+	request.Send((string)(bytes))
+	resp, body, errs := request.EndBytes()
+
+	if errs = handleResp(resp, errs); errs != nil {
+		return "", errs
+	}
+
+	var buffer map[string]interface{}
+	if err := json.Unmarshal(body, &buffer); err != nil {
+		return "", []error{err}
+	}
+
+	return buffer["uuid"].(string), nil
 }
 
-func DependantDevicesList() (map[string]*device.Device, error) {
-	return nil, nil
+// DependantDevicesList returns all dependant devices assigned to the edge-node-manager
+// NOT USED
+func DependantDevicesList() (map[string]device.Device, error) {
+	return nil, fmt.Errorf("Not implemented")
 }
 
 func init() {
 	address = config.GetSuperAddr()
 	version = config.GetSuperAPIVer()
-	key = config.GetSuperAPIKey()
+	rawKey = config.GetSuperAPIKey()
 
 	type apiKey struct {
 		APIKey string `json:"apikey"`
 	}
 
 	content := &apiKey{
-		APIKey: key,
+		APIKey: rawKey,
 	}
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"Key":   key,
+			"Key":   rawKey,
 			"Error": err,
 		}).Fatal("Unable to marshall API key")
 	}
