@@ -26,16 +26,18 @@ const (
 
 // Device contains all the variables needed to define a device
 type Device struct {
-	Type            `json:"Type"`
-	LocalUUID       string    `json:"LocalUUID"`
-	ResinUUID       string    `json:"ResinUUID"`
-	ApplicationUUID int       `json:"ApplicationUUID"`
-	ApplicationName string    `json:"ApplicationName"`
-	DatabaseUUID    int       `json:"DatabaseUUID"`
-	Commit          string    `json:"Commit"`
-	LastSeen        time.Time `json:"LastSeen"`
-	State           State     `json:"State"`
-	Progress        float32   `json:"Progress"`
+	Type         `json:"type"`
+	LocalUUID    string    `json:"localUUID" structs:"localUUID"`
+	ResinUUID    string    `json:"resinUUID" structs:"resinUUID"`
+	Name         string    `json:"name" structs:"name"`
+	AppUUID      int       `json:"applicationUUID" structs:"applicationUUID"`
+	AppName      string    `json:"applicationName" structs:"applicationName"`
+	DatabaseUUID int       `json:"databaseUUID" structs:"databaseUUID"`
+	Commit       string    `json:"commit" structs:"commit"`
+	TargetCommit string    `json:"targetCommit" structs:"-"`
+	LastSeen     time.Time `json:"lastSeen" structs:"lastSeen"`
+	State        State     `json:"state" structs:"state"`
+	Progress     float32   `json:"progress" structs:"progress"`
 }
 
 // Interface defines the common functions a device must implement
@@ -53,10 +55,12 @@ func (d Device) String() string {
 			"Radio type: %s, "+
 			"Local UUID: %s, "+
 			"Resin UUID: %s, "+
-			"Application UUID: %s, "+
+			"Name: %s, "+
+			"Application UUID: %d, "+
 			"Application Name: %s, "+
 			"Database UUID: %d, "+
 			"Commit: %s, "+
+			"Target commit: %s, "+
 			"LastSeen: %s, "+
 			"State: %s, "+
 			"Progress: %2.2f",
@@ -64,25 +68,32 @@ func (d Device) String() string {
 		d.Type.Radio,
 		d.LocalUUID,
 		d.ResinUUID,
-		d.ApplicationUUID,
-		d.ApplicationName,
+		d.Name,
+		d.AppUUID,
+		d.AppName,
 		d.DatabaseUUID,
 		d.Commit,
+		d.TargetCommit,
 		d.LastSeen,
 		d.State,
 		d.Progress)
 }
 
 // New creates a new device
-func New(deviceType Type, localUUID, resinUUID, appName string, appUUID int) *Device { //TODO pass in app somehow
+func New(deviceType Type, localUUID, resinUUID, name string, appUUID int, appName, targetCommit string) *Device {
 	newDevice := &Device{
-		Type:            deviceType,
-		LocalUUID:       localUUID,
-		ResinUUID:       resinUUID,
-		ApplicationUUID: appUUID,
-		ApplicationName: appName,
-		LastSeen:        time.Now(),
-		State:           ONLINE,
+		Type:         deviceType,
+		LocalUUID:    localUUID,
+		ResinUUID:    resinUUID,
+		Name:         name,
+		AppUUID:      appUUID,
+		AppName:      appName,
+		DatabaseUUID: 0,
+		Commit:       "",
+		TargetCommit: targetCommit,
+		LastSeen:     time.Now(),
+		State:        ONLINE,
+		Progress:     0.0,
 	}
 
 	return newDevice

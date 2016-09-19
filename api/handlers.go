@@ -5,13 +5,16 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/josephroberts/edge-node-manager/database"
 )
 
 func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	resinUUID := vars["ResinUUID"]
+	resinUUID := vars["uuid"]
+	commit := vars["commit"]
 	fmt.Fprintln(w, "Dependant Device Update:", resinUUID)
-	// TODO
+
+	database.SetTargetCommit(resinUUID, commit)
 }
 
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {

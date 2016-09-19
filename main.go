@@ -5,102 +5,96 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/josephroberts/edge-node-manager/api"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
+	"github.com/josephroberts/edge-node-manager/device"
+	"github.com/josephroberts/edge-node-manager/micro"
+	"github.com/josephroberts/edge-node-manager/process"
+	"github.com/josephroberts/edge-node-manager/proxyvisor"
+	"github.com/josephroberts/edge-node-manager/radio"
 )
 
 func main() {
 	log.Info("Starting edge node manager")
 
-	// apps, errs := proxyvisor.DependantApplicationsList()
-	// if errs != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Errors": errs,
-	// 	}).Fatal("Unable to get the dependant application list")
-	// }
-	// for key, app := range apps {
-	// 	log.WithFields(log.Fields{
-	// 		"Key":   key,
-	// 		"Value": app,
-	// 	}).Debug("Application")
-	// }
+	// Get app list
+	// Set device type - hardcoded
+	// Write into DB
+	// Before each loop read DB
+	// Set app target from handler
+	// In app check if target matches commit, extract if not
 
-	// err := proxyvisor.DependantApplicationUpdate(13015, "d43bea5e16658e653088ce4b9a91b6606c3c2a0d")
-	// if err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Fatal("Unable to get the dependant application update")
-	// }
+	apps, errs := proxyvisor.DependantApplicationsList()
+	if errs != nil {
+		log.WithFields(log.Fields{
+			"Errors": errs,
+		}).Fatal("Unable to get the dependant application list")
+	}
 
-	// errs := proxyvisor.DependantDeviceLog("fef6e0b23f65ecef1c10bd49ef155694720194940f3e990477f7b21d54ddfa", "hello")
-	// if errs != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Errors": errs,
-	// 	}).Fatal("Unable to set the dependant device log")
-	// }
+	if _, exists := apps["resin"]; exists != true {
+		log.WithFields(log.Fields{
+			"Key": "resin",
+		}).Fatal("Application does not exist")
+	}
 
-	// errs := proxyvisor.DependantDeviceInfoUpdate("fef6e0b23f65ecef1c10bd49ef155694720194940f3e990477f7b21d54ddfa", "updating", true)
-	// if errs != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Errors": errs,
-	// 	}).Fatal("Unable to set the dependant device info")
-	// }
+	nrf51822 := device.Type{
+		Micro: micro.NRF51822,
+		Radio: radio.BLUETOOTH,
+	}
+	apps["resin"].Type = nrf51822
 
-	router := api.NewRouter()
-	log.Fatal(http.ListenAndServe(config.GetENMAddr(), router))
+	if log.GetLevel() == log.DebugLevel {
+		for key, app := range apps {
+			log.WithFields(log.Fields{
+				"Key":   key,
+				"Value": app,
+			}).Debug("Dependant applications")
+		}
+	}
 
-	// nrf51822 := device.Type{
-	// 	Micro: micro.NRF51822,
-	// 	Radio: radio.BLUETOOTH,
-	// }
-	// esp8266 := device.Type{
-	// 	Micro: micro.ESP8266,
-	// 	Radio: radio.WIFI,
-	// }
+	delay, err := config.GetLoopDelay()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load loop delay")
+	}
 
-	// apps := []*application.Application{
-	// 	&application.Application{
-	// 		Name: "resin",
-	// 		Type: nrf51822,
-	// 	},
-	// 	&application.Application{
-	// 		Name: "resin_esp8266",
-	// 		Type: esp8266,
-	// 	}}
+	log.WithFields(log.Fields{
+		"Loop delay": delay,
+	}).Info("Started edge node manager")
 
-	// delay, err := config.GetLoopDelay()
-	// if err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Fatal("Unable to load loop delay")
-	// }
+	for {
+		for _, app := range apps {
+			if errs := process.Run(app); errs != nil {
+				log.WithFields(log.Fields{
+					"Application": app,
+					"Errors":      errs,
+				}).Error("Unable to process application")
+			}
+		}
 
-	// log.WithFields(log.Fields{
-	// 	"Loop delay": delay,
-	// }).Info("Started edge node manager")
-
-	// for {
-	// 	for _, app := range apps {
-	// 		if err := app.Process(); err != nil {
-	// 			log.WithFields(log.Fields{
-	// 				"Application UUID": app.UUID,
-	// 				"Error":            err,
-	// 			}).Fatal("Unable to process application")
-	// 		}
-	// 	}
-
-	// 	// Delay between processing each set of applications to prevent 100% CPU usage
-	// 	time.Sleep(delay * time.Second)
-	// }
+		// Delay between processing each set of applications to prevent 100% CPU usage
+		time.Sleep(delay * time.Second)
+	}
 }
 
 func init() {
 	log.SetFormatter(&log.TextFormatter{})
 	log.SetLevel(log.DebugLevel)
+
+	go func() {
+		router := api.NewRouter()
+		if err := http.ListenAndServe(config.GetENMAddr(), router); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Fatal("Unable to start API server")
+		}
+	}()
 
 	channel := make(chan os.Signal, 1)
 	signal.Notify(channel, os.Interrupt)

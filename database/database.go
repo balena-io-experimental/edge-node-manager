@@ -3,6 +3,7 @@ package database
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -21,8 +22,8 @@ var (
 )
 
 // LoadDevices loads and returns all devices from the database for a specific application
-func LoadDevices(UUID int) (map[string]*device.Device, error) { // TODO pointers
-	results, err := query((string)(UUID), "ApplicationUUID")
+func LoadDevices(appUUID int) (map[string]*device.Device, error) { // TODO pointers
+	results, err := query(strconv.Itoa(appUUID), "applicationUUID")
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +48,6 @@ func SaveDevice(newDevice *device.Device) (*device.Device, error) {
 		return &device.Device{}, err
 	}
 
-	newDevice.DatabaseUUID = key
-	if err := updateDevice(newDevice); err != nil {
-		return &device.Device{}, err
-	}
-
 	return loadDevice(key)
 }
 
@@ -65,6 +61,29 @@ func RemoveDevice(key int) error {
 func UpdateDevices(existingDevices map[string]*device.Device) error {
 	for _, existingDevice := range existingDevices {
 		if err := updateDevice(existingDevice); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SetTargetCommit sets the target commit for a specific device
+func SetTargetCommit(ResinUUID, commit string) error {
+	results, err := query(ResinUUID, "resinUUID")
+	if err != nil {
+		return err
+	}
+
+	if len(results) == 0 {
+		return fmt.Errorf("Device not found in the database")
+	} else if len(results) > 1 {
+		return fmt.Errorf("More than one device found in the database")
+	}
+
+	collection := connection.Use("Devices")
+	for result := range results {
+		if err := collection.Update(result, map[string]interface{}{"targetCommit": commit}); err != nil {
 			return err
 		}
 	}
@@ -93,8 +112,10 @@ func init() {
 		// Ignore error as the Devices collection could already exist
 		connection.Create("Devices")
 		collection := connection.Use("Devices")
-		// Ignore error as the ApplicationUUID index could already exist
-		collection.Index([]string{"ApplicationUUID"})
+		// Ignore error as the applicationUUID index could already exist
+		collection.Index([]string{"applicationUUID"})
+		// Ignore error as the resinUUID index could already exist
+		collection.Index([]string{"resinUUID"})
 	}
 
 	log.WithFields(log.Fields{
@@ -126,12 +147,14 @@ func loadDevice(key int) (*device.Device, error) {
 	if err != nil {
 		return &device.Device{}, err
 	}
+
 	// Set the DatabaseUUID
 	// This is necessary as the DB does not store the DatabaseUUID field correctly
 	// Save 4170124961882522202, and get 1.1229774266282973e+18 back (looks like overflow)
-	readBack["DatabaseUUID"] = key
+	readBack["databaseUUID"] = key
 
 	// TODO: Research how to avoid this marshalling step
+	// there should ne a nice way to convert a map to a struct, try https://github.com/mitchellh/mapstructure
 	bytes, err := json.Marshal(readBack)
 	if err != nil {
 		return &device.Device{}, err
