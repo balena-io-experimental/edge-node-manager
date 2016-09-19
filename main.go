@@ -1,14 +1,16 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 
+	"github.com/josephroberts/edge-node-manager/api"
+	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/proxyvisor"
 )
 
 func main() {
@@ -27,12 +29,12 @@ func main() {
 	// 	}).Debug("Application")
 	// }
 
-	err := proxyvisor.DependantApplicationUpdate(13015, "d43bea5e16658e653088ce4b9a91b6606c3c2a0d")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Fatal("Unable to get the dependant application update")
-	}
+	// err := proxyvisor.DependantApplicationUpdate(13015, "d43bea5e16658e653088ce4b9a91b6606c3c2a0d")
+	// if err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Fatal("Unable to get the dependant application update")
+	// }
 
 	// errs := proxyvisor.DependantDeviceLog("fef6e0b23f65ecef1c10bd49ef155694720194940f3e990477f7b21d54ddfa", "hello")
 	// if errs != nil {
@@ -48,8 +50,8 @@ func main() {
 	// 	}).Fatal("Unable to set the dependant device info")
 	// }
 
-	// router := api.NewRouter()
-	// log.Fatal(http.ListenAndServe(":8080", router))
+	router := api.NewRouter()
+	log.Fatal(http.ListenAndServe(config.GetENMAddr(), router))
 
 	// nrf51822 := device.Type{
 	// 	Micro: micro.NRF51822,
