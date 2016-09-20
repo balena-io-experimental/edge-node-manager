@@ -10,8 +10,8 @@ import (
 
 // Type contains the micro and radio that make up a device type
 type Type struct {
-	Micro micro.Type `json:"Micro"`
-	Radio radio.Type `json:"Radio"`
+	Micro micro.Type `mapstructure:"micro" structs:"micro"`
+	Radio radio.Type `mapstructure:"radio" structs:"radio"`
 }
 
 // State defines the device states
@@ -26,18 +26,18 @@ const (
 
 // Device contains all the variables needed to define a device
 type Device struct {
-	Type         `json:"type"`
-	LocalUUID    string    `json:"localUUID" structs:"localUUID"`
-	ResinUUID    string    `json:"resinUUID" structs:"resinUUID"`
-	Name         string    `json:"name" structs:"name"`
-	AppUUID      int       `json:"applicationUUID" structs:"applicationUUID"`
-	AppName      string    `json:"applicationName" structs:"applicationName"`
-	DatabaseUUID int       `json:"databaseUUID" structs:"databaseUUID"`
-	Commit       string    `json:"commit" structs:"commit"`
-	TargetCommit string    `json:"targetCommit" structs:"-"`
-	LastSeen     time.Time `json:"lastSeen" structs:"lastSeen"`
-	State        State     `json:"state" structs:"state"`
-	Progress     float32   `json:"progress" structs:"progress"`
+	Type         `mapstructure:"type" structs:"type"`
+	LocalUUID    string    `mapstructure:"localUUID" structs:"localUUID"`
+	ResinUUID    string    `mapstructure:"resinUUID" structs:"resinUUID"`
+	Name         string    `mapstructure:"name" structs:"name"`
+	AppUUID      int       `mapstructure:"applicationUUID" structs:"applicationUUID"`
+	AppName      string    `mapstructure:"applicationName" structs:"applicationName"`
+	DatabaseUUID int       `mapstructure:"databaseUUID" structs:"databaseUUID"`
+	Commit       string    `mapstructure:"commit" structs:"commit"`
+	TargetCommit string    `mapstructure:"targetCommit" structs:"-"`
+	LastSeen     time.Time `mapstructure:"lastSeen" structs:"lastSeen"`
+	State        State     `mapstructure:"state" structs:"state"`
+	Progress     float32   `mapstructure:"progress" structs:"progress"`
 }
 
 // Interface defines the common functions a device must implement
@@ -57,11 +57,11 @@ func (d Device) String() string {
 			"Resin UUID: %s, "+
 			"Name: %s, "+
 			"Application UUID: %d, "+
-			"Application Name: %s, "+
+			"Application name: %s, "+
 			"Database UUID: %d, "+
 			"Commit: %s, "+
 			"Target commit: %s, "+
-			"LastSeen: %s, "+
+			"Last seen: %s, "+
 			"State: %s, "+
 			"Progress: %2.2f",
 		d.Type.Micro,

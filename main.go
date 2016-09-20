@@ -1,26 +1,24 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/josephroberts/edge-node-manager/api"
+	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/device"
-	"github.com/josephroberts/edge-node-manager/micro"
-	"github.com/josephroberts/edge-node-manager/process"
-	"github.com/josephroberts/edge-node-manager/proxyvisor"
-	"github.com/josephroberts/edge-node-manager/radio"
 )
 
 func main() {
 	log.Info("Starting edge node manager")
+
+	fmt.Println(application.List)
 
 	// Get app list
 	// Set device type - hardcoded
@@ -29,62 +27,62 @@ func main() {
 	// Set app target from handler
 	// In app check if target matches commit, extract if not
 
-	apps, errs := proxyvisor.DependantApplicationsList()
-	if errs != nil {
-		log.WithFields(log.Fields{
-			"Errors": errs,
-		}).Fatal("Unable to get the dependant application list")
-	}
+	// apps, errs := proxyvisor.DependantApplicationsList()
+	// if errs != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Errors": errs,
+	// 	}).Fatal("Unable to get the dependant application list")
+	// }
 
-	if _, exists := apps["resin"]; exists != true {
-		log.WithFields(log.Fields{
-			"Key": "resin",
-		}).Fatal("Application does not exist")
-	}
+	// if _, exists := apps["resin"]; exists != true {
+	// 	log.WithFields(log.Fields{
+	// 		"Key": "resin",
+	// 	}).Fatal("Application does not exist")
+	// }
 
-	nrf51822 := device.Type{
-		Micro: micro.NRF51822,
-		Radio: radio.BLUETOOTH,
-	}
-	apps["resin"].Type = nrf51822
+	// nrf51822 := device.Type{
+	// 	Micro: micro.NRF51822,
+	// 	Radio: radio.BLUETOOTH,
+	// }
+	// apps["resin"].Type = nrf51822
 
-	if log.GetLevel() == log.DebugLevel {
-		for key, app := range apps {
-			log.WithFields(log.Fields{
-				"Key":   key,
-				"Value": app,
-			}).Debug("Dependant applications")
-		}
-	}
+	// if log.GetLevel() == log.DebugLevel {
+	// 	for key, app := range apps {
+	// 		log.WithFields(log.Fields{
+	// 			"Key":   key,
+	// 			"Value": app,
+	// 		}).Debug("Dependant applications")
+	// 	}
+	// }
 
-	delay, err := config.GetLoopDelay()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Fatal("Unable to load loop delay")
-	}
+	// delay, err := config.GetLoopDelay()
+	// if err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Fatal("Unable to load loop delay")
+	// }
 
-	log.WithFields(log.Fields{
-		"Loop delay": delay,
-	}).Info("Started edge node manager")
+	// log.WithFields(log.Fields{
+	// 	"Loop delay": delay,
+	// }).Info("Started edge node manager")
 
-	for {
-		for _, app := range apps {
-			if errs := process.Run(app); errs != nil {
-				log.WithFields(log.Fields{
-					"Application": app,
-					"Errors":      errs,
-				}).Error("Unable to process application")
-			}
-		}
+	// for {
+	// 	for _, app := range apps {
+	// 		if errs := process.Run(app); errs != nil {
+	// 			log.WithFields(log.Fields{
+	// 				"Application": app,
+	// 				"Errors":      errs,
+	// 			}).Error("Unable to process application")
+	// 		}
+	// 	}
 
-		// Delay between processing each set of applications to prevent 100% CPU usage
-		time.Sleep(delay * time.Second)
-	}
+	// 	// Delay between processing each set of applications to prevent 100% CPU usage
+	// 	time.Sleep(delay * time.Second)
+	// }
 }
 
 func init() {
-	log.SetFormatter(&log.TextFormatter{})
+	//log.SetFormatter(&log.TextFormatter{})
 	log.SetLevel(log.DebugLevel)
 
 	go func() {

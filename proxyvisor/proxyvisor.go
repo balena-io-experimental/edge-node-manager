@@ -13,9 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/cavaliercoder/grab"
 
-	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/device"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -27,7 +25,7 @@ var (
 )
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
-func DependantApplicationsList() (map[string]*application.Application, []error) {
+func DependantApplicationsList() ([]interface{}, []error) {
 	url, err := buildPath(address, []string{version, "applications"})
 	if err != nil {
 		return nil, []error{err}
@@ -48,19 +46,12 @@ func DependantApplicationsList() (map[string]*application.Application, []error) 
 		return nil, errs
 	}
 
-	var buffer []application.Application
+	var buffer []interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
 		return nil, []error{err}
 	}
 
-	applications := make(map[string]*application.Application)
-	for key, app := range buffer {
-		// The value of the map must be set using the key rather than using the app object directly,
-		// otherwise the memory address pointed to gets overwritten with each iteration of the loop
-		applications[app.Name] = &buffer[key]
-	}
-
-	return applications, nil
+	return buffer, nil
 }
 
 // DependantApplicationUpdate downloads the binary.tar for a specific application and commit,
@@ -179,9 +170,8 @@ func DependantDeviceInfoUpdate(resinUUID, status string, online bool) []error {
 }
 
 // DependantDeviceInfo returns a single dependant device assigned to the edge-node-manager
-// NOT USED
-func DependantDeviceInfo(resinUUID string) (device.Device, error) {
-	return device.Device{}, fmt.Errorf("Not implemented")
+func DependantDeviceInfo() error {
+	return fmt.Errorf("Not implemented")
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
@@ -230,9 +220,8 @@ func DependantDeviceProvision(appUUID int) (string, string, []error) {
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager
-// NOT USED
-func DependantDevicesList() (map[string]device.Device, error) {
-	return nil, fmt.Errorf("Not implemented")
+func DependantDevicesList() error {
+	return fmt.Errorf("Not implemented")
 }
 
 func init() {
