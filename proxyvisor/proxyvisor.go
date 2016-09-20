@@ -25,7 +25,7 @@ var (
 )
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
-func DependantApplicationsList() ([]interface{}, []error) {
+func DependantApplicationsList() ([]byte, []error) {
 	url, err := buildPath(address, []string{version, "applications"})
 	if err != nil {
 		return nil, []error{err}
@@ -46,18 +46,13 @@ func DependantApplicationsList() ([]interface{}, []error) {
 		return nil, errs
 	}
 
-	var buffer []interface{}
-	if err := json.Unmarshal(body, &buffer); err != nil {
-		return nil, []error{err}
-	}
-
-	return buffer, nil
+	return body, nil
 }
 
-// DependantApplicationUpdate downloads the binary.tar for a specific application and commit,
-// saving it to {ENM_ASSETS_DIRECTORY}/{appUUID}/{commit}/binary.tar
-func DependantApplicationUpdate(appUUID int, commit string) error {
-	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(appUUID), commit})
+// DependantApplicationUpdate downloads the binary.tar for a specific application and target commit,
+// saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
+func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
+	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(applicationUUID), targetCommit})
 	if err != nil {
 		return err
 	}
@@ -72,8 +67,8 @@ func DependantApplicationUpdate(appUUID int, commit string) error {
 	req.HTTPRequest.URL.RawQuery = q.Encode()
 
 	filePath := config.GetAssetsDir()
-	filePath = path.Join(filePath, strconv.Itoa(appUUID))
-	filePath = path.Join(filePath, commit)
+	filePath = path.Join(filePath, strconv.Itoa(applicationUUID))
+	filePath = path.Join(filePath, targetCommit)
 	if err = os.MkdirAll(filePath, os.ModePerm); err != nil {
 		return err
 	}
@@ -94,8 +89,8 @@ func DependantApplicationUpdate(appUUID int, commit string) error {
 }
 
 // DependantDeviceLog transmits a log message and timestamp for a specific device
-func DependantDeviceLog(resinUUID, message string) []error {
-	url, err := buildPath(address, []string{version, "devices", resinUUID, "logs"})
+func DependantDeviceLog(UUID, message string) []error {
+	url, err := buildPath(address, []string{version, "devices", UUID, "logs"})
 	if err != nil {
 		return []error{err}
 	}
@@ -132,8 +127,8 @@ func DependantDeviceLog(resinUUID, message string) []error {
 }
 
 // DependantDeviceInfoUpdate transmits status and is_online for a specific device
-func DependantDeviceInfoUpdate(resinUUID, status string, online bool) []error {
-	url, err := buildPath(address, []string{version, "devices", resinUUID})
+func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
+	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
 	}
@@ -175,18 +170,18 @@ func DependantDeviceInfo() error {
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(appUUID int) (string, string, []error) {
+func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
 		return "", "", []error{err}
 	}
 
 	type dependantDeviceProvision struct {
-		AppUUID int `json:"appId"`
+		ApplicationUUID int `json:"appId"`
 	}
 
 	content := &dependantDeviceProvision{
-		AppUUID: appUUID,
+		ApplicationUUID: applicationUUID,
 	}
 
 	bytes, err := json.Marshal(content)

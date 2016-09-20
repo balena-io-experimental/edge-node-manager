@@ -7,23 +7,26 @@ import (
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/proxyvisor"
 	"github.com/josephroberts/edge-node-manager/radio"
-	"github.com/mitchellh/mapstructure"
+
+	"encoding/json"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-// List holds all the applications assigned to the edge-node-manager
-var List map[string]*Application
+var (
+	// List holds all the applications assigned to the edge-node-manager
+	List map[int]*Application
+)
 
 // Application contains all the variables needed to define an application
 type Application struct {
-	UUID         int         `mapstructure:"appId" structs:"appId"`
-	Name         string      `mapstructure:"name" structs:"name"`
-	Commit       string      `mapstructure:"commit" structs:"commit"`
-	TargetCommit string      `mapstructure:"targetCommit" structs:"targetCommit"`
-	Env          interface{} `mapstructure:"env" structs:"env"`
-	DeviceType   string      `mapstructure:"device_type" structs:"device_type"`
-	device.Type  `mapstructure:"type" structs:"type"`
+	UUID         int         `json:"appId"`
+	Name         string      `json:"name"`
+	Commit       string      `json:"-"`
+	TargetCommit string      `json:"commit"`
+	Env          interface{} `json:"env"`
+	DeviceType   string      `json:"device_type"`
+	device.Type  `json:"type"`
 	// Directory string
 }
 
@@ -50,36 +53,41 @@ func (a Application) String() string {
 }
 
 func init() {
-	buffer, errs := proxyvisor.DependantApplicationsList()
+	List = make(map[int]*Application)
+
+	bytes, errs := proxyvisor.DependantApplicationsList()
 	if errs != nil {
 		log.WithFields(log.Fields{
 			"Errors": errs,
 		}).Fatal("Unable to get the dependant application list")
 	}
 
-	List = make(map[string]*Application)
-
-	for _, item := range buffer {
-		var app Application
-		if err := mapstructure.Decode(item, &app); err != nil {
-			log.WithFields(log.Fields{
-				"Error": err,
-			}).Fatal("Unable to decode the dependant application list")
-		}
-		List[app.Name] = &app
+	var buffer []Application
+	if err := json.Unmarshal(bytes, &buffer); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to unmarshal the dependant application list")
 	}
 
-	if _, exists := List["resin"]; !exists {
+	for key := range buffer {
+		UUID := buffer[key].UUID
+		List[UUID] = &buffer[key]
+	}
+
+	initApp(13015, micro.NRF51822, radio.BLUETOOTH)
+}
+
+func initApp(UUID int, micro micro.Type, radio radio.Type) {
+	if _, exists := List[UUID]; !exists {
 		log.WithFields(log.Fields{
-			"Key": "resin",
+			"UUID": UUID,
 		}).Fatal("Application does not exist")
 	}
 
-	nrf51822 := device.Type{
-		Micro: micro.NRF51822,
-		Radio: radio.BLUETOOTH,
+	List[UUID].Type = device.Type{
+		Micro: micro,
+		Radio: radio,
 	}
-	List["resin"].Type = nrf51822
 }
 
 // ParseCommit finds and extracts the firmware tar belonging to this application

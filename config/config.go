@@ -22,6 +22,11 @@ func GetDbDir() string {
 	return getEnv("ENM_DB_DIRECTORY", "/data/database")
 }
 
+// GetDbName returns the directory used to store the database
+func GetDbName() string {
+	return getEnv("ENM_DB_NAME", "my.db")
+}
+
 // GetENMAddr returns the address used to serve the API to the supervisor
 func GetENMAddr() string {
 	return getEnv("ENM_ADDRESS", ":1337")

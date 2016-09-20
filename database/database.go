@@ -1,174 +1,268 @@
 package database
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
-	"fmt"
-	"strconv"
+	"path"
 
 	log "github.com/Sirupsen/logrus"
 
-	tiedotDb "github.com/HouzuoGuo/tiedot/db"
-	"github.com/fatih/structs"
 	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/device"
+
+	"github.com/boltdb/bolt"
 )
 
-// Uses the tiedot database
-// https://github.com/HouzuoGuo/tiedot
+var dbPath string
 
-var (
-	directory  string
-	connection *tiedotDb.DB
-)
+func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
+	db, err := open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
 
-// LoadDevices loads and returns all devices from the database for a specific application
-func LoadDevices(appUUID int) (map[string]*device.Device, error) { // TODO pointers
-	results, err := query(strconv.Itoa(appUUID), "applicationUUID")
+	return db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Applications"))
+
+		converted, err := i2b(applicationUUID)
+		if err != nil {
+			return err
+		}
+
+		a, err := b.CreateBucketIfNotExists(converted)
+		if err != nil {
+			return err
+		}
+
+		return a.Put([]byte(deviceUUID), device)
+	})
+}
+
+func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
+	db, err := open()
 	if err != nil {
 		return nil, err
 	}
+	defer db.Close()
 
-	devices := make(map[string]*device.Device)
-	for result := range results {
-		device, err := loadDevice(result)
+	var device []byte
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Applications"))
+
+		converted, err := i2b(applicationUUID)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		devices[device.LocalUUID] = device
+
+		a := b.Bucket(converted)
+		if a == nil {
+			return nil
+		}
+
+		buffer := a.Get([]byte(deviceUUID))
+		device := make([]byte, len(buffer))
+		copy(device, buffer)
+
+		return nil
+	})
+
+	return device, nil
+}
+
+func GetDevices(applicationUUID int) (map[string][]byte, error) {
+	db, err := open()
+	if err != nil {
+		return nil, err
 	}
+	defer db.Close()
+
+	var devices map[string][]byte
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Applications"))
+
+		converted, err := i2b(applicationUUID)
+		if err != nil {
+			return err
+		}
+
+		a := b.Bucket(converted)
+		if a == nil {
+			return nil
+		}
+
+		devices := make(map[string][]byte)
+		a.ForEach(func(k, v []byte) error {
+			key := make([]byte, len(k))
+			value := make([]byte, len(v))
+			copy(key, k)
+			copy(value, v)
+			devices[(string)(key)] = value
+			return nil
+		})
+
+		return nil
+	})
 
 	return devices, nil
 }
 
-// SaveDevice saves a new device to the database and returns the new device
-func SaveDevice(newDevice *device.Device) (*device.Device, error) {
-	collection := connection.Use("Devices")
-	key, err := collection.Insert(structs.Map(newDevice))
-	if err != nil {
-		return &device.Device{}, err
-	}
-
-	return loadDevice(key)
-}
-
-// RemoveDevice deletes a device from the database
-func RemoveDevice(key int) error {
-	collection := connection.Use("Devices")
-	return collection.Delete(key)
-}
-
-// UpdateDevices updates devices in the database
-func UpdateDevices(existingDevices map[string]*device.Device) error {
-	for _, existingDevice := range existingDevices {
-		if err := updateDevice(existingDevice); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// SetTargetCommit sets the target commit for a specific device
-func SetTargetCommit(ResinUUID, commit string) error {
-	results, err := query(ResinUUID, "resinUUID")
+func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte) error {
+	buffer, err := unmarshall(applicationUUID, deviceUUID)
 	if err != nil {
 		return err
 	}
 
-	if len(results) == 0 {
-		return fmt.Errorf("Device not found in the database")
-	} else if len(results) > 1 {
-		return fmt.Errorf("More than one device found in the database")
-	}
+	buffer[field] = value
 
-	collection := connection.Use("Devices")
-	for result := range results {
-		if err := collection.Update(result, map[string]interface{}{"targetCommit": commit}); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return marshall(applicationUUID, deviceUUID, buffer)
 }
 
-// Stop closes the database connection
-func Stop() error {
-	if connection == nil {
-		return nil
+func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
+	buffer, err := unmarshall(applicationUUID, deviceUUID)
+	if err != nil {
+		return nil, err
 	}
-	return connection.Close()
+
+	return buffer[field].([]byte), nil
+}
+
+func PutDeviceMapping(applicationUUID int, deviceUUID string) error {
+	db, err := open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	return db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Mapping"))
+
+		d, err := b.CreateBucketIfNotExists([]byte(deviceUUID))
+		if err != nil {
+			return err
+		}
+
+		converted, err := i2b(applicationUUID)
+		if err != nil {
+			return err
+		}
+
+		return d.Put([]byte("applicationUUID"), converted)
+	})
+}
+
+func GetDeviceMapping(deviceUUID string) (int, error) {
+	db, err := open()
+	if err != nil {
+		return 0, err
+	}
+	defer db.Close()
+
+	var applicationUUID []byte
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Mapping"))
+
+		d := b.Bucket([]byte(deviceUUID))
+		if d == nil {
+			return nil
+		}
+
+		buffer := d.Get([]byte("applicationUUID"))
+		applicationUUID := make([]byte, len(buffer))
+		copy(applicationUUID, buffer)
+
+		return nil
+	})
+
+	converted, err := b2i(applicationUUID)
+	if err != nil {
+		return 0, err
+	}
+
+	return converted, nil
 }
 
 func init() {
-	directory = config.GetDbDir()
+	dir := config.GetDbDir()
+	name := config.GetDbName()
+	dbPath = path.Join(dir, name)
 
-	var err error
-	if connection, err = tiedotDb.OpenDB(directory); err != nil {
+	db, err := open()
+	if err != nil {
 		log.WithFields(log.Fields{
-			"Directory": directory,
-			"Error":     err,
+			"Path":  dbPath,
+			"Error": err,
 		}).Fatal("Unable to open database connection")
-	} else {
-		// Ignore error as the Devices collection could already exist
-		connection.Create("Devices")
-		collection := connection.Use("Devices")
-		// Ignore error as the applicationUUID index could already exist
-		collection.Index([]string{"applicationUUID"})
-		// Ignore error as the resinUUID index could already exist
-		collection.Index([]string{"resinUUID"})
+	}
+	defer db.Close()
+
+	if err := makeBucket(db, "Applications"); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Create bucket failed")
+	}
+
+	if err := makeBucket(db, "Mapping"); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Create bucket failed")
 	}
 
 	log.WithFields(log.Fields{
-		"Directory": directory,
+		"Path": dbPath,
 	}).Debug("Opened database connection")
 }
 
-func query(value, field string) (map[int]struct{}, error) {
-	query := fmt.Sprintf(`[{"eq": "%s", "in": ["%s"]}]`, value, field)
+func open() (*bolt.DB, error) {
+	return bolt.Open(dbPath, 0600, nil)
+}
 
-	// TODO: Research how to avoid this unmarshalling step
-	var q interface{}
-	if err := json.Unmarshal([]byte(query), &q); err != nil {
+func makeBucket(db *bolt.DB, name string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(name))
+		return err
+	})
+}
+
+func marshall(applicationUUID int, deviceUUID string, buffer map[string]interface{}) error {
+	bytes, err := json.Marshal(buffer)
+	if err != nil {
+		return err
+	}
+
+	return PutDevice(applicationUUID, deviceUUID, bytes)
+}
+
+func unmarshall(applicationUUID int, deviceUUID string) (map[string]interface{}, error) {
+	bytes, err := GetDevice(applicationUUID, deviceUUID)
+	if err != nil {
 		return nil, err
 	}
 
-	queryResult := make(map[int]struct{})
-	collection := connection.Use("Devices")
-	if err := tiedotDb.EvalQuery(q, collection, &queryResult); err != nil {
+	buffer := make(map[string]interface{})
+	if err := json.Unmarshal(bytes, &buffer); err != nil {
 		return nil, err
 	}
 
-	return queryResult, nil
+	return buffer, nil
 }
 
-func loadDevice(key int) (*device.Device, error) {
-	collection := connection.Use("Devices")
-	readBack, err := collection.Read(key)
-	if err != nil {
-		return &device.Device{}, err
+func i2b(value int) ([]byte, error) {
+	result := new(bytes.Buffer)
+
+	if err := binary.Write(result, binary.LittleEndian, (int32)(value)); err != nil {
+		return nil, err
 	}
 
-	// Set the DatabaseUUID
-	// This is necessary as the DB does not store the DatabaseUUID field correctly
-	// Save 4170124961882522202, and get 1.1229774266282973e+18 back (looks like overflow)
-	readBack["databaseUUID"] = key
-
-	// TODO: Research how to avoid this marshalling step
-	// there should ne a nice way to convert a map to a struct, try https://github.com/mitchellh/mapstructure
-	bytes, err := json.Marshal(readBack)
-	if err != nil {
-		return &device.Device{}, err
-	}
-
-	existingDevice := &device.Device{}
-	if err := json.Unmarshal(bytes, existingDevice); err != nil {
-		return &device.Device{}, err
-	}
-
-	return existingDevice, nil
+	return result.Bytes(), nil
 }
 
-func updateDevice(existingDevice *device.Device) error {
-	collection := connection.Use("Devices")
-	return collection.Update(existingDevice.DatabaseUUID, structs.Map(existingDevice))
+func b2i(value []byte) (int, error) {
+	var result int32
+
+	if err := binary.Read(bytes.NewReader(value), binary.LittleEndian, &result); err != nil {
+		return 0, err
+	}
+
+	return (int)(result), nil
 }
