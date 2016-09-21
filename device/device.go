@@ -46,7 +46,7 @@ type Device struct {
 // Interface defines the common functions a device must implement
 type Interface interface {
 	String() string
-	Update(commit, directory string) error
+	Update(path string) error
 	Online() (bool, error)
 	Identify() error
 	Restart() error
@@ -84,7 +84,17 @@ func (d Device) String() string {
 		d.IdentifyFlag)
 }
 
-// New creates a new device
+// Update updates a specific device
+func (d Device) Update(path string) error {
+	return d.Cast().Update(path)
+}
+
+// Online checks if a specific device is online
+func (d Device) Online() (bool, error) {
+	return d.Cast().Online()
+}
+
+// New creates a new device and puts it into the database
 func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string) error {
 	newDevice := &Device{
 		Type:            deviceType,
@@ -110,6 +120,20 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 	return database.PutDevice(newDevice.ApplicationUUID, newDevice.UUID, buffer)
 }
 
+// PutAll puts all devices for a specific application into the database
+func PutAll(applicationUUID int, devices map[string]*Device) error {
+	buffer := make(map[string][]byte)
+	for _, value := range devices {
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		buffer[value.UUID] = bytes
+	}
+
+	return database.PutDevices(applicationUUID, buffer)
+}
+
 // GetAll gets all devices for a specific application
 func GetAll(applicationUUID int) (map[string]*Device, error) {
 	buffer, err := database.GetDevices(applicationUUID)
@@ -117,11 +141,8 @@ func GetAll(applicationUUID int) (map[string]*Device, error) {
 		return nil, err
 	}
 
-	fmt.Println("here")
-
 	devices := make(map[string]*Device)
 	for _, value := range buffer {
-		fmt.Println(string(value))
 		var device Device
 		if err = json.Unmarshal(value, &device); err != nil {
 			return nil, err
@@ -158,4 +179,12 @@ func (d Device) Cast() Interface {
 	}
 
 	return nil
+}
+
+// SetState sets the state for a specific device
+func (d *Device) SetState(state State) {
+	d.State = state
+	if d.State == ONLINE {
+		d.LastSeen = time.Now()
+	}
 }

@@ -104,14 +104,13 @@ func (d Nrf51822) String() string {
 }
 
 // Update updates the device following the firmware-over-the-air update process
-func (d Nrf51822) Update(commit, directory string) error {
+func (d Nrf51822) Update(path string) error {
 	log.WithFields(log.Fields{
-		"Device":    d,
-		"Commit":    commit,
-		"Directory": directory,
+		"Device": d,
+		"Path":   path,
 	}).Info("Update")
 
-	if err := d.extractFirmware(directory); err != nil {
+	if err := d.extractFirmware(path); err != nil {
 		return err
 	}
 
@@ -680,19 +679,19 @@ func (d Nrf51822) processRequest(f func(gatt.Peripheral, error)) error {
 	}
 }
 
-func (d Nrf51822) extractFirmware(directory string) error {
-	if err := archiver.Unzip(path.Join(directory, "application.zip"), directory); err != nil {
+func (d Nrf51822) extractFirmware(filePath string) error {
+	if err := archiver.Unzip(path.Join(filePath, "application.zip"), filePath); err != nil {
 		return err
 	}
 
 	var err error
 
-	fota.binary, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.bin"))
+	fota.binary, err = ioutil.ReadFile(path.Join(filePath, "nrf51422_xxac_s130.bin"))
 	if err != nil {
 		return err
 	}
 
-	fota.data, err = ioutil.ReadFile(path.Join(directory, "nrf51422_xxac_s130.dat"))
+	fota.data, err = ioutil.ReadFile(path.Join(filePath, "nrf51422_xxac_s130.dat"))
 	if err != nil {
 		return err
 	}

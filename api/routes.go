@@ -2,6 +2,7 @@ package api
 
 import "net/http"
 
+// Route contains all the variables needed to define a route
 type Route struct {
 	Name        string
 	Method      string
@@ -9,6 +10,7 @@ type Route struct {
 	HandlerFunc http.HandlerFunc
 }
 
+// Routes holds all the routes assigned to the API
 type Routes []Route
 
 var routes = Routes{

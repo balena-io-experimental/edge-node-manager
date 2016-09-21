@@ -15,11 +15,10 @@ func (d Esp8266) String() string {
 }
 
 // Update updates the device following the firmware-over-the-air update process
-func (d Esp8266) Update(commit, directory string) error {
+func (d Esp8266) Update(path string) error {
 	log.WithFields(log.Fields{
-		"Device":    d,
-		"Commit":    commit,
-		"Directory": directory,
+		"Device": d,
+		"Path":   path,
 	}).Debug("Update")
 	return nil
 }

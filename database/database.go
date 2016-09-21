@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"path"
 
 	log "github.com/Sirupsen/logrus"
@@ -15,6 +16,7 @@ import (
 
 var dbPath string
 
+// PutDevice puts a specific device
 func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
 	db, err := open()
 	if err != nil {
@@ -22,8 +24,11 @@ func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
 	}
 	defer db.Close()
 
-	return db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
+		if b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
 
 		converted, err := i2b(applicationUUID)
 		if err != nil {
@@ -37,8 +42,50 @@ func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
 
 		return a.Put([]byte(deviceUUID), device)
 	})
+	if err != nil {
+		return err
+	}
+
+	return putDeviceMapping(db, applicationUUID, deviceUUID)
 }
 
+// PutDevices puts all devices associated to a specific application
+func PutDevices(applicationUUID int, devices map[string][]byte) error {
+	db, err := open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Applications"))
+		if b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
+
+		converted, err := i2b(applicationUUID)
+		if err != nil {
+			return err
+		}
+
+		a, err := b.CreateBucketIfNotExists(converted)
+		if err != nil {
+			return err
+		}
+
+		for key, value := range devices {
+			if err = a.Put([]byte(key), value); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+// GetDevice gets a specific device
 func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 	db, err := open()
 	if err != nil {
@@ -47,8 +94,11 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 	defer db.Close()
 
 	var device []byte
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
+		if b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
 
 		converted, err := i2b(applicationUUID)
 		if err != nil {
@@ -57,19 +107,24 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 
 		a := b.Bucket(converted)
 		if a == nil {
-			return nil
+			return fmt.Errorf("Bucket not found")
 		}
 
-		buffer := a.Get([]byte(deviceUUID))
-		device := make([]byte, len(buffer))
-		copy(device, buffer)
+		value := a.Get([]byte(deviceUUID))
+		if value == nil {
+			return fmt.Errorf("Value not found")
+		}
+
+		device = make([]byte, len(value))
+		copy(device, value)
 
 		return nil
 	})
 
-	return device, nil
+	return device, err
 }
 
+// GetDevices gets all devices associated to a specific application
 func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	db, err := open()
 	if err != nil {
@@ -78,8 +133,11 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	defer db.Close()
 
 	var devices map[string][]byte
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
+		if b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
 
 		converted, err := i2b(applicationUUID)
 		if err != nil {
@@ -91,8 +149,8 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 			return nil
 		}
 
-		devices := make(map[string][]byte)
-		a.ForEach(func(k, v []byte) error {
+		devices = make(map[string][]byte)
+		return a.ForEach(func(k, v []byte) error {
 			key := make([]byte, len(k))
 			value := make([]byte, len(v))
 			copy(key, k)
@@ -100,13 +158,12 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 			devices[(string)(key)] = value
 			return nil
 		})
-
-		return nil
 	})
 
-	return devices, nil
+	return devices, err
 }
 
+// PutDeviceField puts a field for a specific device
 func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte) error {
 	buffer, err := unmarshall(applicationUUID, deviceUUID)
 	if err != nil {
@@ -118,6 +175,7 @@ func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte)
 	return marshall(applicationUUID, deviceUUID, buffer)
 }
 
+// GetDeviceField gets a field for a specific device
 func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
 	buffer, err := unmarshall(applicationUUID, deviceUUID)
 	if err != nil {
@@ -127,30 +185,7 @@ func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, erro
 	return buffer[field].([]byte), nil
 }
 
-func PutDeviceMapping(applicationUUID int, deviceUUID string) error {
-	db, err := open()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	return db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Mapping"))
-
-		d, err := b.CreateBucketIfNotExists([]byte(deviceUUID))
-		if err != nil {
-			return err
-		}
-
-		converted, err := i2b(applicationUUID)
-		if err != nil {
-			return err
-		}
-
-		return d.Put([]byte("applicationUUID"), converted)
-	})
-}
-
+// GetDeviceMapping gets the applicationUUID for a specific device
 func GetDeviceMapping(deviceUUID string) (int, error) {
 	db, err := open()
 	if err != nil {
@@ -159,27 +194,32 @@ func GetDeviceMapping(deviceUUID string) (int, error) {
 	defer db.Close()
 
 	var applicationUUID []byte
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Mapping"))
+		if b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
 
 		d := b.Bucket([]byte(deviceUUID))
 		if d == nil {
-			return nil
+			return fmt.Errorf("Bucket not found")
 		}
 
-		buffer := d.Get([]byte("applicationUUID"))
-		applicationUUID := make([]byte, len(buffer))
-		copy(applicationUUID, buffer)
+		value := d.Get([]byte("applicationUUID"))
+		if value == nil {
+			return fmt.Errorf("Value not found")
+		}
+
+		applicationUUID = make([]byte, len(value))
+		copy(applicationUUID, value)
 
 		return nil
 	})
-
-	converted, err := b2i(applicationUUID)
 	if err != nil {
 		return 0, err
 	}
 
-	return converted, nil
+	return b2i(applicationUUID)
 }
 
 func init() {
@@ -221,6 +261,27 @@ func makeBucket(db *bolt.DB, name string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(name))
 		return err
+	})
+}
+
+func putDeviceMapping(db *bolt.DB, applicationUUID int, deviceUUID string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Mapping"))
+		if b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
+
+		d, err := b.CreateBucketIfNotExists([]byte(deviceUUID))
+		if err != nil {
+			return err
+		}
+
+		converted, err := i2b(applicationUUID)
+		if err != nil {
+			return err
+		}
+
+		return d.Put([]byte("applicationUUID"), converted)
 	})
 }
 

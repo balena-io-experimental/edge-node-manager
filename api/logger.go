@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Logger logs API requests
 func Logger(inner http.Handler, name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

@@ -38,7 +38,7 @@ func main() {
 				log.WithFields(log.Fields{
 					"Application": application,
 					"Errors":      errs,
-				}).Error("Unable to process application")
+				}).Fatal("Unable to process application")
 			}
 		}
 
@@ -48,7 +48,7 @@ func main() {
 }
 
 func init() {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.DebugLevel) // Config var and put in all init statements
 
 	go func() {
 		router := api.NewRouter()

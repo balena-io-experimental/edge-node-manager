@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,6 +12,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// DependantDeviceUpdate puts the target commit for a specific device and its parent application
 func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -24,11 +26,19 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(targetCommit))
+	if err = database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(targetCommit)); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to put target commit")
+		return
+	}
 
 	application.List[applicationUUID].TargetCommit = targetCommit
+
+	fmt.Fprintln(w, "Dependant Device Update")
 }
 
+// DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -41,9 +51,17 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.PutDeviceField(applicationUUID, deviceUUID, "restartFlag", ([]byte)(strconv.FormatBool(true)))
+	if err = database.PutDeviceField(applicationUUID, deviceUUID, "restartFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to put restart flag")
+		return
+	}
+
+	fmt.Fprintln(w, "Dependant Device Restart")
 }
 
+// DependantDeviceIdentify puts the identify flag for a specific device
 func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -56,5 +74,12 @@ func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.PutDeviceField(applicationUUID, deviceUUID, "identifyFlag", ([]byte)(strconv.FormatBool(true)))
+	if err = database.PutDeviceField(applicationUUID, deviceUUID, "identifyFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to put identify flag")
+		return
+	}
+
+	fmt.Fprintln(w, "Dependant Device Identify")
 }
