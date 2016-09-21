@@ -1,4 +1,4 @@
 #!/bin/bash
 
 ./enableBle.sh
-#./edge-node-manager
+godep go run main.go
