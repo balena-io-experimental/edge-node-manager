@@ -4,8 +4,6 @@
 FROM resin/%%RESIN_MACHINE_NAME%%-golang
 
 # Add the key for foundation repository
-RUN apt-get update
-RUN apt-get install wget
 RUN wget http://archive.raspberrypi.org/debian/raspberrypi.gpg.key -O - | sudo apt-key add -
 
 # Add apt source of the foundation repository
