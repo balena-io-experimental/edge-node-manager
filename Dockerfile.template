@@ -1,0 +1,32 @@
+# base-image for golang on any machine using a template variable,
+# see more about dockerfile templates here: http://docs.resin.io/deployment/docker-templates/
+# and about resin base images here: http://docs.resin.io/runtime/resin-base-images/
+FROM resin/%%RESIN_MACHINE_NAME%%-golang
+
+# Add the key for foundation repository
+RUN apt-get update
+RUN apt-get install wget
+RUN wget http://archive.raspberrypi.org/debian/raspberrypi.gpg.key -O - | sudo apt-key add -
+
+# Add apt source of the foundation repository
+# We need this source because bluez needs to be patched in order to work with rpi3 ( Issue #1314: How to get BT working on Pi3B. by clivem in raspberrypi/linux on GitHub )
+# Add it on top so apt will pick up packages from there
+RUN sed -i '1s#^#deb http://archive.raspberrypi.org/debian jessie main\n#' /etc/apt/sources.list
+
+# Use apt-get if you need to install dependencies
+RUN apt-get update && apt-get install -yq \
+    bluez \
+    bluez-firmware && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set our working directory
+WORKDIR /usr/src/app
+
+# This will copy all files in our root to the working  directory in the container
+COPY . ./
+
+# Switch on systemd init system in container
+ENV INITSYSTEM on
+
+# start.sh will run when container starts up on the device
+CMD ["bash", "start.sh"]
