@@ -1,42 +1,27 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"net/http"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-
+	"github.com/josephroberts/edge-node-manager/api"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/device"
-	"github.com/josephroberts/edge-node-manager/micro"
-	"github.com/josephroberts/edge-node-manager/radio"
+	"github.com/josephroberts/edge-node-manager/process"
 )
 
+// Uses the logrus package
+// https://github.com/Sirupsen/logrus
+
 func main() {
-	log.Info("Starting edge node manager")
+	log.Info("Starting Edge-node-manager")
 
-	nrf51822 := device.Type{
-		Micro: micro.NRF51822,
-		Radio: radio.BLUETOOTH,
+	for _, value := range application.List {
+		log.WithFields(log.Fields{
+			"Application": value,
+		}).Info("Edge-node-manager application")
 	}
-	esp8266 := device.Type{
-		Micro: micro.ESP8266,
-		Radio: radio.WIFI,
-	}
-
-	apps := []*application.Application{
-		&application.Application{
-			UUID: "resin",
-			Type: nrf51822,
-		},
-		&application.Application{
-			UUID: "resin_esp8266",
-			Type: esp8266,
-		}}
 
 	delay, err := config.GetLoopDelay()
 	if err != nil {
@@ -47,14 +32,14 @@ func main() {
 
 	log.WithFields(log.Fields{
 		"Loop delay": delay,
-	}).Info("Started edge node manager")
+	}).Info("Started Edge-node-manager")
 
 	for {
-		for _, app := range apps {
-			if err := app.Process(); err != nil {
+		for _, application := range application.List {
+			if errs := process.Run(application); errs != nil {
 				log.WithFields(log.Fields{
-					"Application UUID": app.UUID,
-					"Error":            err,
+					"Application": application,
+					"Errors":      errs,
 				}).Fatal("Unable to process application")
 			}
 		}
@@ -65,20 +50,15 @@ func main() {
 }
 
 func init() {
-	log.SetFormatter(&log.TextFormatter{})
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(config.GetLogLevel())
 
-	channel := make(chan os.Signal, 1)
-	signal.Notify(channel, os.Interrupt)
-	signal.Notify(channel, syscall.SIGTERM)
 	go func() {
-		<-channel
-		if err := database.Stop(); err != nil {
+		router := api.NewRouter()
+		if err := http.ListenAndServe(config.GetENMAddr(), router); err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,
-			}).Fatal("Unable to stop database")
+			}).Fatal("Unable to start API server")
 		}
-
-		os.Exit(0)
+		log.Debug("Started API server")
 	}()
 }

@@ -2,10 +2,29 @@ package config
 
 import (
 	"os"
-	"path"
 	"strconv"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
+
+// GetLogLevel returns the log level
+func GetLogLevel() log.Level {
+	level := getEnv("LOG_LEVEL", "")
+
+	switch level {
+	case "DEBUG":
+		return log.DebugLevel
+	case "INFO":
+		return log.InfoLevel
+	case "WARN":
+		return log.WarnLevel
+	case "ERROR":
+		return log.ErrorLevel
+	}
+
+	return log.DebugLevel
+}
 
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {
@@ -13,19 +32,39 @@ func GetLoopDelay() (time.Duration, error) {
 	return time.Duration(value), err
 }
 
-// GetPersistantDirectory returns the root directory used to store the database and application commits
-func GetPersistantDirectory() string {
-	return getEnv("ENM_CONFIG_PERSISTENT_DIR", "/data")
+// GetAssetsDir returns the root directory used to store the database and application commits
+func GetAssetsDir() string {
+	return getEnv("ENM_ASSETS_DIRECTORY", "/data/assets")
 }
 
-// GetDbDirectory returns the directory used to store the database
-func GetDbDirectory() string {
-	return path.Join(GetPersistantDirectory(), getEnv("ENM_CONFIG_DB_DIR", "/database"))
+// GetDbDir returns the directory used to store the database
+func GetDbDir() string {
+	return getEnv("ENM_DB_DIRECTORY", "/data/database")
 }
 
-// GetProxyPort returns the port used to communicate with the proxy visor
-func GetProxyPort() string {
-	return getEnv("ENM_CONFIG_PROXY_PORT", "3000")
+// GetDbName returns the directory used to store the database
+func GetDbName() string {
+	return getEnv("ENM_DB_NAME", "my.db")
+}
+
+// GetENMAddr returns the address used to serve the API to the supervisor
+func GetENMAddr() string {
+	return getEnv("ENM_ADDRESS", ":1337")
+}
+
+// GetSuperAddr returns the address used to communicate with the supervisor
+func GetSuperAddr() string {
+	return getEnv("SUPERVISOR_ADDRESS", "http://localhost:3000")
+}
+
+// GetSuperAPIKey returns the API key used to communicate with the supervisor
+func GetSuperAPIKey() string {
+	return getEnv("SUPERVISOR_API_KEY", "test")
+}
+
+// GetSuperAPIVer returns the API key used to communicate with the supervisor
+func GetSuperAPIVer() string {
+	return getEnv("SUPERVISOR_API_VERSION", "v1")
 }
 
 func getEnv(key, fallback string) string {

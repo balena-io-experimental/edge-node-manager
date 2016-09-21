@@ -6,7 +6,7 @@ import (
 )
 
 // Scan scans for online devices where the device name matches the id passed in
-func Scan(name string, timeout time.Duration) (map[string]bool, error) {
+func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 
 	http.Get("http://example.com/")
 

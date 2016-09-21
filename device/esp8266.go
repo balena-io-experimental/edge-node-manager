@@ -2,8 +2,6 @@ package device
 
 import (
 	log "github.com/Sirupsen/logrus"
-
-	"github.com/josephroberts/edge-node-manager/firmware"
 	"github.com/josephroberts/edge-node-manager/radio/wifi"
 )
 
@@ -16,11 +14,10 @@ func (d Esp8266) String() string {
 }
 
 // Update updates the device following the firmware-over-the-air update process
-func (d Esp8266) Update(firmware firmware.Firmware) error {
+func (d Esp8266) Update(path string) error {
 	log.WithFields(log.Fields{
-		"Device":             d,
-		"Firmware directory": firmware.Dir,
-		"Commit":             firmware.Commit,
+		"Device": d,
+		"Path":   path,
 	}).Debug("Update")
 	return nil
 }

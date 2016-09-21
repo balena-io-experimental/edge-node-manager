@@ -4,8 +4,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-
 	"github.com/jacobsa/go-serial/serial"
+	"github.com/josephroberts/edge-node-manager/config"
 )
 
 // Uses the go-serial package
@@ -29,7 +29,7 @@ func Configure(port string, baudRate, dataBits, stopBits, minimumReadSize uint) 
 }
 
 // Scan scans for online devices where the device name matches the id passed in
-func Scan(name string, timeout time.Duration) (map[string]bool, error) {
+func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	return nil, nil
 }
 
@@ -39,6 +39,8 @@ func Online(id string, timeout time.Duration) (bool, error) {
 }
 
 func init() {
+	log.SetLevel(config.GetLogLevel())
+
 	options = serial.OpenOptions{
 		PortName:        "/dev/tty.usbserial-A8008HlV",
 		BaudRate:        19200,

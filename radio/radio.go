@@ -19,14 +19,14 @@ const (
 )
 
 // Scan calls Scan on the underlying radio type
-func (r Type) Scan(name string, timeout time.Duration) (map[string]bool, error) {
+func (r Type) Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	switch r {
 	case BLUETOOTH:
-		return bluetooth.Scan(name, timeout)
+		return bluetooth.Scan(id, timeout)
 	case WIFI:
-		return wifi.Scan(name, timeout)
+		return wifi.Scan(id, timeout)
 	case ZIGBEE:
-		return zigbee.Scan(name, timeout)
+		return zigbee.Scan(id, timeout)
 	default:
 		return nil, fmt.Errorf("Radio does not exist")
 	}

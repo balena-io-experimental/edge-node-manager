@@ -9,12 +9,15 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 	"github.com/mholt/archiver"
 	"github.com/paypal/gatt"
-
-	"github.com/josephroberts/edge-node-manager/firmware"
-	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 )
+
+// Uses the archiver package
+// https://github.com/mholt/archiver
+// Uses the gatt package
+// https://github.com/paypal/gatt
 
 // See the links below for an explanation of firmware-over-the-air updating on an NRF51822 based device
 // https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleprofile.html
@@ -105,14 +108,13 @@ func (d Nrf51822) String() string {
 }
 
 // Update updates the device following the firmware-over-the-air update process
-func (d Nrf51822) Update(firmware firmware.Firmware) error {
+func (d Nrf51822) Update(path string) error {
 	log.WithFields(log.Fields{
-		"Device":             d,
-		"Firmware directory": firmware.Dir,
-		"Commit":             firmware.Commit,
+		"Device": d,
+		"Path":   path,
 	}).Info("Update")
 
-	if err := d.extractFirmware(firmware); err != nil {
+	if err := d.extractFirmware(path); err != nil {
 		return err
 	}
 
@@ -681,19 +683,19 @@ func (d Nrf51822) processRequest(f func(gatt.Peripheral, error)) error {
 	}
 }
 
-func (d Nrf51822) extractFirmware(firmware firmware.Firmware) error {
-	if err := archiver.Unzip(path.Join(firmware.Dir, "application.zip"), firmware.Dir); err != nil {
+func (d Nrf51822) extractFirmware(filePath string) error {
+	if err := archiver.Unzip(path.Join(filePath, "application.zip"), filePath); err != nil {
 		return err
 	}
 
 	var err error
 
-	fota.binary, err = ioutil.ReadFile(path.Join(firmware.Dir, "nrf51422_xxac_s130.bin"))
+	fota.binary, err = ioutil.ReadFile(path.Join(filePath, "nrf51422_xxac_s130.bin"))
 	if err != nil {
 		return err
 	}
 
-	fota.data, err = ioutil.ReadFile(path.Join(firmware.Dir, "nrf51422_xxac_s130.dat"))
+	fota.data, err = ioutil.ReadFile(path.Join(filePath, "nrf51422_xxac_s130.dat"))
 	if err != nil {
 		return err
 	}
