@@ -4,7 +4,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-
+	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/paypal/gatt"
 	"github.com/paypal/gatt/examples/option"
 )
@@ -61,6 +61,8 @@ func Online(id string, timeout time.Duration) (bool, error) {
 }
 
 func init() {
+	log.SetLevel(config.GetLogLevel())
+
 	var err error
 	if Radio, err = gatt.NewDevice(option.DefaultClientOptions...); err != nil {
 		log.WithFields(log.Fields{

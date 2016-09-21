@@ -4,7 +4,27 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
+
+// GetLogLevel returns the log level
+func GetLogLevel() log.Level {
+	level := getEnv("LOG_LEVEL", "")
+
+	switch level {
+	case "DEBUG":
+		return log.DebugLevel
+	case "INFO":
+		return log.InfoLevel
+	case "WARN":
+		return log.WarnLevel
+	case "ERROR":
+		return log.ErrorLevel
+	}
+
+	return log.DebugLevel
+}
 
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {

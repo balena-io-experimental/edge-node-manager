@@ -2,7 +2,6 @@ package device
 
 import (
 	log "github.com/Sirupsen/logrus"
-
 	"github.com/josephroberts/edge-node-manager/radio/wifi"
 )
 

@@ -8,13 +8,20 @@ import (
 	"path"
 
 	log "github.com/Sirupsen/logrus"
-
-	"github.com/josephroberts/edge-node-manager/config"
-
 	"github.com/boltdb/bolt"
+	"github.com/josephroberts/edge-node-manager/config"
 )
 
+// Uses the bolt package
+// https://github.com/boltdb/bolt
+
 var dbPath string
+
+// There are two buckets in use "Applications" and "Mapping"
+// "Applications" contains a bucket of applications, where the applicationUUID is the key
+// Each application bucket contains a bucket of devices, where the deviceUUID is the key
+// "Mapping" contains the mapping between deviceUUID and applicationUUID
+// Where the deviceUUID is the key and applicationUUID is the value
 
 // PutDevice puts a specific device
 func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
@@ -223,6 +230,8 @@ func GetDeviceMapping(deviceUUID string) (int, error) {
 }
 
 func init() {
+	log.SetLevel(config.GetLogLevel())
+
 	dir := config.GetDbDir()
 	name := config.GetDbName()
 	dbPath = path.Join(dir, name)

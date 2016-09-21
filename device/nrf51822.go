@@ -9,11 +9,15 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 	"github.com/mholt/archiver"
 	"github.com/paypal/gatt"
-
-	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 )
+
+// Uses the archiver package
+// https://github.com/mholt/archiver
+// Uses the gatt package
+// https://github.com/paypal/gatt
 
 // See the links below for an explanation of firmware-over-the-air updating on an NRF51822 based device
 // https://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.sdk5.v11.0.0%2Fbledfu_transport_bleprofile.html

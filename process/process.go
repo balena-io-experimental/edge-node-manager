@@ -2,7 +2,6 @@ package process
 
 import (
 	log "github.com/Sirupsen/logrus"
-
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/device"
 )
@@ -45,6 +44,8 @@ func Run(a *application.Application) []error {
 	if err := a.UpdateOnlineDevices(); err != nil {
 		return []error{err}
 	}
+
+	// TODO: restart and identify devices
 
 	// Put all provisioned devices associated with this application
 	if err := a.PutDevices(); err != nil {

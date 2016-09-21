@@ -1,6 +1,7 @@
-package proxyvisor
+package supervisor
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -8,14 +9,16 @@ import (
 	"strconv"
 	"time"
 
-	"encoding/json"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/cavaliercoder/grab"
-
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/parnurzeal/gorequest"
 )
+
+// Uses the grab package
+// https://github.com/cavaliercoder/grab
+// Uses the gorequest package
+// https://github.com/parnurzeal/gorequest
 
 var (
 	address string
@@ -49,8 +52,8 @@ func DependantApplicationsList() ([]byte, []error) {
 	return body, nil
 }
 
-// DependantApplicationUpdate downloads the binary.tar for a specific application and target commit,
-// saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
+// DependantApplicationUpdate downloads the binary.tar for a specific application and target commit
+// Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
 func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
 	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(applicationUUID), targetCommit})
 	if err != nil {
@@ -220,6 +223,8 @@ func DependantDevicesList() error {
 }
 
 func init() {
+	log.SetLevel(config.GetLogLevel())
+
 	address = config.GetSuperAddr()
 	version = config.GetSuperAPIVer()
 	rawKey = config.GetSuperAPIKey()

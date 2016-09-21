@@ -1,36 +1,39 @@
 package application
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/config"
+	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
 	"github.com/josephroberts/edge-node-manager/micro"
-	"github.com/josephroberts/edge-node-manager/proxyvisor"
 	"github.com/josephroberts/edge-node-manager/radio"
+	"github.com/josephroberts/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
-
-	"encoding/json"
-
-	log "github.com/Sirupsen/logrus"
 )
 
+// Uses the tarinator-go package
+// https://github.com/verybluebot/tarinator-go
+
 // List holds all the applications assigned to the edge-node-manager
+// Key is the applicationUUID
 var List map[int]*Application
 
 // Application contains all the variables needed to define an application
 type Application struct {
 	UUID          int         `json:"appId"`
 	Name          string      `json:"name"`
-	Commit        string      `json:"-"`
-	TargetCommit  string      `json:"commit"`
+	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the proxyvisor as we want to set the target commit
+	TargetCommit  string      `json:"commit"` // Set json tag to commit as the proxyvisor has no concept of target commit
 	Env           interface{} `json:"env"`
 	DeviceType    string      `json:"device_type"`
 	device.Type   `json:"type"`
-	Devices       map[string]*device.Device
-	OnlineDevices map[string]bool
+	Devices       map[string]*device.Device // Key is the device's localUUID
+	OnlineDevices map[string]bool           // Key is the device's localUUID
 	FilePath      string
 }
 
@@ -55,9 +58,11 @@ func (a Application) String() string {
 }
 
 func init() {
+	log.SetLevel(config.GetLogLevel())
+
 	List = make(map[int]*Application)
 
-	bytes, errs := proxyvisor.DependantApplicationsList()
+	bytes, errs := supervisor.DependantApplicationsList()
 	if errs != nil {
 		log.WithFields(log.Fields{
 			"Errors": errs,
@@ -76,7 +81,11 @@ func init() {
 		List[UUID] = &buffer[key]
 	}
 
+	// For now we have to manually initialise an applications micro and radio type
+	// This is because the device type returned from the supervisor is always edge
 	initApplication(13015, micro.NRF51822, radio.BLUETOOTH)
+
+	log.Debug("Initialised applications")
 }
 
 func initApplication(UUID int, micro micro.Type, radio radio.Type) {
@@ -170,8 +179,9 @@ func (a *Application) PutDevices() error {
 
 // GetOnlineDevices gets all online devices associated with the application
 func (a *Application) GetOnlineDevices() error {
+	// Scan for devices with an ID that matches the applicationUUID
 	var err error
-	if a.OnlineDevices, err = a.Type.Radio.Scan(a.Name, 10); err != nil {
+	if a.OnlineDevices, err = a.Type.Radio.Scan(strconv.Itoa(a.UUID), 10); err != nil {
 		return err
 	}
 
@@ -193,6 +203,8 @@ func (a *Application) GetOnlineDevices() error {
 // ProvisionDevices provisions all non-provisoned online devices associated with the application
 func (a *Application) ProvisionDevices() []error {
 	for key := range a.OnlineDevices {
+		// Check if the online device localUUID is present in devices
+		// If it is then the device is already provisioned
 		if _, exists := a.Devices[key]; exists {
 			log.WithFields(log.Fields{
 				"Local UUID": key,
@@ -204,7 +216,7 @@ func (a *Application) ProvisionDevices() []error {
 			"Local UUID": key,
 		}).Info("Device not provisioned")
 
-		deviceUUID, deviceName, errs := proxyvisor.DependantDeviceProvision(a.UUID)
+		deviceUUID, deviceName, errs := supervisor.DependantDeviceProvision(a.UUID)
 		if errs != nil {
 			return errs
 		}
@@ -250,6 +262,13 @@ func (a *Application) UpdateOnlineDevices() error {
 
 		if online {
 			d.SetState(device.ONLINE)
+
+			// Get the target commit as it may have been set by the supervisor since we loaded all the application devices
+			bytes, err := database.GetDeviceField(a.UUID, d.UUID, "targetCommit")
+			if err != nil {
+				return err
+			}
+			d.TargetCommit = (string)(bytes)
 
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{

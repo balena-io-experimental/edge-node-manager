@@ -5,12 +5,14 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-
 	"github.com/josephroberts/edge-node-manager/api"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/process"
 )
+
+// Uses the logrus package
+// https://github.com/Sirupsen/logrus
 
 func main() {
 	log.Info("Starting Edge-node-manager")
@@ -48,7 +50,7 @@ func main() {
 }
 
 func init() {
-	log.SetLevel(log.DebugLevel) // Config var and put in all init statements
+	log.SetLevel(config.GetLogLevel())
 
 	go func() {
 		router := api.NewRouter()
@@ -57,5 +59,6 @@ func init() {
 				"Error": err,
 			}).Fatal("Unable to start API server")
 		}
+		log.Debug("Started API server")
 	}()
 }
