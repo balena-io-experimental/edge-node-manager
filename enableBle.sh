@@ -14,6 +14,7 @@ echo "Bring hci0 up..."
 hciconfig hci0 up
 
 echo "Scan for local devices..."
+echo hcitool dev
 if [ `hcitool dev | wc -l` -le 2 ]; then
     FAILED=1
 else
