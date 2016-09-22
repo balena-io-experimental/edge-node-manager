@@ -6,6 +6,9 @@ FROM resin/%%RESIN_MACHINE_NAME%%-golang
 # Enable systemd
 ENV INITSYSTEM on
 
+# Set Go path
+ENV GOPATH /usr/src/app
+
 # Add the key for foundation repository
 RUN wget http://archive.raspberrypi.org/debian/raspberrypi.gpg.key -O - | sudo apt-key add -
 
