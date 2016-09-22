@@ -1,8 +1,8 @@
 #!/bin/bash
 
-FAILED=0
+FAILED=1
 
-echo "Testing bluetooth on RPI3."
+echo "Enabling bluetooth."
 
 echo "Attaching hci0..."
 if ! /usr/bin/hciattach /dev/ttyAMA0 bcm43xx 921600 noflow -; then
@@ -13,19 +13,13 @@ fi
 echo "Bring hci0 up..."
 hciconfig hci0 up
 
-echo "Scan for local devices..."
-echo hcitool dev
-if [ `hcitool dev | wc -l` -le 2 ]; then
-    FAILED=1
-else
+echo "Testing..."
+if [ `hcitool dev | wc -l` -gt 1 ]; then
     FAILED=0
 fi
 
-echo "Test finished."
-
-# Test result
 if [ $FAILED -eq 1 ]; then
-    echo "TEST FAILED"
+    echo "...failed"
 else
-    echo "TEST PASSED"
+    echo "...passed"
 fi
