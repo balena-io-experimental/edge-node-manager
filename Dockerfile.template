@@ -3,7 +3,7 @@
 # and about resin base images here: http://docs.resin.io/runtime/resin-base-images/
 FROM resin/%%RESIN_MACHINE_NAME%%-golang
 
-# Enable systemd
+# Enable systemd init system
 ENV INITSYSTEM on
 
 # Set Go path

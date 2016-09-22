@@ -13,8 +13,8 @@ fi
 echo "Bring hci0 up..."
 hciconfig hci0 up
 
-echo "Scan for devices..."
-if [ `hcitool scan | wc -l` -le 1 ]; then
+echo "Scan for local devices..."
+if [ `hcitool dev | wc -l` -le 2 ]; then
     FAILED=1
 else
     FAILED=0
