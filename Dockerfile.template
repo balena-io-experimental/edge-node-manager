@@ -3,9 +3,6 @@
 # See more about resin base images here: http://docs.resin.io/runtime/resin-base-images/
 FROM resin/%%RESIN_MACHINE_NAME%%-golang
 
-# Enable systemd init system
-ENV INITSYSTEM on
-
 # Add the key for foundation repository
 RUN wget http://archive.raspberrypi.org/debian/raspberrypi.gpg.key -O - | sudo apt-key add -
 
@@ -27,7 +24,11 @@ RUN go get github.com/tools/godep
 # Set our working directory
 WORKDIR /go/src/github.com/josephroberts/edge-node-manager
 
+# Set RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS environment variable
 ENV RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS http://127.0.0.1:1337/v1/devices/
+
+# Enable systemd init system
+ENV INITSYSTEM on
 
 # This will copy all files in our root to the working  directory in the container
 COPY . ./
