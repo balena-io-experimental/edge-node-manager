@@ -30,6 +30,5 @@ WORKDIR /go/github.com/josephroberts/edge-node-manager
 # This will copy all files in our root to the working  directory in the container
 COPY . ./
 
-
 # start.sh will run when container starts up on the device
 CMD ["bash", "start.sh"]
