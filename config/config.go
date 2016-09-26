@@ -49,7 +49,7 @@ func GetDbName() string {
 
 // GetENMAddr returns the address used to serve the API to the supervisor
 func GetENMAddr() string {
-	return getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000")
+	return getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
 }
 
 // GetSuperAddr returns the address used to communicate with the supervisor
