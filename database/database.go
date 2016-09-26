@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 
 	log "github.com/Sirupsen/logrus"
@@ -235,6 +236,13 @@ func init() {
 	dir := config.GetDbDir()
 	name := config.GetDbName()
 	dbPath = path.Join(dir, name)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		log.WithFields(log.Fields{
+			"Path":  dir,
+			"Error": err,
+		}).Fatal("Unable to create path")
+	}
 
 	db, err := open()
 	if err != nil {

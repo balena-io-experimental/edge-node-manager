@@ -23,8 +23,8 @@ _testmain.go
 *.test
 *.prof
 
-# VS code files
+# Extras
 debug
 .vscode
-
 npm-debug.log
+

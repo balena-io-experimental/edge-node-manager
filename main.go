@@ -57,8 +57,8 @@ func init() {
 		if err := http.ListenAndServe(config.GetENMAddr(), router); err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,
-			}).Fatal("Unable to start API server")
+			}).Fatal("Unable to start incoming supervisor API")
 		}
-		log.Debug("Started API server")
+		log.Debug("Initialised incoming supervisor APIr")
 	}()
 }

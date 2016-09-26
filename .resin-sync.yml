@@ -1,0 +1,6 @@
+uuid: c6e2df1753a60e2d414696df5fd63c92c8f7ca7aea87f5ec7b8824eab1b385
+destination: /go/src/github.com/josephroberts/edge-node-manager
+port: 22
+ignore:
+  - .git
+  - node_modules/

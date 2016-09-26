@@ -49,22 +49,22 @@ func GetDbName() string {
 
 // GetENMAddr returns the address used to serve the API to the supervisor
 func GetENMAddr() string {
-	return getEnv("ENM_ADDRESS", ":1337")
+	return getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
 }
 
 // GetSuperAddr returns the address used to communicate with the supervisor
 func GetSuperAddr() string {
-	return getEnv("SUPERVISOR_ADDRESS", "http://localhost:3000")
+	return getEnv("RESIN_SUPERVISOR_ADDRESS", "http://127.0.0.1:4000")
 }
 
 // GetSuperAPIKey returns the API key used to communicate with the supervisor
 func GetSuperAPIKey() string {
-	return getEnv("SUPERVISOR_API_KEY", "test")
+	return getEnv("RESIN_SUPERVISOR_API_KEY", "")
 }
 
 // GetSuperAPIVer returns the API key used to communicate with the supervisor
 func GetSuperAPIVer() string {
-	return getEnv("SUPERVISOR_API_VERSION", "v1")
+	return getEnv("RESIN_SUPERVISOR_API_VERSION", "v1")
 }
 
 func getEnv(key, fallback string) string {
