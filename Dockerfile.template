@@ -27,6 +27,8 @@ RUN go get github.com/tools/godep
 # Set our working directory
 WORKDIR /go/src/github.com/josephroberts/edge-node-manager
 
+ENV RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS http://127.0.0.1:1337
+
 # This will copy all files in our root to the working  directory in the container
 COPY . ./
 
