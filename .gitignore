@@ -27,4 +27,5 @@ _testmain.go
 debug
 .vscode
 npm-debug.log
+edge-node-manager
 

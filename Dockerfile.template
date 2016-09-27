@@ -33,5 +33,8 @@ ENV INITSYSTEM on
 # This will copy all files in our root to the working  directory in the container
 COPY . ./
 
+# Build the edge-node-manager
+RUN godep go build
+
 # start.sh will run when container starts up on the device
 CMD ["bash", "start.sh"]
