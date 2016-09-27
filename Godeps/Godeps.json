@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/josephroberts/edge-node-manager",
-	"GoVersion": "go1.6",
+	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Deps": [
 		{
@@ -36,11 +36,6 @@
 		{
 			"ImportPath": "github.com/dsnet/compress/internal/prefix",
 			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
-		},
-		{
-			"ImportPath": "github.com/gorilla/context",
-			"Comment": "v1.1-4-gaed02d1",
-			"Rev": "aed02d124ae4a0e94fea4541c8effd05bf0c8296"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
