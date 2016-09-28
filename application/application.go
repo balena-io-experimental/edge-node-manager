@@ -83,7 +83,7 @@ func init() {
 		log.WithFields(log.Fields{
 			"Key":         UUID,
 			"Application": List[UUID],
-		}).Fatal("Dependant application")
+		}).Debug("Dependant application")
 	}
 
 	// For now we have to manually initialise an applications micro and radio type
