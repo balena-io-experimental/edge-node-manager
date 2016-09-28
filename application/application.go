@@ -79,11 +79,16 @@ func init() {
 	for key := range buffer {
 		UUID := buffer[key].UUID
 		List[UUID] = &buffer[key]
+
+		log.WithFields(log.Fields{
+			"Key":         UUID,
+			"Application": List[UUID],
+		}).Fatal("Dependant application")
 	}
 
 	// For now we have to manually initialise an applications micro and radio type
 	// This is because the device type returned from the supervisor is always edge
-	initApplication(13015, micro.NRF51822, radio.BLUETOOTH)
+	initApplication(13766, micro.NRF51822, radio.BLUETOOTH)
 
 	log.Debug("Initialised applications")
 }
@@ -273,13 +278,13 @@ func (a *Application) UpdateOnlineDevices() error {
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{
 					"Device": d,
-				}).Debug("Device upto date")
+				}).Debug("Device up to date")
 				continue
 			}
 
 			log.WithFields(log.Fields{
 				"Device": d,
-			}).Info("Device not upto date")
+			}).Info("Device not up to date")
 
 			if err := d.Update(a.FilePath); err != nil {
 				return err
