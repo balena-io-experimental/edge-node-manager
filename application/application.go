@@ -69,16 +69,12 @@ func init() {
 		}).Fatal("Unable to get the dependant application list")
 	}
 
-	log.Debug("test1:", (string)(bytes))
-
 	var buffer []Application
 	if err := json.Unmarshal(bytes, &buffer); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Fatal("Unable to unmarshal the dependant application list")
 	}
-
-	log.Debug("test2:", buffer)
 
 	for key := range buffer {
 		UUID := buffer[key].UUID
