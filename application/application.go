@@ -35,6 +35,7 @@ type Application struct {
 	Devices       map[string]*device.Device // Key is the device's localUUID
 	OnlineDevices map[string]bool           // Key is the device's localUUID
 	FilePath      string
+	Identifier    string // Used to identify devices during scanning
 }
 
 func (a Application) String() string {
@@ -83,17 +84,20 @@ func init() {
 
 	// For now we have to manually initialise an applications micro and radio type
 	// This is because the device type returned from the supervisor is always edge
-	initApplication(13015, micro.NRF51822, radio.BLUETOOTH)
+	// initApplication(13015, strconv.Itoa(13015), micro.NRF51822, radio.BLUETOOTH)
+	initApplication(13015, "Espressif", micro.ESP8266, radio.WIFI)
 
 	log.Debug("Initialised applications")
 }
 
-func initApplication(UUID int, micro micro.Type, radio radio.Type) {
+func initApplication(UUID int, identifier string, micro micro.Type, radio radio.Type) {
 	if _, exists := List[UUID]; !exists {
 		log.WithFields(log.Fields{
 			"UUID": UUID,
 		}).Fatal("Application does not exist")
 	}
+
+	List[UUID].Identifier = identifier
 
 	List[UUID].Type = device.Type{
 		Micro: micro,
@@ -103,7 +107,7 @@ func initApplication(UUID int, micro micro.Type, radio radio.Type) {
 
 // Validate ensures the application micro and radio type has been manually set
 func (a Application) Validate() bool {
-	if a.Micro == "" || a.Radio == "" {
+	if a.Micro == "" || a.Radio == "" || a.Identifier == "" {
 		log.WithFields(log.Fields{
 			"Application": a,
 			"Error":       "Application micro or radio type not set",
@@ -181,7 +185,7 @@ func (a *Application) PutDevices() error {
 func (a *Application) GetOnlineDevices() error {
 	// Scan for devices with an ID that matches the applicationUUID
 	var err error
-	if a.OnlineDevices, err = a.Type.Radio.Scan(strconv.Itoa(a.UUID), 10); err != nil {
+	if a.OnlineDevices, err = a.Type.Radio.Scan(a.Identifier, 10); err != nil {
 		return err
 	}
 
@@ -273,13 +277,13 @@ func (a *Application) UpdateOnlineDevices() error {
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{
 					"Device": d,
-				}).Debug("Device upto date")
+				}).Debug("Device up to date")
 				continue
 			}
 
 			log.WithFields(log.Fields{
 				"Device": d,
-			}).Info("Device not upto date")
+			}).Info("Device not up to date")
 
 			if err := d.Update(a.FilePath); err != nil {
 				return err
