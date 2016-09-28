@@ -25,11 +25,11 @@ var List map[int]*Application
 
 // Application contains all the variables needed to define an application
 type Application struct {
-	UUID          int         `json:"appId"`
+	UUID          int         `json:"id"`
 	Name          string      `json:"name"`
 	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the proxyvisor as we want to set the target commit
 	TargetCommit  string      `json:"commit"` // Set json tag to commit as the proxyvisor has no concept of target commit
-	Env           interface{} `json:"env"`
+	Config        interface{} `json:"config"`
 	DeviceType    string      `json:"device_type"`
 	device.Type   `json:"type"`
 	Devices       map[string]*device.Device // Key is the device's localUUID
@@ -43,7 +43,7 @@ func (a Application) String() string {
 			"Name: %s, "+
 			"Commit: %s, "+
 			"Target commit: %s, "+
-			"Env: %v, "+
+			"Config: %v, "+
 			"Device type: %s, "+
 			"Micro type: %s, "+
 			"Radio type: %s",
@@ -51,7 +51,7 @@ func (a Application) String() string {
 		a.Name,
 		a.Commit,
 		a.TargetCommit,
-		a.Env,
+		a.Config,
 		a.DeviceType,
 		a.Type.Micro,
 		a.Type.Radio)
