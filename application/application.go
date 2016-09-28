@@ -25,11 +25,13 @@ var List map[int]*Application
 
 // Application contains all the variables needed to define an application
 type Application struct {
-	UUID          int         `json:"id"`
+	UUID          int
+	TempUUID      string      `json:"id"` // TEMP: Just here for now as the dependant app endpoint returns a string and it should return an int
 	Name          string      `json:"name"`
 	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the proxyvisor as we want to set the target commit
 	TargetCommit  string      `json:"commit"` // Set json tag to commit as the proxyvisor has no concept of target commit
-	Config        interface{} `json:"config"`
+	Config        interface{} `json:"config"` // Config variables
+	Env           interface{} `json:"env"`    //Environment variable
 	DeviceType    string      `json:"device_type"`
 	device.Type   `json:"type"`
 	Devices       map[string]*device.Device // Key is the device's localUUID
@@ -44,6 +46,7 @@ func (a Application) String() string {
 			"Commit: %s, "+
 			"Target commit: %s, "+
 			"Config: %v, "+
+			"Env: %v, "+
 			"Device type: %s, "+
 			"Micro type: %s, "+
 			"Radio type: %s",
@@ -52,6 +55,7 @@ func (a Application) String() string {
 		a.Commit,
 		a.TargetCommit,
 		a.Config,
+		a.Env,
 		a.DeviceType,
 		a.Type.Micro,
 		a.Type.Radio)
@@ -79,6 +83,8 @@ func init() {
 	for key := range buffer {
 		UUID := buffer[key].UUID
 		List[UUID] = &buffer[key]
+		tempUUID, _ := strconv.Atoi(List[UUID].TempUUID) // TEMP: see application struct above for explanation
+		List[UUID].UUID = tempUUID
 
 		log.WithFields(log.Fields{
 			"Key":         UUID,
