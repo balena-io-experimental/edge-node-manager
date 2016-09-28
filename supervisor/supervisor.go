@@ -29,7 +29,7 @@ var (
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
 func DependantApplicationsList() ([]byte, []error) {
-	url, err := buildPath(address, []string{version, "applications"})
+	url, err := buildPath(address, []string{version, "dependent-apps"})
 	if err != nil {
 		return nil, []error{err}
 	}
