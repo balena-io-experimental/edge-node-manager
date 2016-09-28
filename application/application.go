@@ -77,14 +77,16 @@ func init() {
 	if err := json.Unmarshal(bytes, &buffer); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
+			"Data":  ((string)(bytes)),
 		}).Fatal("Unable to unmarshal the dependant application list")
 	}
 
 	for key := range buffer {
+		tempUUID, _ := strconv.Atoi(buffer[key].TempUUID) // TEMP: see application struct above for explanation
+		buffer[key].UUID = tempUUID
+
 		UUID := buffer[key].UUID
 		List[UUID] = &buffer[key]
-		tempUUID, _ := strconv.Atoi(List[UUID].TempUUID) // TEMP: see application struct above for explanation
-		List[UUID].UUID = tempUUID
 
 		log.WithFields(log.Fields{
 			"Key":         UUID,

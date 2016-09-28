@@ -29,8 +29,10 @@ const (
 // Device contains all the variables needed to define a device
 type Device struct {
 	Type            `json:"type"`
+	DeviceType      string    `json:"device_type"` // TODO: Need to add below
+	Note            string    `json:"note"`        // TODO: Need to add below
 	LocalUUID       string    `json:"localUUID"`
-	UUID            string    `json:"UUID"`
+	UUID            string    `json:"uuid"`
 	Name            string    `json:"name"`
 	ApplicationUUID int       `json:"applicationUUID"`
 	ApplicationName string    `json:"applicationName"`
