@@ -130,6 +130,10 @@ func (a *Application) CheckCommit() error {
 		return nil
 	}
 
+	if err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit); err != nil {
+		return err
+	}
+
 	a.FilePath = config.GetAssetsDir()
 	a.FilePath = path.Join(a.FilePath, strconv.Itoa(a.UUID))
 	a.FilePath = path.Join(a.FilePath, a.TargetCommit)
