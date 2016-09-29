@@ -180,7 +180,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 	}
 
 	type dependantDeviceProvision struct {
-		ApplicationUUID int `json:"appId"`
+		ApplicationUUID int `json:"applicationId"` // TEMP: should be appId
 	}
 
 	content := &dependantDeviceProvision{
