@@ -185,21 +185,18 @@ func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte)
 
 // GetDeviceField gets a field for a specific device
 func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
-	fmt.Println("GETTING")
-
 	buffer, err := unmarshall(applicationUUID, deviceUUID)
-	fmt.Println(buffer)
-	fmt.Println(err)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("GETTING")
+	if v, ok := buffer[field].(string); ok {
+		return ([]byte)(v), nil
+	} else if v, ok := buffer[field].(int); ok {
+		return i2b(v)
+	}
 
-	fmt.Println(buffer)
-	fmt.Println(buffer[field].(string))
-
-	return buffer[field].([]byte), nil
+	return nil, fmt.Errorf("Type not supported")
 }
 
 // GetDeviceMapping gets the applicationUUID for a specific device
