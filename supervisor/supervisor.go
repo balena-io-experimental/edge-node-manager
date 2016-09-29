@@ -275,7 +275,7 @@ func handleResp(resp gorequest.Response, errs []error) []error {
 		return errs
 	}
 
-	if resp.StatusCode != 200 || resp.StatusCode != 202 { // TEMP: should be 200 only
+	if resp.StatusCode != 200 && resp.StatusCode != 202 { // TEMP: should be 200 only
 		return []error{fmt.Errorf("invalid response received: %s", resp.Status)}
 	}
 
