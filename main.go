@@ -54,11 +54,22 @@ func init() {
 
 	go func() {
 		router := api.NewRouter()
-		if err := http.ListenAndServe(config.GetENMAddr(), router); err != nil {
+
+		port, err := config.GetENMPort()
+		if err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,
-			}).Fatal("Unable to start incoming supervisor API")
+			}).Fatal("Unable to get ENM port")
 		}
-		log.Debug("Initialised incoming supervisor APIr")
+
+		log.WithFields(log.Fields{
+			"Port": port,
+		}).Debug("Initialising incoming supervisor API")
+
+		if err := http.ListenAndServe(port, router); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Fatal("Unable to initialise incoming supervisor API")
+		}
 	}()
 }

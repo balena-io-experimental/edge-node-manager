@@ -1,8 +1,10 @@
 package config
 
 import (
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -47,9 +49,16 @@ func GetDbName() string {
 	return getEnv("ENM_DB_NAME", "my.db")
 }
 
-// GetENMAddr returns the address used to serve the API to the supervisor
-func GetENMAddr() string {
-	return getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
+// GetENMPort returns the port used to serve the API to the supervisor
+func GetENMPort() (string, error) {
+	addr := getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return "", err
+	}
+
+	return ":" + strings.Split(u.Host, ":")[1], nil
 }
 
 // GetSuperAddr returns the address used to communicate with the supervisor
