@@ -115,6 +115,7 @@ func DependantDeviceLog(UUID, message string) []error {
 
 	req := gorequest.New()
 	req.Put(url)
+	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
 
@@ -153,6 +154,7 @@ func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
 
 	req := gorequest.New()
 	req.Put(url)
+	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
 
@@ -194,6 +196,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 
 	req := gorequest.New()
 	req.Post(url)
+	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
 
