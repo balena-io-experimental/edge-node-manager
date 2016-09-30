@@ -57,12 +57,7 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	}).Debug("Set device target commit")
 
 	application.List[applicationUUID].TargetCommit = content.Commit
-	application.List[applicationUUID].Devices[deviceUUID].TargetCommit = content.Commit
-
-	log.WithFields(log.Fields{
-		"App":    applicationUUID,
-		"Target": content.Commit,
-	}).Debug("Set app target commit")
+	//application.List[applicationUUID].Devices[deviceUUID].TargetCommit = content.Commit
 }
 
 // DependantDeviceRestart puts the restart flag for a specific device
