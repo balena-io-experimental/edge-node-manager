@@ -8,6 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/config"
+	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
@@ -272,6 +273,13 @@ func (a *Application) UpdateOnlineDevices() error {
 		if online {
 			d.SetState(device.ONLINE)
 
+			// Get the target commit as it may have been set by the supervisor since we loaded all the application devices
+			bytes, err := database.GetDeviceField(a.UUID, d.UUID, "targetCommit")
+			if err != nil {
+				return err
+			}
+			d.TargetCommit = (string)(bytes)
+
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{
 					"Device": d,
@@ -282,6 +290,10 @@ func (a *Application) UpdateOnlineDevices() error {
 			log.WithFields(log.Fields{
 				"Device": d,
 			}).Info("Device not up to date")
+
+			if err := a.CheckCommit(); err != nil {
+				return err
+			}
 
 			if err := d.Update(a.FilePath); err != nil {
 				return err
