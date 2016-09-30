@@ -180,6 +180,12 @@ func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte)
 
 	buffer[field] = value
 
+	log.WithFields(log.Fields{
+		"field": field,
+		"value": value,
+		"value": (string)(value),
+	}).Debug("Put device field")
+
 	return marshall(applicationUUID, deviceUUID, buffer)
 }
 
