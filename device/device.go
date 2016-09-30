@@ -192,10 +192,10 @@ func (d Device) Cast() Interface {
 func (d *Device) SetState(state State) {
 	d.State = state
 
-	online := false
+	// online := false
 	if d.State == ONLINE {
 		d.LastSeen = time.Now()
-		online = true
+		// online = true
 	}
 
 	// TODO: handle error
