@@ -216,16 +216,12 @@ func GetDeviceMapping(deviceUUID string) (int, error) {
 
 		fmt.Println("here1")
 
-		return b.ForEach(func(k, v []byte) error {
-			fmt.Println((string)(k))
-			return nil
-		})
-		fmt.Println("here2")
-
 		d := b.Bucket([]byte(deviceUUID))
 		if d == nil {
 			return fmt.Errorf("Bucket not found")
 		}
+
+		fmt.Println("here2")
 
 		value := d.Get([]byte("applicationUUID"))
 		if value == nil {
