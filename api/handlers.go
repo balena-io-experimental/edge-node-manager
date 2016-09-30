@@ -74,13 +74,13 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 		"UUID": deviceUUID,
 	}).Debug("Dependant device restart hook")
 
-	applicationUUID, err := database.GetDeviceMapping(deviceUUID)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to get device mapping")
-		return
-	}
+	// applicationUUID, err := database.GetDeviceMapping(deviceUUID)
+	// if err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to get device mapping")
+	// 	return
+	// }
 
 	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "restartFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
 	// 	log.WithFields(log.Fields{
@@ -99,13 +99,13 @@ func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 		"UUID": deviceUUID,
 	}).Debug("Dependant device identify hook")
 
-	applicationUUID, err := database.GetDeviceMapping(deviceUUID)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to get device mapping")
-		return
-	}
+	// applicationUUID, err := database.GetDeviceMapping(deviceUUID)
+	// if err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to get device mapping")
+	// 	return
+	// }
 
 	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "identifyFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
 	// 	log.WithFields(log.Fields{
