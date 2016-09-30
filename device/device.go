@@ -29,20 +29,22 @@ const (
 // Device contains all the variables needed to define a device
 type Device struct {
 	Type            `json:"type"`
-	DeviceType      string    `json:"device_type"` // TODO: Need to add below
-	Note            string    `json:"note"`        // TODO: Need to add below
-	LocalUUID       string    `json:"localUUID"`
-	UUID            string    `json:"uuid"`
-	Name            string    `json:"name"`
-	ApplicationUUID int       `json:"applicationUUID"`
-	ApplicationName string    `json:"applicationName"`
-	Commit          string    `json:"commit"`
-	TargetCommit    string    `json:"targetCommit"`
-	LastSeen        time.Time `json:"lastSeen"`
-	State           State     `json:"state"`
-	Progress        float32   `json:"progress"`
-	RestartFlag     bool      `json:"restartFlag"`
-	IdentifyFlag    bool      `json:"identifyFlag"`
+	DeviceType      string      `json:"device_type"` // TODO: Need to add below
+	Note            string      `json:"note"`        // TODO: Need to add below
+	LocalUUID       string      `json:"localUUID"`
+	UUID            string      `json:"uuid"`
+	Name            string      `json:"name"`
+	ApplicationUUID int         `json:"applicationUUID"`
+	ApplicationName string      `json:"applicationName"`
+	Commit          string      `json:"commit"`
+	TargetCommit    string      `json:"targetCommit"`
+	LastSeen        time.Time   `json:"lastSeen"`
+	State           State       `json:"state"`
+	Progress        float32     `json:"progress"`
+	RestartFlag     bool        `json:"restartFlag"`
+	IdentifyFlag    bool        `json:"identifyFlag"`
+	Config          interface{} `json:"config"`      // TODO: Need to add below
+	Environment     interface{} `json:"environment"` // TODO: Need to add below
 }
 
 // Interface defines the common functions a device must implement

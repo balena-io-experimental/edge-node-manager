@@ -214,6 +214,14 @@ func GetDeviceMapping(deviceUUID string) (int, error) {
 			return fmt.Errorf("Bucket not found")
 		}
 
+		fmt.Println("here1")
+
+		return b.ForEach(func(k, v []byte) error {
+			fmt.Println((string)(k))
+			return nil
+		})
+		fmt.Println("here2")
+
 		d := b.Bucket([]byte(deviceUUID))
 		if d == nil {
 			return fmt.Errorf("Bucket not found")
@@ -303,6 +311,10 @@ func putDeviceMapping(db *bolt.DB, applicationUUID int, deviceUUID string) error
 		if err != nil {
 			return err
 		}
+
+		fmt.Println("here1")
+		fmt.Println(deviceUUID)
+		fmt.Println(applicationUUID)
 
 		return d.Put([]byte("applicationUUID"), converted)
 	})

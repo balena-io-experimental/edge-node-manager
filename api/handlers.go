@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -16,7 +17,25 @@ import (
 func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
-	targetCommit := vars["commit"]
+
+	type dependantDeviceUpdate struct {
+		Commit      string      `json:"commit"`
+		Environment interface{} `json:"environment"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var content dependantDeviceUpdate
+	if err := decoder.Decode(&content); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to decode Dependant device update hook")
+	}
+
+	log.WithFields(log.Fields{
+		"UUID":   deviceUUID,
+		"Commit": content.Commit,
+		"Env":    content.Environment,
+	}).Debug("Dependant device update hook")
 
 	applicationUUID, err := database.GetDeviceMapping(deviceUUID)
 	if err != nil {
@@ -26,22 +45,24 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(targetCommit)); err != nil {
+	if err = database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(content.Commit)); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to put target commit")
 		return
 	}
 
-	application.List[applicationUUID].TargetCommit = targetCommit
-
-	fmt.Fprintln(w, "Dependant Device Update")
+	application.List[applicationUUID].TargetCommit = content.Commit
 }
 
 // DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
+
+	log.WithFields(log.Fields{
+		"UUID": deviceUUID,
+	}).Debug("Dependant device restart hook")
 
 	applicationUUID, err := database.GetDeviceMapping(deviceUUID)
 	if err != nil {
@@ -57,14 +78,16 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 		}).Error("Unable to put restart flag")
 		return
 	}
-
-	fmt.Fprintln(w, "Dependant Device Restart")
 }
 
 // DependantDeviceIdentify puts the identify flag for a specific device
 func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
+
+	log.WithFields(log.Fields{
+		"UUID": deviceUUID,
+	}).Debug("Dependant device identify hook")
 
 	applicationUUID, err := database.GetDeviceMapping(deviceUUID)
 	if err != nil {

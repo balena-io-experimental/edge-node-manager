@@ -17,19 +17,19 @@ var routes = Routes{
 	Route{
 		"DependantDeviceUpdate",
 		"PUT",
-		"/v1/devices/{ResinUUID}",
+		"/v1/devices/{uuid}",
 		DependantDeviceUpdate,
 	},
 	Route{
 		"DependantDeviceRestart",
 		"PUT",
-		"/v1/devices/{ResinUUID}/restart",
+		"/v1/devices/{uuid}/restart",
 		DependantDeviceRestart,
 	},
 	Route{
 		"DependantDeviceIdentify",
 		"PUT",
-		"/v1/devices/{ResinUUID}/identify",
+		"/v1/devices/{uuid}/identify",
 		DependantDeviceIdentify,
 	},
 }
