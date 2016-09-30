@@ -8,6 +8,7 @@ import (
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
+	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
 // Type contains the micro and radio that make up a device type
@@ -90,7 +91,10 @@ func (d Device) String() string {
 
 // Update updates a specific device
 func (d Device) Update(path string) error {
-	return d.Cast().Update(path)
+	d.SetState(UPDATING)
+	err := d.Cast().Update(path)
+	d.SetState(ONLINE)
+	return err
 }
 
 // Online checks if a specific device is online
@@ -188,7 +192,13 @@ func (d Device) Cast() Interface {
 // SetState sets the state for a specific device
 func (d *Device) SetState(state State) {
 	d.State = state
+
+	online := false
 	if d.State == ONLINE {
 		d.LastSeen = time.Now()
+		online = true
 	}
+
+	// TODO: handle error
+	supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.State), online)
 }
