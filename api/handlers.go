@@ -29,13 +29,7 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		}).Error("Unable to decode Dependant device update hook")
 	}
 
-	log.WithFields(log.Fields{
-		"UUID":   deviceUUID,
-		"Commit": content.Commit,
-		"Env":    content.Environment,
-	}).Debug("Dependant device update hook")
-
-	applicationUUID, err := database.GetDeviceMapping(deviceUUID)
+	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
@@ -51,13 +45,14 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	log.WithFields(log.Fields{
-		"App":    applicationUUID,
-		"Device": deviceUUID,
-		"Target": content.Commit,
-	}).Debug("Set device target commit")
+		"ApplicationUUID": applicationUUID,
+		"DeviceUUID":      deviceUUID,
+		"LocalUUID":       localUUID,
+		"Target commit":   content.Commit,
+	}).Debug("Dependant device update hook")
 
 	application.List[applicationUUID].TargetCommit = content.Commit
-	//application.List[applicationUUID].Devices[deviceUUID].TargetCommit = content.Commit
+	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
 }
 
 // DependantDeviceRestart puts the restart flag for a specific device

@@ -3,7 +3,6 @@ package database
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -25,7 +24,7 @@ var dbPath string
 // Where the deviceUUID is the key and applicationUUID is the value
 
 // PutDevice puts a specific device
-func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
+func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte) error {
 	db, err := open()
 	if err != nil {
 		return err
@@ -54,7 +53,7 @@ func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
 		return err
 	}
 
-	return putDeviceMapping(db, applicationUUID, deviceUUID)
+	return putDeviceMapping(db, applicationUUID, localUUID, deviceUUID)
 }
 
 // PutDevices puts all devices associated to a specific application
@@ -172,53 +171,54 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 }
 
 // PutDeviceField puts a field for a specific device
-func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte) error {
-	buffer, err := unmarshall(applicationUUID, deviceUUID)
-	if err != nil {
-		return err
-	}
+// func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte) error {
+// 	buffer, err := unmarshall(applicationUUID, deviceUUID)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	buffer[field] = value
+// 	buffer[field] = value
 
-	log.WithFields(log.Fields{
-		"field":  field,
-		"value":  value,
-		"string": (string)(value),
-	}).Debug("Put device field")
+// 	log.WithFields(log.Fields{
+// 		"field":  field,
+// 		"value":  value,
+// 		"string": (string)(value),
+// 	}).Debug("Put device field")
 
-	return marshall(applicationUUID, deviceUUID, buffer)
-}
+// 	return marshall(applicationUUID, deviceUUID, buffer)
+// }
 
 // GetDeviceField gets a field for a specific device
-func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
-	buffer, err := unmarshall(applicationUUID, deviceUUID)
-	if err != nil {
-		return nil, err
-	}
+// func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
+// 	buffer, err := unmarshall(applicationUUID, deviceUUID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	log.WithFields(log.Fields{
-		"bytes": buffer,
-	}).Debug("Unmarshall")
+// 	log.WithFields(log.Fields{
+// 		"bytes": buffer,
+// 	}).Debug("Unmarshall")
 
-	if v, ok := buffer[field].(string); ok {
-		return ([]byte)(v), nil
-	} else if v, ok := buffer[field].(int); ok {
-		return i2b(v)
-	}
+// 	if v, ok := buffer[field].(string); ok {
+// 		return ([]byte)(v), nil
+// 	} else if v, ok := buffer[field].(int); ok {
+// 		return i2b(v)
+// 	}
 
-	return nil, fmt.Errorf("Type not supported")
-}
+// 	return nil, fmt.Errorf("Type not supported")
+// }
 
-// GetDeviceMapping gets the applicationUUID for a specific device
-func GetDeviceMapping(deviceUUID string) (int, error) {
+// GetDeviceMapping gets the applicationUUID and localUUID for a specific device
+func GetDeviceMapping(deviceUUID string) (int, string, error) {
 	db, err := open()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	defer db.Close()
 
 	var applicationUUID []byte
-	err = db.View(func(tx *bolt.Tx) error {
+	var localUUID []byte
+	if err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Mapping"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -233,17 +233,27 @@ func GetDeviceMapping(deviceUUID string) (int, error) {
 		if value == nil {
 			return fmt.Errorf("Value not found")
 		}
-
 		applicationUUID = make([]byte, len(value))
 		copy(applicationUUID, value)
 
+		value = d.Get([]byte("localUUID"))
+		if value == nil {
+			return fmt.Errorf("Value not found")
+		}
+		localUUID = make([]byte, len(value))
+		copy(localUUID, value)
+
 		return nil
-	})
-	if err != nil {
-		return 0, err
+	}); err != nil {
+		return 0, "", err
 	}
 
-	return b2i(applicationUUID)
+	a, err := b2i(applicationUUID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return a, (string)(localUUID), nil
 }
 
 func init() {
@@ -297,7 +307,7 @@ func makeBucket(db *bolt.DB, name string) error {
 	})
 }
 
-func putDeviceMapping(db *bolt.DB, applicationUUID int, deviceUUID string) error {
+func putDeviceMapping(db *bolt.DB, applicationUUID int, localUUID, deviceUUID string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Mapping"))
 		if b == nil {
@@ -314,36 +324,40 @@ func putDeviceMapping(db *bolt.DB, applicationUUID int, deviceUUID string) error
 			return err
 		}
 
-		return d.Put([]byte("applicationUUID"), converted)
+		if err := d.Put([]byte("applicationUUID"), converted); err != nil {
+			return err
+		}
+
+		return d.Put([]byte("localUUID"), []byte(localUUID))
 	})
 }
 
-func marshall(applicationUUID int, deviceUUID string, buffer map[string]interface{}) error {
-	bytes, err := json.Marshal(buffer)
-	if err != nil {
-		return err
-	}
+// func marshall(applicationUUID int, deviceUUID string, buffer map[string]interface{}) error {
+// 	bytes, err := json.Marshal(buffer)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	log.WithFields(log.Fields{
-		"bytes": (string)(bytes),
-	}).Debug("Marshall")
+// 	log.WithFields(log.Fields{
+// 		"bytes": (string)(bytes),
+// 	}).Debug("Marshall")
 
-	return PutDevice(applicationUUID, deviceUUID, bytes)
-}
+// 	return PutDevice(applicationUUID, deviceUUID, bytes)
+// }
 
-func unmarshall(applicationUUID int, deviceUUID string) (map[string]interface{}, error) {
-	bytes, err := GetDevice(applicationUUID, deviceUUID)
-	if err != nil {
-		return nil, err
-	}
+// func unmarshall(applicationUUID int, deviceUUID string) (map[string]interface{}, error) {
+// 	bytes, err := GetDevice(applicationUUID, deviceUUID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	buffer := make(map[string]interface{})
-	if err := json.Unmarshal(bytes, &buffer); err != nil {
-		return nil, err
-	}
+// 	buffer := make(map[string]interface{})
+// 	if err := json.Unmarshal(bytes, &buffer); err != nil {
+// 		return nil, err
+// 	}
 
-	return buffer, nil
-}
+// 	return buffer, nil
+// }
 
 func i2b(value int) ([]byte, error) {
 	result := new(bytes.Buffer)

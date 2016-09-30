@@ -124,7 +124,7 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		return err
 	}
 
-	return database.PutDevice(newDevice.ApplicationUUID, newDevice.UUID, buffer)
+	return database.PutDevice(newDevice.ApplicationUUID, newDevice.LocalUUID, newDevice.UUID, buffer)
 }
 
 // PutAll puts all devices for a specific application into the database
