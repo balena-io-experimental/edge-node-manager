@@ -88,7 +88,7 @@ func init() {
 
 	// For now we have to manually initialise an applications micro and radio type
 	// This is because the device type returned from the supervisor is always edge
-	initApplication(13766, micro.NRF51822, radio.BLUETOOTH)
+	initApplication(13798, micro.NRF51822, radio.BLUETOOTH)
 
 	log.Debug("Initialised applications")
 }
