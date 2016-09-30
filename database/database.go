@@ -314,6 +314,10 @@ func marshall(applicationUUID int, deviceUUID string, buffer map[string]interfac
 		return err
 	}
 
+	log.WithFields(log.Fields{
+		"bytes": (string)(bytes),
+	}).Debug("Marshall")
+
 	return PutDevice(applicationUUID, deviceUUID, bytes)
 }
 
