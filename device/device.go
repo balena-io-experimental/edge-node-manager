@@ -8,7 +8,6 @@ import (
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
-	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
 // Type contains the micro and radio that make up a device type
@@ -200,5 +199,6 @@ func (d *Device) SetState(state State) {
 	}
 
 	// TODO: handle error
-	supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.State), online)
+	// This needs a rethink
+	// supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.State), online)
 }
