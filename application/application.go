@@ -280,6 +280,12 @@ func (a *Application) UpdateOnlineDevices() error {
 			}
 			d.TargetCommit = (string)(bytes)
 
+			log.WithFields(log.Fields{
+				"Device": d,
+				"target": d.TargetCommit,
+				"test":   (string)(bytes),
+			}).Debug("TESTING")
+
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{
 					"Device": d,
