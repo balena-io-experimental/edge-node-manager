@@ -190,6 +190,10 @@ func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, erro
 		return nil, err
 	}
 
+	log.WithFields(log.Fields{
+		"bytes": buffer,
+	}).Debug("Unmarshall")
+
 	if v, ok := buffer[field].(string); ok {
 		return ([]byte)(v), nil
 	} else if v, ok := buffer[field].(int); ok {
