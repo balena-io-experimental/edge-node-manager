@@ -2,9 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/josephroberts/edge-node-manager/application"
@@ -45,12 +43,12 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(content.Commit)); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to put target commit")
-		return
-	}
+	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(content.Commit)); err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to put target commit")
+	// 	return
+	// }
 
 	log.WithFields(log.Fields{
 		"App":    applicationUUID,
@@ -59,6 +57,7 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	}).Debug("Set device target commit")
 
 	application.List[applicationUUID].TargetCommit = content.Commit
+	application.List[applicationUUID].Devices[deviceUUID].TargetCommit = content.Commit
 
 	log.WithFields(log.Fields{
 		"App":    applicationUUID,
@@ -83,12 +82,12 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.PutDeviceField(applicationUUID, deviceUUID, "restartFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to put restart flag")
-		return
-	}
+	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "restartFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to put restart flag")
+	// 	return
+	// }
 }
 
 // DependantDeviceIdentify puts the identify flag for a specific device
@@ -108,12 +107,12 @@ func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.PutDeviceField(applicationUUID, deviceUUID, "identifyFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to put identify flag")
-		return
-	}
+	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "identifyFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to put identify flag")
+	// 	return
+	// }
 
-	fmt.Fprintln(w, "Dependant Device Identify")
+	// fmt.Fprintln(w, "Dependant Device Identify")
 }
