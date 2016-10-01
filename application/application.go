@@ -286,7 +286,13 @@ func (a *Application) checkCommit() error {
 	}).Debug("Application firmware")
 
 	if err := tarinator.UnTarinate(a.FilePath, tarPath); err != nil {
-		return err
+		// TODO: for now this catches partial downloads without crashing
+		log.WithFields(log.Fields{
+			"File path":     a.FilePath,
+			"Tar path":      tarPath,
+			"Target commit": a.TargetCommit,
+		}).Warning("Application firmware not extracted")
+		return nil
 	}
 
 	a.Commit = a.TargetCommit

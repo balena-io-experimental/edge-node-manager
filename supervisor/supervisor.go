@@ -86,7 +86,9 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 	}).Debug("Requesting dependant application update")
 
 	client := grab.NewClient()
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
+
+	log.Debug("resp: ", resp)
 
 	return err
 }
