@@ -2,6 +2,7 @@ package application
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"strconv"
@@ -248,7 +249,8 @@ func (a *Application) UpdateOnlineDevices() error {
 			}).Info("Device not up to date")
 
 			if err := a.checkCommit(); err != nil {
-				if err == fmt.Errorf("Could not download application") {
+				//TODO:
+				if err.Error() == "1" {
 					continue
 				}
 				return err
@@ -283,7 +285,7 @@ func (a *Application) checkCommit() error {
 			"File path":     a.FilePath,
 			"Target commit": a.TargetCommit,
 		}).Warn("Downloading application firmware failed")
-		return fmt.Errorf("Could not download application")
+		return errors.New("1")
 	}
 
 	a.FilePath = config.GetAssetsDir()
