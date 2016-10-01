@@ -248,6 +248,9 @@ func (a *Application) UpdateOnlineDevices() error {
 			}).Info("Device not up to date")
 
 			if err := a.checkCommit(); err != nil {
+				if err == fmt.Errorf("Could not download application") {
+					continue
+				}
 				return err
 			}
 
@@ -270,8 +273,17 @@ func (a *Application) checkCommit() error {
 		return nil
 	}
 
-	if err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit); err != nil {
+	resp, err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit)
+	if err != nil {
 		return err
+	}
+
+	if resp.HTTPResponse.StatusCode != 200 {
+		log.WithFields(log.Fields{
+			"File path":     a.FilePath,
+			"Target commit": a.TargetCommit,
+		}).Warn("Downloading application firmware failed")
+		return fmt.Errorf("Could not download application")
 	}
 
 	a.FilePath = config.GetAssetsDir()
@@ -279,20 +291,8 @@ func (a *Application) checkCommit() error {
 	a.FilePath = path.Join(a.FilePath, a.TargetCommit)
 	tarPath := path.Join(a.FilePath, "binary.tar")
 
-	log.WithFields(log.Fields{
-		"File path":     a.FilePath,
-		"Tar path":      tarPath,
-		"Target commit": a.TargetCommit,
-	}).Debug("Application firmware")
-
 	if err := tarinator.UnTarinate(a.FilePath, tarPath); err != nil {
-		// TODO: for now this catches partial downloads without crashing
-		log.WithFields(log.Fields{
-			"File path":     a.FilePath,
-			"Tar path":      tarPath,
-			"Target commit": a.TargetCommit,
-		}).Warning("Application firmware not extracted")
-		return nil
+		return err
 	}
 
 	a.Commit = a.TargetCommit

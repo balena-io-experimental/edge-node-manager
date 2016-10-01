@@ -54,15 +54,15 @@ func DependantApplicationsList() ([]byte, []error) {
 
 // DependantApplicationUpdate downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
-func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
+func DependantApplicationUpdate(applicationUUID int, targetCommit string) (*grab.Response, error) {
 	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(applicationUUID), targetCommit})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := grab.NewRequest(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	q := req.HTTPRequest.URL.Query()
@@ -73,7 +73,7 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 	filePath = path.Join(filePath, strconv.Itoa(applicationUUID))
 	filePath = path.Join(filePath, targetCommit)
 	if err = os.MkdirAll(filePath, os.ModePerm); err != nil {
-		return err
+		return nil, err
 	}
 	filePath = path.Join(filePath, "binary.tar")
 	req.Filename = filePath
@@ -86,11 +86,7 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 	}).Debug("Requesting dependant application update")
 
 	client := grab.NewClient()
-	resp, err := client.Do(req)
-
-	log.Debug("resp: ", resp)
-
-	return err
+	return client.Do(req)
 }
 
 // DependantDeviceLog transmits a log message and timestamp for a specific device
