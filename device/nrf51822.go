@@ -153,27 +153,16 @@ func (d Nrf51822) Update(path string) error {
 
 // Online checks whether the device is online
 func (d Nrf51822) Online() (bool, error) {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Online")
 	return bluetooth.Online(d.LocalUUID, 10)
 }
 
 // Identify flashes LEDs' on the device
 func (d Nrf51822) Identify() error {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Identify")
-
 	return d.processRequest(d.identifyOnPeriphConnected)
 }
 
 // Restart restarts the device
 func (d Nrf51822) Restart() error {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Restart")
-
 	return d.processRequest(d.restartOnPeriphConnected)
 }
 
