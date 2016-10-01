@@ -175,10 +175,10 @@ func DependantDeviceInfo() error {
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(applicationUUID int) (string, string, string, []error) {
+func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
-		return "", "", "", []error{err}
+		return "", "", []error{err}
 	}
 
 	type dependantDeviceProvision struct {
@@ -191,7 +191,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, string, []er
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
-		return "", "", "", []error{err}
+		return "", "", []error{err}
 	}
 
 	req := gorequest.New()
@@ -209,16 +209,16 @@ func DependantDeviceProvision(applicationUUID int) (string, string, string, []er
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 201); errs != nil {
-		return "", "", "", errs
+		return "", "", errs
 	}
 
 	// TODO: Should probably unmarshall straight into a device
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return "", "", "", []error{err}
+		return "", "", []error{err}
 	}
 
-	return buffer["uuid"].(string), buffer["name"].(string), buffer["note"].(string), nil
+	return buffer["uuid"].(string), buffer["name"].(string), nil
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager

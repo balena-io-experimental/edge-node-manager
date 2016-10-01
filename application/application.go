@@ -188,12 +188,13 @@ func (a *Application) ProvisionDevices() []error {
 			"Local UUID": key,
 		}).Info("Device not provisioned")
 
-		deviceUUID, deviceName, deviceNote, errs := supervisor.DependantDeviceProvision(a.UUID)
+		deviceUUID, deviceName, errs := supervisor.DependantDeviceProvision(a.UUID)
 		if errs != nil {
 			return errs
 		}
 
-		err := device.New(a.Type, deviceNote, key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit, nil, nil)
+		// TODO: populate note, config and environment
+		err := device.New(a.Type, "", key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit, nil, nil)
 		if err != nil {
 			return []error{err}
 		}
