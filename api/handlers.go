@@ -37,13 +37,6 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "targetCommit", ([]byte)(content.Commit)); err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to put target commit")
-	// 	return
-	// }
-
 	log.WithFields(log.Fields{
 		"ApplicationUUID": applicationUUID,
 		"DeviceUUID":      deviceUUID,
@@ -55,7 +48,7 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
 }
 
-// DependantDeviceRestart puts the restart flag for a specific device
+// TODO: DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -80,7 +73,7 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	// }
 }
 
-// DependantDeviceIdentify puts the identify flag for a specific device
+// TODO: DependantDeviceIdentify puts the identify flag for a specific device
 func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]

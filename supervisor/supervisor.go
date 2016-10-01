@@ -45,7 +45,7 @@ func DependantApplicationsList() ([]byte, []error) {
 	}).Debug("Requesting dependant applications list")
 
 	resp, body, errs := req.EndBytes()
-	if errs = handleResp(resp, errs); errs != nil {
+	if errs = handleResp(resp, errs, 200); errs != nil {
 		return nil, errs
 	}
 
@@ -127,7 +127,7 @@ func DependantDeviceLog(UUID, message string) []error {
 	}).Debug("Transmitting dependant device log")
 
 	resp, _, errs := req.End()
-	return handleResp(resp, errs)
+	return handleResp(resp, errs, 200)
 }
 
 // DependantDeviceInfoUpdate transmits status and is_online for a specific device
@@ -166,7 +166,7 @@ func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
 	}).Debug("Transmitting dependant device info")
 
 	resp, _, errs := req.End()
-	return handleResp(resp, errs)
+	return handleResp(resp, errs, 200)
 }
 
 // DependantDeviceInfo returns a single dependant device assigned to the edge-node-manager
@@ -175,14 +175,14 @@ func DependantDeviceInfo() error {
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
+func DependantDeviceProvision(applicationUUID int) (string, string, string, []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
-		return "", "", []error{err}
+		return "", "", "", []error{err}
 	}
 
 	type dependantDeviceProvision struct {
-		ApplicationUUID int `json:"applicationId"` // TEMP: should be appId
+		ApplicationUUID int `json:"appId"`
 	}
 
 	content := &dependantDeviceProvision{
@@ -191,7 +191,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
-		return "", "", []error{err}
+		return "", "", "", []error{err}
 	}
 
 	req := gorequest.New()
@@ -208,16 +208,17 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 	}).Debug("Requesting dependant device provision")
 
 	resp, body, errs := req.EndBytes()
-	if errs = handleResp(resp, errs); errs != nil {
-		return "", "", errs
+	if errs = handleResp(resp, errs, 201); errs != nil {
+		return "", "", "", errs
 	}
 
+	// TODO: Should probably unmarshall straight into a device
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return "", "", []error{err}
+		return "", "", "", []error{err}
 	}
 
-	return buffer["uuid"].(string), buffer["name"].(string), nil
+	return buffer["uuid"].(string), buffer["name"].(string), buffer["note"].(string), nil
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager
@@ -270,12 +271,12 @@ func buildPath(base string, paths []string) (string, error) {
 	return url.String(), nil
 }
 
-func handleResp(resp gorequest.Response, errs []error) []error {
+func handleResp(resp gorequest.Response, errs []error, statusCode int) []error {
 	if errs != nil {
 		return errs
 	}
 
-	if resp.StatusCode != 200 && resp.StatusCode != 201 { // TODO: pass in accepted response code
+	if resp.StatusCode != statusCode {
 		return []error{fmt.Errorf("invalid response received: %s", resp.Status)}
 	}
 

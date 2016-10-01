@@ -15,11 +15,6 @@ func Run(a *application.Application) []error {
 		return nil
 	}
 
-	// // Check whether there is a new target commit and extract if necessary
-	// if err := a.CheckCommit(); err != nil {
-	// 	return []error{err}
-	// }
-
 	// Get all provisioned devices associated with this application
 	if err := a.GetDevices(); err != nil {
 		return []error{err}

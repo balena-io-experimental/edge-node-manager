@@ -17,12 +17,6 @@ import (
 
 var dbPath string
 
-// There are two buckets in use "Applications" and "Mapping"
-// "Applications" contains a bucket of applications, where the applicationUUID is the key
-// Each application bucket contains a bucket of devices, where the deviceUUID is the key
-// "Mapping" contains the mapping between deviceUUID and applicationUUID
-// Where the deviceUUID is the key and applicationUUID is the value
-
 // PutDevice puts a specific device
 func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte) error {
 	db, err := open()
@@ -170,44 +164,6 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	return devices, err
 }
 
-// PutDeviceField puts a field for a specific device
-// func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte) error {
-// 	buffer, err := unmarshall(applicationUUID, deviceUUID)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	buffer[field] = value
-
-// 	log.WithFields(log.Fields{
-// 		"field":  field,
-// 		"value":  value,
-// 		"string": (string)(value),
-// 	}).Debug("Put device field")
-
-// 	return marshall(applicationUUID, deviceUUID, buffer)
-// }
-
-// GetDeviceField gets a field for a specific device
-// func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
-// 	buffer, err := unmarshall(applicationUUID, deviceUUID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	log.WithFields(log.Fields{
-// 		"bytes": buffer,
-// 	}).Debug("Unmarshall")
-
-// 	if v, ok := buffer[field].(string); ok {
-// 		return ([]byte)(v), nil
-// 	} else if v, ok := buffer[field].(int); ok {
-// 		return i2b(v)
-// 	}
-
-// 	return nil, fmt.Errorf("Type not supported")
-// }
-
 // GetDeviceMapping gets the applicationUUID and localUUID for a specific device
 func GetDeviceMapping(deviceUUID string) (int, string, error) {
 	db, err := open()
@@ -331,33 +287,6 @@ func putDeviceMapping(db *bolt.DB, applicationUUID int, localUUID, deviceUUID st
 		return d.Put([]byte("localUUID"), []byte(localUUID))
 	})
 }
-
-// func marshall(applicationUUID int, deviceUUID string, buffer map[string]interface{}) error {
-// 	bytes, err := json.Marshal(buffer)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	log.WithFields(log.Fields{
-// 		"bytes": (string)(bytes),
-// 	}).Debug("Marshall")
-
-// 	return PutDevice(applicationUUID, deviceUUID, bytes)
-// }
-
-// func unmarshall(applicationUUID int, deviceUUID string) (map[string]interface{}, error) {
-// 	bytes, err := GetDevice(applicationUUID, deviceUUID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	buffer := make(map[string]interface{})
-// 	if err := json.Unmarshal(bytes, &buffer); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return buffer, nil
-// }
 
 func i2b(value int) ([]byte, error) {
 	result := new(bytes.Buffer)

@@ -29,8 +29,7 @@ const (
 // Device contains all the variables needed to define a device
 type Device struct {
 	Type            `json:"type"`
-	DeviceType      string      `json:"device_type"` // TODO: Need to add below
-	Note            string      `json:"note"`        // TODO: Need to add below
+	Note            string      `json:"note"`
 	LocalUUID       string      `json:"localUUID"`
 	UUID            string      `json:"uuid"`
 	Name            string      `json:"name"`
@@ -43,8 +42,8 @@ type Device struct {
 	Progress        float32     `json:"progress"`
 	RestartFlag     bool        `json:"restartFlag"`
 	IdentifyFlag    bool        `json:"identifyFlag"`
-	Config          interface{} `json:"config"`      // TODO: Need to add below
-	Environment     interface{} `json:"environment"` // TODO: Need to add below
+	Config          interface{} `json:"config"`
+	Environment     interface{} `json:"environment"`
 }
 
 // Interface defines the common functions a device must implement
@@ -60,6 +59,7 @@ func (d Device) String() string {
 	return fmt.Sprintf(
 		"Micro type: %s, "+
 			"Radio type: %s, "+
+			"Note: %s, "+
 			"Local UUID: %s, "+
 			"UUID: %s, "+
 			"Name: %s, "+
@@ -71,9 +71,12 @@ func (d Device) String() string {
 			"State: %s, "+
 			"Progress: %2.2f "+
 			"Restart flag: %t, "+
-			"Identify flag: %t",
+			"Identify flag: %t, "+
+			"Config: %v, "+
+			"Environment: %v",
 		d.Type.Micro,
 		d.Type.Radio,
+		d.Note,
 		d.LocalUUID,
 		d.UUID,
 		d.Name,
@@ -85,7 +88,9 @@ func (d Device) String() string {
 		d.State,
 		d.Progress,
 		d.RestartFlag,
-		d.IdentifyFlag)
+		d.IdentifyFlag,
+		d.Config,
+		d.Environment)
 }
 
 // Update updates a specific device
@@ -102,9 +107,10 @@ func (d Device) Online() (bool, error) {
 }
 
 // New creates a new device and puts it into the database
-func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string) error {
+func New(deviceType Type, note, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) error {
 	newDevice := &Device{
 		Type:            deviceType,
+		Note:            note,
 		LocalUUID:       localUUID,
 		UUID:            UUID,
 		Name:            name,
@@ -117,6 +123,8 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		Progress:        0.0,
 		RestartFlag:     false,
 		IdentifyFlag:    false,
+		Config:          config,
+		Environment:     environment,
 	}
 
 	buffer, err := json.Marshal(newDevice)
@@ -199,6 +207,6 @@ func (d *Device) SetState(state State) {
 	}
 
 	// TODO: handle error
-	// This needs a rethink
+	// TODO: This needs a rethink
 	// supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.State), online)
 }

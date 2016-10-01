@@ -26,10 +26,9 @@ var List map[int]*Application
 type Application struct {
 	UUID          int         `json:"id"`
 	Name          string      `json:"name"`
-	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the proxyvisor as we want to set the target commit
-	TargetCommit  string      `json:"commit"` // Set json tag to commit as the proxyvisor has no concept of target commit
+	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
+	TargetCommit  string      `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
 	Config        interface{} `json:"config"` // Config variables
-	DeviceType    string      `json:"device_type"`
 	device.Type   `json:"type"`
 	Devices       map[string]*device.Device // Key is the device's localUUID
 	OnlineDevices map[string]bool           // Key is the device's localUUID
@@ -43,17 +42,17 @@ func (a Application) String() string {
 			"Commit: %s, "+
 			"Target commit: %s, "+
 			"Config: %v, "+
-			"Device type: %s, "+
 			"Micro type: %s, "+
-			"Radio type: %s",
+			"Radio type: %s, "+
+			"File path: %s",
 		a.UUID,
 		a.Name,
 		a.Commit,
 		a.TargetCommit,
 		a.Config,
-		a.DeviceType,
 		a.Type.Micro,
-		a.Type.Radio)
+		a.Type.Radio,
+		a.FilePath)
 }
 
 func init() {
@@ -123,42 +122,6 @@ func (a Application) Validate() bool {
 	return true
 }
 
-// CheckCommit checks whether there is a new target commit and extracts if necessary
-func (a *Application) CheckCommit() error {
-	if a.Commit == a.TargetCommit {
-		return nil
-	}
-
-	if err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit); err != nil {
-		return err
-	}
-
-	a.FilePath = config.GetAssetsDir()
-	a.FilePath = path.Join(a.FilePath, strconv.Itoa(a.UUID))
-	a.FilePath = path.Join(a.FilePath, a.TargetCommit)
-	tarPath := path.Join(a.FilePath, "binary.tar")
-
-	log.WithFields(log.Fields{
-		"File path":     a.FilePath,
-		"Tar path":      tarPath,
-		"Target commit": a.TargetCommit,
-	}).Debug("Application firmware")
-
-	if err := tarinator.UnTarinate(a.FilePath, tarPath); err != nil {
-		return err
-	}
-
-	a.Commit = a.TargetCommit
-
-	log.WithFields(log.Fields{
-		"File path":     a.FilePath,
-		"Tar path":      tarPath,
-		"Target commit": a.TargetCommit,
-	}).Info("Application firmware extracted")
-
-	return nil
-}
-
 // GetDevices gets all provisioned devices associated with the application
 func (a *Application) GetDevices() error {
 	var err error
@@ -225,12 +188,12 @@ func (a *Application) ProvisionDevices() []error {
 			"Local UUID": key,
 		}).Info("Device not provisioned")
 
-		deviceUUID, deviceName, errs := supervisor.DependantDeviceProvision(a.UUID)
+		deviceUUID, deviceName, deviceNote, errs := supervisor.DependantDeviceProvision(a.UUID)
 		if errs != nil {
 			return errs
 		}
 
-		err := device.New(a.Type, key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit)
+		err := device.New(a.Type, deviceNote, key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit, nil, nil)
 		if err != nil {
 			return []error{err}
 		}
@@ -272,19 +235,6 @@ func (a *Application) UpdateOnlineDevices() error {
 		if online {
 			d.SetState(device.ONLINE)
 
-			// // Get the target commit as it may have been set by the supervisor since we loaded all the application devices
-			// bytes, err := database.GetDeviceField(a.UUID, d.UUID, "targetCommit")
-			// if err != nil {
-			// 	return err
-			// }
-			// d.TargetCommit = (string)(bytes)
-
-			// log.WithFields(log.Fields{
-			// 	"Device": d,
-			// 	"target": d.TargetCommit,
-			// 	"test":   (string)(bytes),
-			// }).Debug("TESTING")
-
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{
 					"Device": d,
@@ -296,7 +246,7 @@ func (a *Application) UpdateOnlineDevices() error {
 				"Device": d,
 			}).Info("Device not up to date")
 
-			if err := a.CheckCommit(); err != nil {
+			if err := a.checkCommit(); err != nil {
 				return err
 			}
 
@@ -310,6 +260,41 @@ func (a *Application) UpdateOnlineDevices() error {
 			}).Info("Device updated")
 		}
 	}
+
+	return nil
+}
+
+func (a *Application) checkCommit() error {
+	if a.Commit == a.TargetCommit {
+		return nil
+	}
+
+	if err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit); err != nil {
+		return err
+	}
+
+	a.FilePath = config.GetAssetsDir()
+	a.FilePath = path.Join(a.FilePath, strconv.Itoa(a.UUID))
+	a.FilePath = path.Join(a.FilePath, a.TargetCommit)
+	tarPath := path.Join(a.FilePath, "binary.tar")
+
+	log.WithFields(log.Fields{
+		"File path":     a.FilePath,
+		"Tar path":      tarPath,
+		"Target commit": a.TargetCommit,
+	}).Debug("Application firmware")
+
+	if err := tarinator.UnTarinate(a.FilePath, tarPath); err != nil {
+		return err
+	}
+
+	a.Commit = a.TargetCommit
+
+	log.WithFields(log.Fields{
+		"File path":     a.FilePath,
+		"Tar path":      tarPath,
+		"Target commit": a.TargetCommit,
+	}).Info("Application firmware extracted")
 
 	return nil
 }

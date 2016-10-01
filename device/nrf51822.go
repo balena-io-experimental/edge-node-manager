@@ -196,13 +196,6 @@ func (d Nrf51822) updateOnPeriphConnected(periph gatt.Peripheral, err error) {
 	fota.connected = true
 	fotaChannel <- fota
 
-	if log.GetLevel() == log.DebugLevel {
-		if err := d.print(periph); err != nil {
-			errChanel <- err
-			return
-		}
-	}
-
 	if err := periph.SetMTU(500); err != nil {
 		errChanel <- err
 		return
@@ -328,7 +321,6 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 }
 
 func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
-	// TODO: figure out why we get this twice - something weird going on with the control flow
 	log.Debug("Checking FOTA")
 
 	if err := d.enableCCCD(periph); err != nil {
