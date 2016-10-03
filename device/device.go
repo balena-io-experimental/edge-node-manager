@@ -25,8 +25,7 @@ const (
 	STARTING          = "Starting"
 	STOPPING          = "Stopping"
 	IDLE              = "Idle"
-
-//	OFFLINE           = "Offline"
+	OFFLINE           = "Offline"
 )
 
 // Device contains all the variables needed to define a device
@@ -98,9 +97,9 @@ func (d Device) String() string {
 
 // Update updates a specific device
 func (d Device) Update(path string) error {
-	d.SetState(UPDATING)
+	d.SetState(INSTALLING)
 	err := d.Cast().Update(path)
-	d.SetState(ONLINE)
+	d.SetState(IDLE)
 	return err
 }
 
@@ -122,7 +121,7 @@ func New(deviceType Type, note, localUUID, UUID, name string, applicationUUID in
 		Commit:          "",
 		TargetCommit:    targetCommit,
 		LastSeen:        time.Now(),
-		State:           ONLINE,
+		State:           IDLE,
 		Progress:        0.0,
 		RestartFlag:     false,
 		IdentifyFlag:    false,
@@ -203,13 +202,9 @@ func (d Device) Cast() Interface {
 func (d *Device) SetState(state State) {
 	d.State = state
 
-	// online := false
-	if d.State == ONLINE {
+	if d.State != OFFLINE {
 		d.LastSeen = time.Now()
-		// online = true
 	}
 
-	// TODO: handle error
-	// TODO: This needs a rethink
-	// supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.State), online)
+	// TODO: Send state update to supervisor
 }

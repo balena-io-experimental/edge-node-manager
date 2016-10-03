@@ -235,7 +235,7 @@ func (a *Application) UpdateOnlineDevices() error {
 		}
 
 		if online {
-			d.SetState(device.ONLINE)
+			d.SetState(device.IDLE)
 
 			if d.Commit == d.TargetCommit {
 				log.WithFields(log.Fields{
