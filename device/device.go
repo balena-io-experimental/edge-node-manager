@@ -20,10 +20,13 @@ type Type struct {
 type State string
 
 const (
-	UPDATING    State = "Updating"
-	ONLINE            = "Online"
-	OFFLINE           = "Offline"
-	DOWNLOADING       = "Downloading"
+	DOWNLOADING State = "Downloading"
+	INSTALLING        = "Installing"
+	STARTING          = "Starting"
+	STOPPING          = "Stopping"
+	IDLE              = "Idle"
+
+//	OFFLINE           = "Offline"
 )
 
 // Device contains all the variables needed to define a device

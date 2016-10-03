@@ -282,6 +282,7 @@ func (a *Application) checkCommit() error {
 	}
 
 	if resp.HTTPResponse.StatusCode != 200 {
+		fmt.Println(resp.HTTPResponse.StatusCode)
 		log.Warn("Downloading application firmware failed")
 		return errors.New("1")
 	}
