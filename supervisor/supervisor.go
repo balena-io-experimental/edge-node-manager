@@ -55,7 +55,7 @@ func DependantApplicationsList() ([]byte, []error) {
 // DependantApplicationUpdate downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
 func DependantApplicationUpdate(applicationUUID int, targetCommit string) (*grab.Response, error) {
-	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(applicationUUID), targetCommit})
+	url, err := buildPath(address, []string{version, "dependent-apps", strconv.Itoa(applicationUUID), "assets", targetCommit})
 	if err != nil {
 		return nil, err
 	}
