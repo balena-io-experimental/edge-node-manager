@@ -27,6 +27,8 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to decode Dependant device update hook")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
@@ -34,6 +36,7 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to get device mapping")
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -46,6 +49,8 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 
 	application.List[applicationUUID].TargetCommit = content.Commit
 	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // TODO: DependantDeviceRestart puts the restart flag for a specific device
@@ -57,20 +62,7 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 		"UUID": deviceUUID,
 	}).Debug("Dependant device restart hook")
 
-	// applicationUUID, err := database.GetDeviceMapping(deviceUUID)
-	// if err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to get device mapping")
-	// 	return
-	// }
-
-	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "restartFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to put restart flag")
-	// 	return
-	// }
+	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // TODO: DependantDeviceIdentify puts the identify flag for a specific device
@@ -82,20 +74,5 @@ func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
 		"UUID": deviceUUID,
 	}).Debug("Dependant device identify hook")
 
-	// applicationUUID, err := database.GetDeviceMapping(deviceUUID)
-	// if err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to get device mapping")
-	// 	return
-	// }
-
-	// if err = database.PutDeviceField(applicationUUID, deviceUUID, "identifyFlag", ([]byte)(strconv.FormatBool(true))); err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to put identify flag")
-	// 	return
-	// }
-
-	// fmt.Fprintln(w, "Dependant Device Identify")
+	w.WriteHeader(http.StatusNotImplemented)
 }

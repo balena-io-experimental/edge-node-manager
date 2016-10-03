@@ -88,7 +88,7 @@ func init() {
 
 	// For now we have to manually initialise an applications micro and radio type
 	// This is because the device type returned from the supervisor is always edge
-	initApplication(13814, micro.NRF51822, radio.BLUETOOTH)
+	initApplication(13829, micro.NRF51822, radio.BLUETOOTH)
 
 	log.Debug("Initialised applications")
 }
@@ -249,7 +249,8 @@ func (a *Application) UpdateOnlineDevices() error {
 			}).Info("Device not up to date")
 
 			if err := a.checkCommit(); err != nil {
-				//TODO:
+				// Skip to the next device if the firmware download failed
+				// TODO: research better way of handling error cases like this
 				if err.Error() == "1" {
 					continue
 				}

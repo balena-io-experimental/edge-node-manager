@@ -112,7 +112,7 @@ func DependantDeviceLog(UUID, message string) []error {
 	}
 
 	req := gorequest.New()
-	req.Put(url)
+	req.Post(url)
 	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
@@ -129,7 +129,7 @@ func DependantDeviceLog(UUID, message string) []error {
 }
 
 // DependantDeviceInfoUpdate transmits status and is_online for a specific device
-func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
+func DependantDeviceInfoUpdate(UUID, status, commit string, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
@@ -138,11 +138,13 @@ func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
 	type dependantDeviceInfo struct {
 		Status string `json:"status"`
 		Online bool   `json:"is_online"`
+		Commit string `josn:"commit"`
 	}
 
 	content := &dependantDeviceInfo{
 		Status: status,
 		Online: online,
+		Commit: commit,
 	}
 
 	bytes, err := json.Marshal(content)
@@ -211,6 +213,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 	}
 
 	// TODO: Should probably unmarshall straight into a device
+	// as we now have ~5 fields we want to extract and return
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
 		return "", "", []error{err}
