@@ -281,10 +281,7 @@ func (a *Application) checkCommit() error {
 	}
 
 	if resp.HTTPResponse.StatusCode != 200 {
-		log.WithFields(log.Fields{
-			"File path":     a.FilePath,
-			"Target commit": a.TargetCommit,
-		}).Warn("Downloading application firmware failed")
+		log.Warn("Downloading application firmware failed")
 		return errors.New("1")
 	}
 
