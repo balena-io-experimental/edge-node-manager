@@ -3,7 +3,6 @@ package supervisor
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/url"
 	"os"
 	"path"
@@ -27,16 +26,6 @@ var (
 	key     string
 	rawKey  string
 )
-
-// Test tests whether the supervisor is available
-func Test() bool {
-	conn, err := net.Dial("tcp", address)
-	if err != nil {
-		return false
-	}
-	conn.Close()
-	return true
-}
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
 func DependantApplicationsList() ([]byte, []error) {

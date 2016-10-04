@@ -9,7 +9,6 @@ import (
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/process"
-	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
 // Uses the logrus package
@@ -17,16 +16,6 @@ import (
 
 func main() {
 	log.Info("Starting Edge-node-manager")
-
-	for {
-		if !supervisor.Test() {
-			log.Warn("Supervisor not up")
-			time.Sleep(5 * time.Second)
-		} else {
-			log.Info("Supervisor up")
-			break
-		}
-	}
 
 	for _, value := range application.List {
 		log.WithFields(log.Fields{
