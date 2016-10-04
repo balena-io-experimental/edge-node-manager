@@ -284,7 +284,7 @@ func (a *Application) UpdateOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting update")
 
-		d.SetStatus(device.DOWNLOADING)
+		d.SetStatus(device.INSTALLING)
 		if err := d.Update(a.FilePath); err != nil {
 			return []error{err}
 		}
