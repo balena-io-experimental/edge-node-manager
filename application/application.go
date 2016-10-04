@@ -228,8 +228,7 @@ func (a *Application) ProvisionDevices() []error {
 		a.Devices[newDevice.LocalUUID] = newDevice
 
 		log.WithFields(log.Fields{
-			"Local UUID": newDevice.LocalUUID,
-			"UUID":       newDevice.UUID,
+			"Name": newDevice.Name,
 		}).Info("Device provisioned")
 	}
 
@@ -274,8 +273,7 @@ func (a *Application) UpdateOnlineDevices() []error {
 		}
 
 		log.WithFields(log.Fields{
-			"Local UUID": d.LocalUUID,
-			"UUID":       d.UUID,
+			"Name": d.Name,
 		}).Info("Device not up to date")
 
 		if err := a.checkCommit(); err != nil {
@@ -283,8 +281,7 @@ func (a *Application) UpdateOnlineDevices() []error {
 		}
 
 		log.WithFields(log.Fields{
-			"Local UUID": d.LocalUUID,
-			"UUID":       d.UUID,
+			"Name": d.Name,
 		}).Info("Starting update")
 
 		d.SetStatus(device.DOWNLOADING)
@@ -295,8 +292,7 @@ func (a *Application) UpdateOnlineDevices() []error {
 		d.SetStatus(device.IDLE)
 
 		log.WithFields(log.Fields{
-			"Local UUID": d.LocalUUID,
-			"UUID":       d.UUID,
+			"Name": d.Name,
 		}).Info("Finished update")
 	}
 
