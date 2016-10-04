@@ -55,7 +55,7 @@ func init() {
 	go func() {
 		router := api.NewRouter()
 
-		port, err := config.GetENMPort()
+		port, err := config.GetHookPort()
 		if err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,

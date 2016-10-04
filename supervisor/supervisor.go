@@ -245,7 +245,7 @@ func init() {
 	log.SetLevel(config.GetLogLevel())
 
 	address = config.GetSuperAddr()
-	version = config.GetSuperAPIVer()
+	version = config.GetVersion()
 	rawKey = config.GetSuperAPIKey()
 
 	type apiKey struct {
