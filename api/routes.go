@@ -26,10 +26,4 @@ var routes = Routes{
 		"/v1/devices/{uuid}/restart",
 		DependantDeviceRestart,
 	},
-	Route{
-		"DependantDeviceIdentify",
-		"PUT",
-		"/v1/devices/{uuid}/identify",
-		DependantDeviceIdentify,
-	},
 }

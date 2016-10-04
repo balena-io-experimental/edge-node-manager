@@ -8,8 +8,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/config"
+	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
-	"github.com/josephroberts/edge-node-manager/devices"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
 	"github.com/josephroberts/edge-node-manager/supervisor"
@@ -125,9 +125,18 @@ func (a Application) Validate() bool {
 
 // GetDevices gets all provisioned devices associated with the application
 func (a *Application) GetDevices() error {
-	var err error
-	if a.Devices, err = devices.Get(a.UUID); err != nil {
+	buffer, err := database.GetDevices(a.UUID)
+	if err != nil {
 		return err
+	}
+
+	for _, value := range buffer {
+		var device device.Device
+		if err = json.Unmarshal(value, &device); err != nil {
+			return err
+		}
+
+		a.Devices[device.LocalUUID] = &device
 	}
 
 	log.WithFields(log.Fields{
@@ -149,7 +158,16 @@ func (a *Application) GetDevices() error {
 
 // PutDevices puts all provisioned devices associated with the application
 func (a *Application) PutDevices() error {
-	return devices.Put(a.UUID, a.Devices)
+	buffer := make(map[string][]byte)
+	for _, value := range a.Devices {
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		buffer[value.UUID] = bytes
+	}
+
+	return database.PutDevices(a.UUID, buffer)
 }
 
 // GetOnlineDevices gets all online devices associated with the application
@@ -229,8 +247,6 @@ func (a *Application) SetOfflineDeviceStatus() []error {
 }
 
 // UpdateOnlineDevices updates all online devices associated with the application
-// State and last time seen fields
-// Firmware if a new commit is available
 func (a *Application) UpdateOnlineDevices() []error {
 	for key := range a.OnlineDevices {
 		d := a.Devices[key]
@@ -272,6 +288,41 @@ func (a *Application) UpdateOnlineDevices() []error {
 		log.WithFields(log.Fields{
 			"Device": d,
 		}).Info("Device updated")
+	}
+
+	return nil
+}
+
+// RestartOnlineDevices restarts online devices associated with the application if the restart flag is set
+func (a *Application) RestartOnlineDevices() error {
+	for key := range a.OnlineDevices {
+		d := a.Devices[key]
+
+		if !d.RestartFlag {
+			continue
+		}
+
+		online, err := d.Online()
+		if err != nil {
+			return err
+		}
+
+		if !online {
+			d.SetStatus(device.OFFLINE)
+			return nil
+		}
+
+		d.SetStatus(device.IDLE)
+
+		if err = d.Restart(); err != nil {
+			return err
+		}
+
+		d.RestartFlag = false
+
+		log.WithFields(log.Fields{
+			"Device": d,
+		}).Info("Device restarted")
 	}
 
 	return nil

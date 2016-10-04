@@ -41,7 +41,6 @@ type Device struct {
 	Status          Status      `json:"status"`
 	Progress        float32     `json:"progress"`
 	RestartFlag     bool        `json:"restartFlag"`
-	IdentifyFlag    bool        `json:"identifyFlag"`
 	Config          interface{} `json:"config"`
 	Environment     interface{} `json:"environment"`
 }
@@ -51,7 +50,6 @@ type Interface interface {
 	String() string
 	Update(path string) error
 	Online() (bool, error)
-	Identify() error
 	Restart() error
 }
 
@@ -69,7 +67,6 @@ func (d Device) String() string {
 			"Status: %s, "+
 			"Progress: %2.2f "+
 			"Restart flag: %t, "+
-			"Identify flag: %t, "+
 			"Config: %v, "+
 			"Environment: %v",
 		d.Type.Micro,
@@ -84,7 +81,6 @@ func (d Device) String() string {
 		d.Status,
 		d.Progress,
 		d.RestartFlag,
-		d.IdentifyFlag,
 		d.Config,
 		d.Environment)
 }
@@ -98,6 +94,11 @@ func (d Device) Update(path string) error {
 // Online checks if a specific device is online
 func (d Device) Online() (bool, error) {
 	return d.Cast().Online()
+}
+
+// Restart restarts a specific device
+func (d Device) Restart() error {
+	return d.Cast().Restart()
 }
 
 // New creates a new device and puts it into the database
@@ -114,7 +115,6 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		Status:          IDLE,
 		Progress:        0.0,
 		RestartFlag:     false,
-		IdentifyFlag:    false,
 		Config:          config,
 		Environment:     environment,
 	}

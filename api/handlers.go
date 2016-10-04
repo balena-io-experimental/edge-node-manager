@@ -53,26 +53,25 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// TODO: DependantDeviceRestart puts the restart flag for a specific device
+//DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
+
+	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to get device mapping")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	log.WithFields(log.Fields{
 		"UUID": deviceUUID,
 	}).Debug("Dependant device restart hook")
 
-	w.WriteHeader(http.StatusNotImplemented)
-}
+	application.List[applicationUUID].Devices[localUUID].RestartFlag = true
 
-// TODO: DependantDeviceIdentify puts the identify flag for a specific device
-func DependantDeviceIdentify(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceUUID := vars["uuid"]
-
-	log.WithFields(log.Fields{
-		"UUID": deviceUUID,
-	}).Debug("Dependant device identify hook")
-
-	w.WriteHeader(http.StatusNotImplemented)
+	w.WriteHeader(http.StatusOK)
 }

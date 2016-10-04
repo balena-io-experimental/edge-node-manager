@@ -35,13 +35,14 @@ func Run(a *application.Application) []error {
 	}
 
 	// Update all online devices associated with this application
-	// State and last time seen fields
-	// Firmware if a new commit is available
 	if errs := a.UpdateOnlineDevices(); errs != nil {
 		return errs
 	}
 
-	// TODO: restart and identify devices
+	// Restart online devices associated with this application
+	if err := a.RestartOnlineDevices(); err != nil {
+		return []error{err}
+	}
 
 	// Put all provisioned devices associated with this application
 	if err := a.PutDevices(); err != nil {
