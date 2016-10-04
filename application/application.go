@@ -125,6 +125,8 @@ func (a Application) Validate() bool {
 
 // GetDevices gets all provisioned devices associated with the application
 func (a *Application) GetDevices() error {
+	a.Devices = make(map[string]*device.Device)
+
 	buffer, err := database.GetDevices(a.UUID)
 	if err != nil {
 		return err
