@@ -43,6 +43,7 @@ type Device struct {
 	RestartFlag     bool        `json:"restartFlag"`
 	Config          interface{} `json:"config"`
 	Environment     interface{} `json:"environment"`
+	// TODO: targetEnvironment and targetConfig
 }
 
 // Interface defines the common functions a device must implement
