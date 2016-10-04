@@ -229,10 +229,18 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 		return "", "", "", "", []error{err}
 	}
 
+	if _, ok := buffer["config"].(interface{}); !ok {
+		buffer["config"] = nil
+	}
+
+	if _, ok := buffer["environment"].(interface{}); !ok {
+		buffer["environment"] = nil
+	}
+
 	return buffer["uuid"].(string),
 		buffer["name"].(string),
-		buffer["config"].(interface{}),
-		buffer["environment"].(interface{}),
+		buffer["config"],
+		buffer["environment"],
 		nil
 }
 
