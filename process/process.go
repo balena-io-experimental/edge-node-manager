@@ -3,7 +3,6 @@ package process
 import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/application"
-	"github.com/josephroberts/edge-node-manager/device"
 )
 
 // Run processes the application, checking for new commits, provisioning and updating devices
@@ -30,14 +29,16 @@ func Run(a *application.Application) []error {
 		return errs
 	}
 
-	// Set all provisioned devices associated with this application to OFFLINE
-	a.SetState(device.OFFLINE)
+	// Set the status of all offline provisioned devices associated with this application to OFFLINE
+	if errs := a.SetOfflineDeviceStatus(); errs != nil {
+		return errs
+	}
 
 	// Update all online devices associated with this application
 	// State and last time seen fields
 	// Firmware if a new commit is available
-	if err := a.UpdateOnlineDevices(); err != nil {
-		return []error{err}
+	if errs := a.UpdateOnlineDevices(); errs != nil {
+		return errs
 	}
 
 	// TODO: restart and identify devices

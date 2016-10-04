@@ -3,11 +3,11 @@ package device
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
+	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
 // Type contains the micro and radio that make up a device type
@@ -16,16 +16,16 @@ type Type struct {
 	Radio radio.Type `json:"radio"`
 }
 
-// State defines the device states
-type State string
+// Status defines the device states
+type Status string
 
 const (
-	DOWNLOADING State = "Downloading"
-	INSTALLING        = "Installing"
-	STARTING          = "Starting"
-	STOPPING          = "Stopping"
-	IDLE              = "Idle"
-	OFFLINE           = "Offline"
+	DOWNLOADING Status = "Downloading"
+	INSTALLING         = "Installing"
+	STARTING           = "Starting"
+	STOPPING           = "Stopping"
+	IDLE               = "Idle"
+	OFFLINE            = "Offline"
 )
 
 // Device contains all the variables needed to define a device
@@ -38,8 +38,7 @@ type Device struct {
 	ApplicationName string      `json:"applicationName"`
 	Commit          string      `json:"commit"`
 	TargetCommit    string      `json:"targetCommit"`
-	LastSeen        time.Time   `json:"lastSeen"`
-	State           State       `json:"state"`
+	Status          Status      `json:"status"`
 	Progress        float32     `json:"progress"`
 	RestartFlag     bool        `json:"restartFlag"`
 	IdentifyFlag    bool        `json:"identifyFlag"`
@@ -67,8 +66,7 @@ func (d Device) String() string {
 			"Application name: %s, "+
 			"Commit: %s, "+
 			"Target commit: %s, "+
-			"Last seen: %s, "+
-			"State: %s, "+
+			"Status: %s, "+
 			"Progress: %2.2f "+
 			"Restart flag: %t, "+
 			"Identify flag: %t, "+
@@ -83,8 +81,7 @@ func (d Device) String() string {
 		d.ApplicationName,
 		d.Commit,
 		d.TargetCommit,
-		d.LastSeen,
-		d.State,
+		d.Status,
 		d.Progress,
 		d.RestartFlag,
 		d.IdentifyFlag,
@@ -94,9 +91,7 @@ func (d Device) String() string {
 
 // Update updates a specific device
 func (d Device) Update(path string) error {
-	d.SetState(INSTALLING)
 	err := d.Cast().Update(path)
-	d.SetState(IDLE)
 	return err
 }
 
@@ -116,8 +111,7 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		ApplicationName: applicationName,
 		Commit:          "",
 		TargetCommit:    targetCommit,
-		LastSeen:        time.Now(),
-		State:           IDLE,
+		Status:          IDLE,
 		Progress:        0.0,
 		RestartFlag:     false,
 		IdentifyFlag:    false,
@@ -160,13 +154,14 @@ func (d Device) Cast() Interface {
 	return nil
 }
 
-// SetState sets the state for a specific device
-func (d *Device) SetState(state State) {
-	d.State = state
+// SetStatus sets the state for a specific device
+func (d *Device) SetStatus(status Status) []error {
+	d.Status = status
 
-	if d.State != OFFLINE {
-		d.LastSeen = time.Now()
+	online := true
+	if d.Status == OFFLINE {
+		online = false
 	}
 
-	// TODO: Send state update to supervisor
+	return supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.Status), d.Commit, online)
 }

@@ -215,30 +215,37 @@ func (a *Application) ProvisionDevices() []error {
 	return nil
 }
 
-// SetState sets the state for all provisioned devices associated with the application
-func (a *Application) SetState(state device.State) {
-	for _, d := range a.Devices {
-		d.SetState(state)
+// SetOfflineDeviceStatus sets the status for all offline provisioned devices associated with the application
+func (a *Application) SetOfflineDeviceStatus() []error {
+	for key, d := range a.Devices {
+		if _, exists := a.OnlineDevices[key]; !exists {
+			if errs := d.SetStatus(device.OFFLINE); errs != nil {
+				return errs
+			}
+		}
 	}
+
+	return nil
 }
 
 // UpdateOnlineDevices updates all online devices associated with the application
 // State and last time seen fields
 // Firmware if a new commit is available
-func (a *Application) UpdateOnlineDevices() error {
+func (a *Application) UpdateOnlineDevices() []error {
 	for key := range a.OnlineDevices {
 		d := a.Devices[key]
 
 		online, err := d.Online()
 		if err != nil {
-			return err
+			return []error{err}
 		}
 
 		if !online {
+			d.SetStatus(device.OFFLINE)
 			return nil
 		}
 
-		d.SetState(device.IDLE)
+		d.SetStatus(device.IDLE)
 
 		if d.Commit == d.TargetCommit {
 			log.WithFields(log.Fields{
@@ -252,14 +259,15 @@ func (a *Application) UpdateOnlineDevices() error {
 		}).Info("Device not up to date")
 
 		if err := a.checkCommit(); err != nil {
-			return err
+			return []error{err}
 		}
 
+		d.SetStatus(device.DOWNLOADING)
 		if err := d.Update(a.FilePath); err != nil {
-			return err
+			return []error{err}
 		}
-
 		d.Commit = d.TargetCommit
+		d.SetStatus(device.IDLE)
 
 		log.WithFields(log.Fields{
 			"Device": d,
@@ -274,13 +282,8 @@ func (a *Application) checkCommit() error {
 		return nil
 	}
 
-	resp, err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit)
-	if err != nil {
+	if err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit); err != nil {
 		return err
-	}
-
-	if resp.HTTPResponse.StatusCode != 200 {
-		return fmt.Errorf("Downloading application firmware failed")
 	}
 
 	a.FilePath = config.GetAssetsDir()

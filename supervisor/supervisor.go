@@ -54,15 +54,15 @@ func DependantApplicationsList() ([]byte, []error) {
 
 // DependantApplicationUpdate downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
-func DependantApplicationUpdate(applicationUUID int, targetCommit string) (*grab.Response, error) {
+func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
 	url, err := buildPath(address, []string{version, "dependent-apps", strconv.Itoa(applicationUUID), "assets", targetCommit})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	req, err := grab.NewRequest(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	q := req.HTTPRequest.URL.Query()
@@ -73,7 +73,7 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) (*grab
 	filePath = path.Join(filePath, strconv.Itoa(applicationUUID))
 	filePath = path.Join(filePath, targetCommit)
 	if err = os.MkdirAll(filePath, os.ModePerm); err != nil {
-		return nil, err
+		return err
 	}
 	filePath = path.Join(filePath, "binary.tar")
 	req.Filename = filePath
@@ -86,7 +86,19 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) (*grab
 	}).Debug("Requesting dependant application update")
 
 	client := grab.NewClient()
-	return client.Do(req)
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	if resp.HTTPResponse.StatusCode != 200 {
+		return fmt.Errorf("Dependant application update failed")
+	}
+
+	log.Debug("Dependant application update succeeded")
+
+	return nil
 }
 
 // DependantDeviceLog transmits a log message and timestamp for a specific device
@@ -125,7 +137,7 @@ func DependantDeviceLog(UUID, message string) []error {
 	}).Debug("Transmitting dependant device log")
 
 	resp, _, errs := req.End()
-	return handleResp(resp, errs, 200)
+	return handleResp(resp, errs, 202)
 }
 
 // DependantDeviceInfoUpdate transmits status and is_online for a specific device
@@ -217,7 +229,11 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 		return "", "", "", "", []error{err}
 	}
 
-	return buffer["uuid"].(string), buffer["name"].(string), buffer["config"].(interface{}), buffer["environment"].(interface{}), nil
+	return buffer["uuid"].(string),
+		buffer["name"].(string),
+		buffer["config"].(interface{}),
+		buffer["environment"].(interface{}),
+		nil
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager
