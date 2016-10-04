@@ -3,11 +3,11 @@ package device
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
+	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
 // Type contains the micro and radio that make up a device type
@@ -16,31 +16,34 @@ type Type struct {
 	Radio radio.Type `json:"radio"`
 }
 
-// State defines the device states
-type State string
+// Status defines the device states
+type Status string
 
 const (
-	UPDATING    State = "Updating"
-	ONLINE            = "Online"
-	OFFLINE           = "Offline"
-	DOWNLOADING       = "Downloading"
+	DOWNLOADING Status = "Downloading"
+	INSTALLING         = "Installing"
+	STARTING           = "Starting"
+	STOPPING           = "Stopping"
+	IDLE               = "Idle"
+	OFFLINE            = "Offline"
 )
 
 // Device contains all the variables needed to define a device
 type Device struct {
 	Type            `json:"type"`
-	LocalUUID       string    `json:"localUUID"`
-	UUID            string    `json:"UUID"`
-	Name            string    `json:"name"`
-	ApplicationUUID int       `json:"applicationUUID"`
-	ApplicationName string    `json:"applicationName"`
-	Commit          string    `json:"commit"`
-	TargetCommit    string    `json:"targetCommit"`
-	LastSeen        time.Time `json:"lastSeen"`
-	State           State     `json:"state"`
-	Progress        float32   `json:"progress"`
-	RestartFlag     bool      `json:"restartFlag"`
-	IdentifyFlag    bool      `json:"identifyFlag"`
+	LocalUUID       string      `json:"localUUID"`
+	UUID            string      `json:"uuid"`
+	Name            string      `json:"name"`
+	ApplicationUUID int         `json:"applicationUUID"`
+	ApplicationName string      `json:"applicationName"`
+	Commit          string      `json:"commit"`
+	TargetCommit    string      `json:"targetCommit"`
+	Status          Status      `json:"status"`
+	Progress        float32     `json:"progress"`
+	RestartFlag     bool        `json:"restartFlag"`
+	Config          interface{} `json:"config"`
+	Environment     interface{} `json:"environment"`
+	// TODO: targetEnvironment and targetConfig
 }
 
 // Interface defines the common functions a device must implement
@@ -48,7 +51,6 @@ type Interface interface {
 	String() string
 	Update(path string) error
 	Online() (bool, error)
-	Identify() error
 	Restart() error
 }
 
@@ -63,11 +65,11 @@ func (d Device) String() string {
 			"Application name: %s, "+
 			"Commit: %s, "+
 			"Target commit: %s, "+
-			"Last seen: %s, "+
-			"State: %s, "+
+			"Status: %s, "+
 			"Progress: %2.2f "+
 			"Restart flag: %t, "+
-			"Identify flag: %t",
+			"Config: %v, "+
+			"Environment: %v",
 		d.Type.Micro,
 		d.Type.Radio,
 		d.LocalUUID,
@@ -77,16 +79,17 @@ func (d Device) String() string {
 		d.ApplicationName,
 		d.Commit,
 		d.TargetCommit,
-		d.LastSeen,
-		d.State,
+		d.Status,
 		d.Progress,
 		d.RestartFlag,
-		d.IdentifyFlag)
+		d.Config,
+		d.Environment)
 }
 
 // Update updates a specific device
 func (d Device) Update(path string) error {
-	return d.Cast().Update(path)
+	err := d.Cast().Update(path)
+	return err
 }
 
 // Online checks if a specific device is online
@@ -94,8 +97,13 @@ func (d Device) Online() (bool, error) {
 	return d.Cast().Online()
 }
 
+// Restart restarts a specific device
+func (d Device) Restart() error {
+	return d.Cast().Restart()
+}
+
 // New creates a new device and puts it into the database
-func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string) error {
+func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) error {
 	newDevice := &Device{
 		Type:            deviceType,
 		LocalUUID:       localUUID,
@@ -105,11 +113,11 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		ApplicationName: applicationName,
 		Commit:          "",
 		TargetCommit:    targetCommit,
-		LastSeen:        time.Now(),
-		State:           ONLINE,
+		Status:          IDLE,
 		Progress:        0.0,
 		RestartFlag:     false,
-		IdentifyFlag:    false,
+		Config:          config,
+		Environment:     environment,
 	}
 
 	buffer, err := json.Marshal(newDevice)
@@ -117,41 +125,7 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		return err
 	}
 
-	return database.PutDevice(newDevice.ApplicationUUID, newDevice.UUID, buffer)
-}
-
-// PutAll puts all devices for a specific application into the database
-func PutAll(applicationUUID int, devices map[string]*Device) error {
-	buffer := make(map[string][]byte)
-	for _, value := range devices {
-		bytes, err := json.Marshal(value)
-		if err != nil {
-			return err
-		}
-		buffer[value.UUID] = bytes
-	}
-
-	return database.PutDevices(applicationUUID, buffer)
-}
-
-// GetAll gets all devices for a specific application
-func GetAll(applicationUUID int) (map[string]*Device, error) {
-	buffer, err := database.GetDevices(applicationUUID)
-	if err != nil {
-		return nil, err
-	}
-
-	devices := make(map[string]*Device)
-	for _, value := range buffer {
-		var device Device
-		if err = json.Unmarshal(value, &device); err != nil {
-			return nil, err
-		}
-
-		devices[device.LocalUUID] = &device
-	}
-
-	return devices, nil
+	return database.PutDevice(newDevice.ApplicationUUID, newDevice.LocalUUID, newDevice.UUID, buffer)
 }
 
 // Get gets a single device for a specific application
@@ -181,10 +155,14 @@ func (d Device) Cast() Interface {
 	return nil
 }
 
-// SetState sets the state for a specific device
-func (d *Device) SetState(state State) {
-	d.State = state
-	if d.State == ONLINE {
-		d.LastSeen = time.Now()
+// SetStatus sets the state for a specific device
+func (d *Device) SetStatus(status Status) []error {
+	d.Status = status
+
+	online := true
+	if d.Status == OFFLINE {
+		online = false
 	}
+
+	return supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.Status), d.Commit, online)
 }

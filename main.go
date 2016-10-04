@@ -15,13 +15,11 @@ import (
 // https://github.com/Sirupsen/logrus
 
 func main() {
-	log.Info("Starting Edge-node-manager")
+	log.Info("Starting edge-node-manager")
 
-	for _, value := range application.List {
-		log.WithFields(log.Fields{
-			"Application": value,
-		}).Info("Edge-node-manager application")
-	}
+	log.WithFields(log.Fields{
+		"Number": len(application.List),
+	}).Info("edge-node-manager applications")
 
 	delay, err := config.GetLoopDelay()
 	if err != nil {
@@ -32,7 +30,7 @@ func main() {
 
 	log.WithFields(log.Fields{
 		"Loop delay": delay,
-	}).Info("Started Edge-node-manager")
+	}).Info("Started edge-node-manager")
 
 	for {
 		for _, application := range application.List {
@@ -40,7 +38,7 @@ func main() {
 				log.WithFields(log.Fields{
 					"Application": application,
 					"Errors":      errs,
-				}).Fatal("Unable to process application")
+				}).Error("Unable to process application")
 			}
 		}
 
@@ -54,11 +52,22 @@ func init() {
 
 	go func() {
 		router := api.NewRouter()
-		if err := http.ListenAndServe(config.GetENMAddr(), router); err != nil {
+
+		port, err := config.GetHookPort()
+		if err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,
-			}).Fatal("Unable to start incoming supervisor API")
+			}).Fatal("Unable to get ENM port")
 		}
-		log.Debug("Initialised incoming supervisor APIr")
+
+		log.WithFields(log.Fields{
+			"Port": port,
+		}).Debug("Initialising incoming supervisor API")
+
+		if err := http.ListenAndServe(port, router); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Fatal("Unable to initialise incoming supervisor API")
+		}
 	}()
 }

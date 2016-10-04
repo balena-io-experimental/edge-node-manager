@@ -11,7 +11,7 @@ RUN wget http://archive.raspberrypi.org/debian/raspberrypi.gpg.key -O - | sudo a
 # Add it on top so apt will pick up packages from there
 RUN sed -i '1s#^#deb http://archive.raspberrypi.org/debian jessie main\n#' /etc/apt/sources.list
 
-# Use apt-get if you need to install dependencies
+# Use apt-get to install dependencies
 RUN apt-get update && apt-get install -yq \
     bluez \
     bluez-firmware && \
@@ -27,8 +27,8 @@ WORKDIR /go/src/github.com/josephroberts/edge-node-manager
 # Set RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS environment variable
 ENV RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS http://127.0.0.1:1337/v1/devices/
 
-# Enable systemd init system
-ENV INITSYSTEM on
+# Disable systemd init system
+ENV INITSYSTEM off
 
 # This will copy all files in our root to the working  directory in the container
 COPY . ./

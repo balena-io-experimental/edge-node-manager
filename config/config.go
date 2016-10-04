@@ -1,8 +1,10 @@
 package config
 
 import (
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -10,7 +12,7 @@ import (
 
 // GetLogLevel returns the log level
 func GetLogLevel() log.Level {
-	level := getEnv("LOG_LEVEL", "")
+	level := getEnv("ENM_LOG_LEVEL", "")
 
 	switch level {
 	case "DEBUG":
@@ -28,7 +30,7 @@ func GetLogLevel() log.Level {
 
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {
-	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "5"))
+	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "10"))
 	return time.Duration(value), err
 }
 
@@ -47,9 +49,9 @@ func GetDbName() string {
 	return getEnv("ENM_DB_NAME", "my.db")
 }
 
-// GetENMAddr returns the address used to serve the API to the supervisor
-func GetENMAddr() string {
-	return getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
+// GetVersion returns the API key used to communicate with the supervisor
+func GetVersion() string {
+	return getEnv("ENM_API_VERSION", "v1")
 }
 
 // GetSuperAddr returns the address used to communicate with the supervisor
@@ -62,9 +64,16 @@ func GetSuperAPIKey() string {
 	return getEnv("RESIN_SUPERVISOR_API_KEY", "")
 }
 
-// GetSuperAPIVer returns the API key used to communicate with the supervisor
-func GetSuperAPIVer() string {
-	return getEnv("RESIN_SUPERVISOR_API_VERSION", "v1")
+// GetHookPort returns the port used to serve the API to the supervisor
+func GetHookPort() (string, error) {
+	addr := getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return "", err
+	}
+
+	return ":" + strings.Split(u.Host, ":")[1], nil
 }
 
 func getEnv(key, fallback string) string {

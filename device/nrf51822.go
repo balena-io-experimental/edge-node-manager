@@ -109,11 +109,6 @@ func (d Nrf51822) String() string {
 
 // Update updates the device following the firmware-over-the-air update process
 func (d Nrf51822) Update(path string) error {
-	log.WithFields(log.Fields{
-		"Device": d,
-		"Path":   path,
-	}).Info("Update")
-
 	if err := d.extractFirmware(path); err != nil {
 		return err
 	}
@@ -153,27 +148,16 @@ func (d Nrf51822) Update(path string) error {
 
 // Online checks whether the device is online
 func (d Nrf51822) Online() (bool, error) {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Online")
 	return bluetooth.Online(d.LocalUUID, 10)
 }
 
 // Identify flashes LEDs' on the device
 func (d Nrf51822) Identify() error {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Identify")
-
 	return d.processRequest(d.identifyOnPeriphConnected)
 }
 
 // Restart restarts the device
 func (d Nrf51822) Restart() error {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Restart")
-
 	return d.processRequest(d.restartOnPeriphConnected)
 }
 
@@ -206,13 +190,6 @@ func (d Nrf51822) updateOnPeriphConnected(periph gatt.Peripheral, err error) {
 
 	fota.connected = true
 	fotaChannel <- fota
-
-	if log.GetLevel() == log.DebugLevel {
-		if err := d.print(periph); err != nil {
-			errChanel <- err
-			return
-		}
-	}
 
 	if err := periph.SetMTU(500); err != nil {
 		errChanel <- err
@@ -339,7 +316,6 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 }
 
 func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
-	// TODO: figure out why we get this twice - something weird going on with the control flow
 	log.Debug("Checking FOTA")
 
 	if err := d.enableCCCD(periph); err != nil {

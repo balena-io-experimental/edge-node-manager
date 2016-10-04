@@ -29,7 +29,7 @@ var (
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
 func DependantApplicationsList() ([]byte, []error) {
-	url, err := buildPath(address, []string{version, "applications"})
+	url, err := buildPath(address, []string{version, "dependent-apps"})
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -45,7 +45,7 @@ func DependantApplicationsList() ([]byte, []error) {
 	}).Debug("Requesting dependant applications list")
 
 	resp, body, errs := req.EndBytes()
-	if errs = handleResp(resp, errs); errs != nil {
+	if errs = handleResp(resp, errs, 200); errs != nil {
 		return nil, errs
 	}
 
@@ -55,7 +55,7 @@ func DependantApplicationsList() ([]byte, []error) {
 // DependantApplicationUpdate downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
 func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
-	url, err := buildPath(address, []string{version, "assets", strconv.Itoa(applicationUUID), targetCommit})
+	url, err := buildPath(address, []string{version, "dependent-apps", strconv.Itoa(applicationUUID), "assets", targetCommit})
 	if err != nil {
 		return err
 	}
@@ -86,9 +86,19 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 	}).Debug("Requesting dependant application update")
 
 	client := grab.NewClient()
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	if resp.HTTPResponse.StatusCode != 200 {
+		return fmt.Errorf("Dependant application update failed")
+	}
+
+	log.Debug("Dependant application update succeeded")
+
+	return nil
 }
 
 // DependantDeviceLog transmits a log message and timestamp for a specific device
@@ -114,7 +124,8 @@ func DependantDeviceLog(UUID, message string) []error {
 	}
 
 	req := gorequest.New()
-	req.Put(url)
+	req.Post(url)
+	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
 
@@ -126,11 +137,11 @@ func DependantDeviceLog(UUID, message string) []error {
 	}).Debug("Transmitting dependant device log")
 
 	resp, _, errs := req.End()
-	return handleResp(resp, errs)
+	return handleResp(resp, errs, 202)
 }
 
 // DependantDeviceInfoUpdate transmits status and is_online for a specific device
-func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
+func DependantDeviceInfoUpdate(UUID, status, commit string, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
@@ -139,11 +150,13 @@ func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
 	type dependantDeviceInfo struct {
 		Status string `json:"status"`
 		Online bool   `json:"is_online"`
+		Commit string `json:"commit"`
 	}
 
 	content := &dependantDeviceInfo{
 		Status: status,
 		Online: online,
+		Commit: commit,
 	}
 
 	bytes, err := json.Marshal(content)
@@ -153,6 +166,7 @@ func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
 
 	req := gorequest.New()
 	req.Put(url)
+	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
 
@@ -164,7 +178,7 @@ func DependantDeviceInfoUpdate(UUID, status string, online bool) []error {
 	}).Debug("Transmitting dependant device info")
 
 	resp, _, errs := req.End()
-	return handleResp(resp, errs)
+	return handleResp(resp, errs, 200)
 }
 
 // DependantDeviceInfo returns a single dependant device assigned to the edge-node-manager
@@ -173,10 +187,10 @@ func DependantDeviceInfo() error {
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
+func DependantDeviceProvision(applicationUUID int) (string, string, interface{}, interface{}, []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
-		return "", "", []error{err}
+		return "", "", "", "", []error{err}
 	}
 
 	type dependantDeviceProvision struct {
@@ -189,11 +203,12 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
-		return "", "", []error{err}
+		return "", "", "", "", []error{err}
 	}
 
 	req := gorequest.New()
 	req.Post(url)
+	req.Set("Content-Type", "application/json")
 	req.Query(key)
 	req.Send((string)(bytes))
 
@@ -205,16 +220,28 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 	}).Debug("Requesting dependant device provision")
 
 	resp, body, errs := req.EndBytes()
-	if errs = handleResp(resp, errs); errs != nil {
-		return "", "", errs
+	if errs = handleResp(resp, errs, 201); errs != nil {
+		return "", "", "", "", errs
 	}
 
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return "", "", []error{err}
+		return "", "", "", "", []error{err}
 	}
 
-	return buffer["uuid"].(string), buffer["name"].(string), nil
+	if _, ok := buffer["config"].(interface{}); !ok {
+		buffer["config"] = nil
+	}
+
+	if _, ok := buffer["environment"].(interface{}); !ok {
+		buffer["environment"] = nil
+	}
+
+	return buffer["uuid"].(string),
+		buffer["name"].(string),
+		buffer["config"],
+		buffer["environment"],
+		nil
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager
@@ -226,7 +253,7 @@ func init() {
 	log.SetLevel(config.GetLogLevel())
 
 	address = config.GetSuperAddr()
-	version = config.GetSuperAPIVer()
+	version = config.GetVersion()
 	rawKey = config.GetSuperAPIKey()
 
 	type apiKey struct {
@@ -267,13 +294,13 @@ func buildPath(base string, paths []string) (string, error) {
 	return url.String(), nil
 }
 
-func handleResp(resp gorequest.Response, errs []error) []error {
+func handleResp(resp gorequest.Response, errs []error, statusCode int) []error {
 	if errs != nil {
 		return errs
 	}
 
-	if resp.StatusCode != 200 {
-		return []error{fmt.Errorf("invalid response received: %s", resp.Status)}
+	if resp.StatusCode != statusCode {
+		return []error{fmt.Errorf("Invalid response received: %s", resp.Status)}
 	}
 
 	log.WithFields(log.Fields{

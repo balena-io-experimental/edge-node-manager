@@ -3,7 +3,6 @@ package database
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -18,21 +17,15 @@ import (
 
 var dbPath string
 
-// There are two buckets in use "Applications" and "Mapping"
-// "Applications" contains a bucket of applications, where the applicationUUID is the key
-// Each application bucket contains a bucket of devices, where the deviceUUID is the key
-// "Mapping" contains the mapping between deviceUUID and applicationUUID
-// Where the deviceUUID is the key and applicationUUID is the value
-
 // PutDevice puts a specific device
-func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
+func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte) error {
 	db, err := open()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	err = db.Update(func(tx *bolt.Tx) error {
+	if err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -49,12 +42,11 @@ func PutDevice(applicationUUID int, deviceUUID string, device []byte) error {
 		}
 
 		return a.Put([]byte(deviceUUID), device)
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
-	return putDeviceMapping(db, applicationUUID, deviceUUID)
+	return putDeviceMapping(db, applicationUUID, localUUID, deviceUUID)
 }
 
 // PutDevices puts all devices associated to a specific application
@@ -65,7 +57,7 @@ func PutDevices(applicationUUID int, devices map[string][]byte) error {
 	}
 	defer db.Close()
 
-	err = db.Update(func(tx *bolt.Tx) error {
+	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -89,8 +81,6 @@ func PutDevices(applicationUUID int, devices map[string][]byte) error {
 
 		return nil
 	})
-
-	return err
 }
 
 // GetDevice gets a specific device
@@ -102,7 +92,7 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 	defer db.Close()
 
 	var device []byte
-	err = db.View(func(tx *bolt.Tx) error {
+	if err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -127,9 +117,11 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 		copy(device, value)
 
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
 
-	return device, err
+	return device, nil
 }
 
 // GetDevices gets all devices associated to a specific application
@@ -141,7 +133,7 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	defer db.Close()
 
 	var devices map[string][]byte
-	err = db.View(func(tx *bolt.Tx) error {
+	if err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -166,43 +158,24 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 			devices[(string)(key)] = value
 			return nil
 		})
-	})
-
-	return devices, err
-}
-
-// PutDeviceField puts a field for a specific device
-func PutDeviceField(applicationUUID int, deviceUUID, field string, value []byte) error {
-	buffer, err := unmarshall(applicationUUID, deviceUUID)
-	if err != nil {
-		return err
-	}
-
-	buffer[field] = value
-
-	return marshall(applicationUUID, deviceUUID, buffer)
-}
-
-// GetDeviceField gets a field for a specific device
-func GetDeviceField(applicationUUID int, deviceUUID, field string) ([]byte, error) {
-	buffer, err := unmarshall(applicationUUID, deviceUUID)
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
-	return buffer[field].([]byte), nil
+	return devices, nil
 }
 
-// GetDeviceMapping gets the applicationUUID for a specific device
-func GetDeviceMapping(deviceUUID string) (int, error) {
+// GetDeviceMapping gets the applicationUUID and localUUID for a specific device
+func GetDeviceMapping(deviceUUID string) (int, string, error) {
 	db, err := open()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	defer db.Close()
 
 	var applicationUUID []byte
-	err = db.View(func(tx *bolt.Tx) error {
+	var localUUID []byte
+	if err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Mapping"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -217,17 +190,27 @@ func GetDeviceMapping(deviceUUID string) (int, error) {
 		if value == nil {
 			return fmt.Errorf("Value not found")
 		}
-
 		applicationUUID = make([]byte, len(value))
 		copy(applicationUUID, value)
 
+		value = d.Get([]byte("localUUID"))
+		if value == nil {
+			return fmt.Errorf("Value not found")
+		}
+		localUUID = make([]byte, len(value))
+		copy(localUUID, value)
+
 		return nil
-	})
-	if err != nil {
-		return 0, err
+	}); err != nil {
+		return 0, "", err
 	}
 
-	return b2i(applicationUUID)
+	a, err := b2i(applicationUUID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return a, (string)(localUUID), nil
 }
 
 func init() {
@@ -281,7 +264,7 @@ func makeBucket(db *bolt.DB, name string) error {
 	})
 }
 
-func putDeviceMapping(db *bolt.DB, applicationUUID int, deviceUUID string) error {
+func putDeviceMapping(db *bolt.DB, applicationUUID int, localUUID, deviceUUID string) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Mapping"))
 		if b == nil {
@@ -298,31 +281,12 @@ func putDeviceMapping(db *bolt.DB, applicationUUID int, deviceUUID string) error
 			return err
 		}
 
-		return d.Put([]byte("applicationUUID"), converted)
+		if err := d.Put([]byte("applicationUUID"), converted); err != nil {
+			return err
+		}
+
+		return d.Put([]byte("localUUID"), []byte(localUUID))
 	})
-}
-
-func marshall(applicationUUID int, deviceUUID string, buffer map[string]interface{}) error {
-	bytes, err := json.Marshal(buffer)
-	if err != nil {
-		return err
-	}
-
-	return PutDevice(applicationUUID, deviceUUID, bytes)
-}
-
-func unmarshall(applicationUUID int, deviceUUID string) (map[string]interface{}, error) {
-	bytes, err := GetDevice(applicationUUID, deviceUUID)
-	if err != nil {
-		return nil, err
-	}
-
-	buffer := make(map[string]interface{})
-	if err := json.Unmarshal(bytes, &buffer); err != nil {
-		return nil, err
-	}
-
-	return buffer, nil
 }
 
 func i2b(value int) ([]byte, error) {
