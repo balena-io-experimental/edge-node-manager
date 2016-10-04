@@ -12,7 +12,7 @@ import (
 
 // GetLogLevel returns the log level
 func GetLogLevel() log.Level {
-	level := getEnv("LOG_LEVEL", "")
+	level := getEnv("ENM_LOG_LEVEL", "")
 
 	switch level {
 	case "DEBUG":
