@@ -1,0 +1,8 @@
+uuid: b6b10f350163a16a41aa3bcdd83f2fe5f45d49b9d94bb84f0cacacdcabbce3
+destination: /go/src/github.com/josephroberts/edge-node-manager
+port: 22
+before: env GOOS=linux GOARCH=arm godep go build
+ignore:
+  - .git
+  - node_modules/
+skip-gitignore: true

@@ -1,0 +1,116 @@
+{
+	"ImportPath": "github.com/josephroberts/edge-node-manager",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.10.0-38-g3ec0642",
+			"Rev": "3ec0642a7fb6488f65b06f9040adc67e3990296a"
+		},
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.2.1-15-g94c8db5",
+			"Rev": "94c8db596809690a3f7046fa83c7b0dda13a3222"
+		},
+		{
+			"ImportPath": "github.com/cavaliercoder/grab",
+			"Rev": "2e3d93bfd60c32b49139f0f4175d457d726d0ea8"
+		},
+		{
+			"ImportPath": "github.com/dsnet/compress",
+			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
+		},
+		{
+			"ImportPath": "github.com/dsnet/compress/bzip2",
+			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
+		},
+		{
+			"ImportPath": "github.com/dsnet/compress/bzip2/internal/sais",
+			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
+		},
+		{
+			"ImportPath": "github.com/dsnet/compress/internal",
+			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
+		},
+		{
+			"ImportPath": "github.com/dsnet/compress/internal/prefix",
+			"Rev": "b9aab3c6a04eef14c56384b4ad065e7b73438862"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Comment": "v1.1-20-g7804150",
+			"Rev": "780415097119f6f61c55475fe59b66f3c3e9ea53"
+		},
+		{
+			"ImportPath": "github.com/jacobsa/go-serial/serial",
+			"Rev": "6f298b3ae27eacbbad51a827dcce21d792fb45e1"
+		},
+		{
+			"ImportPath": "github.com/mholt/archiver",
+			"Comment": "v1.1.2",
+			"Rev": "eb71e84c00a9158cceae5817af934a1f74aa707f"
+		},
+		{
+			"ImportPath": "github.com/moul/http2curl",
+			"Rev": "b1479103caacaa39319f75e7f57fc545287fca0d"
+		},
+		{
+			"ImportPath": "github.com/nwaples/rardecode",
+			"Rev": "f94841372ddc36be531a5c3e1206238e32e93d74"
+		},
+		{
+			"ImportPath": "github.com/parnurzeal/gorequest",
+			"Comment": "v0.2.14-4-g6682150",
+			"Rev": "6682150583f072fa6564883c118fed15565a1f79"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/examples/option",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/linux",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/linux/cmd",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/linux/evt",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/linux/gioctl",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/linux/socket",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/linux/util",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/paypal/gatt/xpc",
+			"Rev": "4ae819d591cfc94c496c45deb55928469542beec"
+		},
+		{
+			"ImportPath": "github.com/verybluebot/tarinator-go",
+			"Rev": "f75724675c91d0c731b69c81e0985de07663f007"
+		},
+		{
+			"ImportPath": "golang.org/x/net/publicsuffix",
+			"Rev": "71a035914f99bb58fe82eac0f1289f10963d876c"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9"
+		}
+	]
+}
