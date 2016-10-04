@@ -17,11 +17,9 @@ import (
 func main() {
 	log.Info("Starting edge-node-manager")
 
-	for _, value := range application.List {
-		log.WithFields(log.Fields{
-			"UUID": value.UUID,
-		}).Info("Application")
-	}
+	log.WithFields(log.Fields{
+		"Number": len(application.List),
+	}).Info("edge-node-manager applications")
 
 	delay, err := config.GetLoopDelay()
 	if err != nil {
