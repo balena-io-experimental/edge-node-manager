@@ -109,11 +109,6 @@ func (d Nrf51822) String() string {
 
 // Update updates the device following the firmware-over-the-air update process
 func (d Nrf51822) Update(path string) error {
-	log.WithFields(log.Fields{
-		"Device": d,
-		"Path":   path,
-	}).Info("Update")
-
 	if err := d.extractFirmware(path); err != nil {
 		return err
 	}

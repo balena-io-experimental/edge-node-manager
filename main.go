@@ -15,12 +15,12 @@ import (
 // https://github.com/Sirupsen/logrus
 
 func main() {
-	log.Info("Starting Edge-node-manager")
+	log.Info("Starting edge-node-manager")
 
 	for _, value := range application.List {
 		log.WithFields(log.Fields{
-			"Application": value,
-		}).Info("Edge-node-manager application")
+			"UUID": value.UUID,
+		}).Info("Application")
 	}
 
 	delay, err := config.GetLoopDelay()
@@ -32,7 +32,7 @@ func main() {
 
 	log.WithFields(log.Fields{
 		"Loop delay": delay,
-	}).Info("Started Edge-node-manager")
+	}).Info("Started edge-node-manager")
 
 	for {
 		for _, application := range application.List {

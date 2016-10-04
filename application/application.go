@@ -117,7 +117,7 @@ func (a Application) Validate() bool {
 	}
 
 	log.WithFields(log.Fields{
-		"Application": a,
+		"UUID": a.UUID,
 	}).Info("Processing application")
 
 	return true
@@ -228,7 +228,8 @@ func (a *Application) ProvisionDevices() []error {
 		a.Devices[newDevice.LocalUUID] = newDevice
 
 		log.WithFields(log.Fields{
-			"Device": newDevice,
+			"Local UUID": newDevice.LocalUUID,
+			"UUID":       newDevice.UUID,
 		}).Info("Device provisioned")
 	}
 
@@ -273,12 +274,18 @@ func (a *Application) UpdateOnlineDevices() []error {
 		}
 
 		log.WithFields(log.Fields{
-			"Device": d,
+			"Local UUID": d.LocalUUID,
+			"UUID":       d.UUID,
 		}).Info("Device not up to date")
 
 		if err := a.checkCommit(); err != nil {
 			return []error{err}
 		}
+
+		log.WithFields(log.Fields{
+			"Local UUID": d.LocalUUID,
+			"UUID":       d.UUID,
+		}).Info("Starting update")
 
 		d.SetStatus(device.DOWNLOADING)
 		if err := d.Update(a.FilePath); err != nil {
@@ -288,8 +295,9 @@ func (a *Application) UpdateOnlineDevices() []error {
 		d.SetStatus(device.IDLE)
 
 		log.WithFields(log.Fields{
-			"Device": d,
-		}).Info("Device updated")
+			"Local UUID": d.LocalUUID,
+			"UUID":       d.UUID,
+		}).Info("Finished update")
 	}
 
 	return nil
@@ -350,11 +358,7 @@ func (a *Application) checkCommit() error {
 
 	a.Commit = a.TargetCommit
 
-	log.WithFields(log.Fields{
-		"File path":     a.FilePath,
-		"Tar path":      tarPath,
-		"Target commit": a.TargetCommit,
-	}).Info("Application firmware extracted")
+	log.Info("Application firmware extracted")
 
 	return nil
 }
