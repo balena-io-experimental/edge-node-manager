@@ -27,8 +27,8 @@ WORKDIR /go/src/github.com/josephroberts/edge-node-manager
 # Set RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS environment variable
 ENV RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS http://127.0.0.1:1337/v1/devices/
 
-# Enable systemd init system
-ENV INITSYSTEM on
+# Disable systemd init system
+ENV INITSYSTEM off
 
 # This will copy all files in our root to the working  directory in the container
 COPY . ./

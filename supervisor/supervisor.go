@@ -3,6 +3,7 @@ package supervisor
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -26,6 +27,16 @@ var (
 	key     string
 	rawKey  string
 )
+
+// Test tests whether the supervisor is available
+func Test() bool {
+	conn, err := net.Dial("tcp", address)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
 
 // DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
 func DependantApplicationsList() ([]byte, []error) {
@@ -175,10 +186,10 @@ func DependantDeviceInfo() error {
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
+func DependantDeviceProvision(applicationUUID int) (string, string, interface{}, interface{}, []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
-		return "", "", []error{err}
+		return "", "", "", "", []error{err}
 	}
 
 	type dependantDeviceProvision struct {
@@ -191,7 +202,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
-		return "", "", []error{err}
+		return "", "", "", "", []error{err}
 	}
 
 	req := gorequest.New()
@@ -209,17 +220,15 @@ func DependantDeviceProvision(applicationUUID int) (string, string, []error) {
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 201); errs != nil {
-		return "", "", errs
+		return "", "", "", "", errs
 	}
 
-	// TODO: Should probably unmarshall straight into a device
-	// as we now have ~5 fields we want to extract and return
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return "", "", []error{err}
+		return "", "", "", "", []error{err}
 	}
 
-	return buffer["uuid"].(string), buffer["name"].(string), nil
+	return buffer["uuid"].(string), buffer["name"].(string), buffer["config"].(interface{}), buffer["environment"].(interface{}), nil
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager
@@ -278,7 +287,7 @@ func handleResp(resp gorequest.Response, errs []error, statusCode int) []error {
 	}
 
 	if resp.StatusCode != statusCode {
-		return []error{fmt.Errorf("invalid response received: %s", resp.Status)}
+		return []error{fmt.Errorf("Invalid response received: %s", resp.Status)}
 	}
 
 	log.WithFields(log.Fields{

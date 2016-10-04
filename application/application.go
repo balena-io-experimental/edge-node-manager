@@ -2,7 +2,6 @@ package application
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/device"
+	"github.com/josephroberts/edge-node-manager/devices"
 	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/radio"
 	"github.com/josephroberts/edge-node-manager/supervisor"
@@ -29,11 +29,11 @@ type Application struct {
 	Name          string      `json:"name"`
 	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
 	TargetCommit  string      `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
-	Config        interface{} `json:"config"` // Config variables
+	Config        interface{} `json:"config"`
 	device.Type   `json:"type"`
+	FilePath      string
 	Devices       map[string]*device.Device // Key is the device's localUUID
 	OnlineDevices map[string]bool           // Key is the device's localUUID
-	FilePath      string
 }
 
 func (a Application) String() string {
@@ -126,7 +126,7 @@ func (a Application) Validate() bool {
 // GetDevices gets all provisioned devices associated with the application
 func (a *Application) GetDevices() error {
 	var err error
-	if a.Devices, err = device.GetAll(a.UUID); err != nil {
+	if a.Devices, err = devices.Get(a.UUID); err != nil {
 		return err
 	}
 
@@ -134,12 +134,14 @@ func (a *Application) GetDevices() error {
 		"Number": len(a.Devices),
 	}).Info("Application devices")
 
-	if log.GetLevel() == log.DebugLevel {
-		for _, value := range a.Devices {
-			log.WithFields(log.Fields{
-				"Device": value,
-			}).Debug("Application device")
-		}
+	if log.GetLevel() != log.DebugLevel {
+		return nil
+	}
+
+	for _, value := range a.Devices {
+		log.WithFields(log.Fields{
+			"Device": value,
+		}).Debug("Application device")
 	}
 
 	return nil
@@ -147,12 +149,11 @@ func (a *Application) GetDevices() error {
 
 // PutDevices puts all provisioned devices associated with the application
 func (a *Application) PutDevices() error {
-	return device.PutAll(a.UUID, a.Devices)
+	return devices.Put(a.UUID, a.Devices)
 }
 
 // GetOnlineDevices gets all online devices associated with the application
 func (a *Application) GetOnlineDevices() error {
-	// Scan for devices with an ID that matches the applicationUUID
 	var err error
 	if a.OnlineDevices, err = a.Type.Radio.Scan(strconv.Itoa(a.UUID), 10); err != nil {
 		return err
@@ -162,12 +163,14 @@ func (a *Application) GetOnlineDevices() error {
 		"Number": len(a.OnlineDevices),
 	}).Info("Application online devices")
 
-	if log.GetLevel() == log.DebugLevel {
-		for key := range a.OnlineDevices {
-			log.WithFields(log.Fields{
-				"Local UUID": key,
-			}).Debug("Online device")
-		}
+	if log.GetLevel() != log.DebugLevel {
+		return nil
+	}
+
+	for key := range a.OnlineDevices {
+		log.WithFields(log.Fields{
+			"Local UUID": key,
+		}).Debug("Online device")
 	}
 
 	return nil
@@ -176,8 +179,6 @@ func (a *Application) GetOnlineDevices() error {
 // ProvisionDevices provisions all non-provisoned online devices associated with the application
 func (a *Application) ProvisionDevices() []error {
 	for key := range a.OnlineDevices {
-		// Check if the online device localUUID is present in devices
-		// If it is then the device is already provisioned
 		if _, exists := a.Devices[key]; exists {
 			log.WithFields(log.Fields{
 				"Local UUID": key,
@@ -189,13 +190,12 @@ func (a *Application) ProvisionDevices() []error {
 			"Local UUID": key,
 		}).Info("Device not provisioned")
 
-		deviceUUID, deviceName, errs := supervisor.DependantDeviceProvision(a.UUID)
+		deviceUUID, deviceName, deviceConfig, deviceEnv, errs := supervisor.DependantDeviceProvision(a.UUID)
 		if errs != nil {
 			return errs
 		}
 
-		// TODO: populate note, config and environment
-		err := device.New(a.Type, "", key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit, nil, nil)
+		err := device.New(a.Type, key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit, deviceConfig, deviceEnv)
 		if err != nil {
 			return []error{err}
 		}
@@ -234,38 +234,36 @@ func (a *Application) UpdateOnlineDevices() error {
 			return err
 		}
 
-		if online {
-			d.SetState(device.IDLE)
-
-			if d.Commit == d.TargetCommit {
-				log.WithFields(log.Fields{
-					"Device": d,
-				}).Debug("Device up to date")
-				continue
-			}
-
-			log.WithFields(log.Fields{
-				"Device": d,
-			}).Info("Device not up to date")
-
-			if err := a.checkCommit(); err != nil {
-				// Skip to the next device if the firmware download failed
-				// TODO: research better way of handling error cases like this
-				if err.Error() == "1" {
-					continue
-				}
-				return err
-			}
-
-			if err := d.Update(a.FilePath); err != nil {
-				return err
-			}
-			d.Commit = d.TargetCommit
-
-			log.WithFields(log.Fields{
-				"Device": d,
-			}).Info("Device updated")
+		if !online {
+			return nil
 		}
+
+		d.SetState(device.IDLE)
+
+		if d.Commit == d.TargetCommit {
+			log.WithFields(log.Fields{
+				"Device": d,
+			}).Debug("Device up to date")
+			continue
+		}
+
+		log.WithFields(log.Fields{
+			"Device": d,
+		}).Info("Device not up to date")
+
+		if err := a.checkCommit(); err != nil {
+			return err
+		}
+
+		if err := d.Update(a.FilePath); err != nil {
+			return err
+		}
+
+		d.Commit = d.TargetCommit
+
+		log.WithFields(log.Fields{
+			"Device": d,
+		}).Info("Device updated")
 	}
 
 	return nil
@@ -282,9 +280,7 @@ func (a *Application) checkCommit() error {
 	}
 
 	if resp.HTTPResponse.StatusCode != 200 {
-		fmt.Println(resp.HTTPResponse.StatusCode)
-		log.Warn("Downloading application firmware failed")
-		return errors.New("1")
+		return fmt.Errorf("Downloading application firmware failed")
 	}
 
 	a.FilePath = config.GetAssetsDir()

@@ -31,7 +31,6 @@ const (
 // Device contains all the variables needed to define a device
 type Device struct {
 	Type            `json:"type"`
-	Note            string      `json:"note"`
 	LocalUUID       string      `json:"localUUID"`
 	UUID            string      `json:"uuid"`
 	Name            string      `json:"name"`
@@ -61,7 +60,6 @@ func (d Device) String() string {
 	return fmt.Sprintf(
 		"Micro type: %s, "+
 			"Radio type: %s, "+
-			"Note: %s, "+
 			"Local UUID: %s, "+
 			"UUID: %s, "+
 			"Name: %s, "+
@@ -78,7 +76,6 @@ func (d Device) String() string {
 			"Environment: %v",
 		d.Type.Micro,
 		d.Type.Radio,
-		d.Note,
 		d.LocalUUID,
 		d.UUID,
 		d.Name,
@@ -109,10 +106,9 @@ func (d Device) Online() (bool, error) {
 }
 
 // New creates a new device and puts it into the database
-func New(deviceType Type, note, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) error {
+func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) error {
 	newDevice := &Device{
 		Type:            deviceType,
-		Note:            note,
 		LocalUUID:       localUUID,
 		UUID:            UUID,
 		Name:            name,
@@ -135,40 +131,6 @@ func New(deviceType Type, note, localUUID, UUID, name string, applicationUUID in
 	}
 
 	return database.PutDevice(newDevice.ApplicationUUID, newDevice.LocalUUID, newDevice.UUID, buffer)
-}
-
-// PutAll puts all devices for a specific application into the database
-func PutAll(applicationUUID int, devices map[string]*Device) error {
-	buffer := make(map[string][]byte)
-	for _, value := range devices {
-		bytes, err := json.Marshal(value)
-		if err != nil {
-			return err
-		}
-		buffer[value.UUID] = bytes
-	}
-
-	return database.PutDevices(applicationUUID, buffer)
-}
-
-// GetAll gets all devices for a specific application
-func GetAll(applicationUUID int) (map[string]*Device, error) {
-	buffer, err := database.GetDevices(applicationUUID)
-	if err != nil {
-		return nil, err
-	}
-
-	devices := make(map[string]*Device)
-	for _, value := range buffer {
-		var device Device
-		if err = json.Unmarshal(value, &device); err != nil {
-			return nil, err
-		}
-
-		devices[device.LocalUUID] = &device
-	}
-
-	return devices, nil
 }
 
 // Get gets a single device for a specific application

@@ -25,7 +25,7 @@ func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte)
 	}
 	defer db.Close()
 
-	err = db.Update(func(tx *bolt.Tx) error {
+	if err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -42,8 +42,7 @@ func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte)
 		}
 
 		return a.Put([]byte(deviceUUID), device)
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -58,7 +57,7 @@ func PutDevices(applicationUUID int, devices map[string][]byte) error {
 	}
 	defer db.Close()
 
-	err = db.Update(func(tx *bolt.Tx) error {
+	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -82,8 +81,6 @@ func PutDevices(applicationUUID int, devices map[string][]byte) error {
 
 		return nil
 	})
-
-	return err
 }
 
 // GetDevice gets a specific device
@@ -95,7 +92,7 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 	defer db.Close()
 
 	var device []byte
-	err = db.View(func(tx *bolt.Tx) error {
+	if err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -120,9 +117,11 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 		copy(device, value)
 
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
 
-	return device, err
+	return device, nil
 }
 
 // GetDevices gets all devices associated to a specific application
@@ -134,7 +133,7 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	defer db.Close()
 
 	var devices map[string][]byte
-	err = db.View(func(tx *bolt.Tx) error {
+	if err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Applications"))
 		if b == nil {
 			return fmt.Errorf("Bucket not found")
@@ -159,9 +158,11 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 			devices[(string)(key)] = value
 			return nil
 		})
-	})
+	}); err != nil {
+		return nil, err
+	}
 
-	return devices, err
+	return devices, nil
 }
 
 // GetDeviceMapping gets the applicationUUID and localUUID for a specific device
