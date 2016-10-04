@@ -22,9 +22,11 @@ func main() {
 		if !supervisor.Test() {
 			log.Warn("Supervisor not up")
 			time.Sleep(5 * time.Second)
+		} else {
+			log.Info("Supervisor up")
+			break
 		}
 	}
-	log.Info("Supervisor up")
 
 	for _, value := range application.List {
 		log.WithFields(log.Fields{
