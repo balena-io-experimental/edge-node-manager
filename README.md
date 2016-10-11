@@ -53,7 +53,7 @@ applications. This is possible leveraging a new set of endpoints exposed by the 
 The edge-node-manager (this repository) is an example of a gateway application.
 
 ### Gateway device
-The gateway device runs the gateway application and has the needed on-board radios to communicate with managed dependant devices, for example:
+The gateway device runs the gateway application and has the needed on-board radios to communicate with the managed dependant devices, for example:
  - Bluetooth
  - WiFi
  - LoRa
@@ -69,7 +69,7 @@ Throughout development an RPi3 has been used as the gateway device.
 
 ### Getting started - Gateway application
  - Sign up on [resin.io](https://dashboard.resin.io/signup).
- - Work through the [getting started guide](https://docs.resin.io/raspberrypi3/golang/getting-started/) and create a new RPi3 gateway 
+ - Work through the [getting started guide](https://docs.resin.io/raspberrypi3/go/getting-started/) and create a new RPi3 gateway 
   application called `micros`.
  - Clone this repository to your local workspace, for example:
 ```
@@ -90,7 +90,7 @@ Configure the application configuration variables using the `Fleet Configuration
 Variable Name | Default value | Set value | Description
 ------------ | ------------- | ------------- | -------------
 RESIN_UI_ENABLE_DEPENDENT_APPLICATIONS | `0` | `1` | Enable dependent application support in the UI.
-RESIN_SUPERVISOR_DELTA | `0` | `1` | Enable [Delta Updates].(https://docs.resin.io/runtime/delta/)
+RESIN_SUPERVISOR_DELTA | `0` | `1` | Enable [Delta Updates](https://docs.resin.io/runtime/delta/).
 RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS | `http://0.0.0.0:1337/v1/devices/` | `http://127.0.0.1:1337/v1/devices/` | The endpoint used by the Resin Supervisor to communicate with the ENM.
 
 #### Environment variables
