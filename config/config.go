@@ -15,14 +15,18 @@ func GetLogLevel() log.Level {
 	level := getEnv("ENM_LOG_LEVEL", "")
 
 	switch level {
-	case "DEBUG":
+	case "Debug":
 		return log.DebugLevel
-	case "INFO":
+	case "Info":
 		return log.InfoLevel
-	case "WARN":
+	case "Warn":
 		return log.WarnLevel
-	case "ERROR":
+	case "Error":
 		return log.ErrorLevel
+	case "Fatal":
+		return log.FatalLevel
+	case "Panic":
+		return log.PanicLevel
 	}
 
 	return log.DebugLevel
