@@ -140,8 +140,8 @@ func DependantDeviceLog(UUID, message string) []error {
 	return handleResp(resp, errs, 202)
 }
 
-// DependantDeviceInfoUpdate transmits status and is_online for a specific device
-func DependantDeviceInfoUpdate(UUID, status, commit string, online bool) []error {
+// DependantDeviceInfoUpdateWithOnlineState transmits status, commit and is_online for a specific device
+func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
@@ -156,6 +156,45 @@ func DependantDeviceInfoUpdate(UUID, status, commit string, online bool) []error
 	content := &dependantDeviceInfo{
 		Status: status,
 		Online: online,
+		Commit: commit,
+	}
+
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		return []error{err}
+	}
+
+	req := gorequest.New()
+	req.Put(url)
+	req.Set("Content-Type", "application/json")
+	req.Query(key)
+	req.Send((string)(bytes))
+
+	log.WithFields(log.Fields{
+		"URL":    req.Url,
+		"Method": req.Method,
+		"Query":  req.QueryData,
+		"Body":   (string)(bytes),
+	}).Debug("Transmitting dependant device info")
+
+	resp, _, errs := req.End()
+	return handleResp(resp, errs, 200)
+}
+
+// DependantDeviceInfoUpdateWithoutOnlineState transmits status and commit specific device
+func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []error {
+	url, err := buildPath(address, []string{version, "devices", UUID})
+	if err != nil {
+		return []error{err}
+	}
+
+	type dependantDeviceInfo struct {
+		Status string `json:"status"`
+		Commit string `json:"commit"`
+	}
+
+	content := &dependantDeviceInfo{
+		Status: status,
 		Commit: commit,
 	}
 

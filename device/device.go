@@ -156,13 +156,26 @@ func (d Device) Cast() Interface {
 }
 
 // SetStatus sets the state for a specific device
+// Only set the is_online field if the device is_online state has changed
 func (d *Device) SetStatus(status Status) []error {
-	d.Status = status
-
-	online := true
+	// Get the old is_online state
+	old := true
 	if d.Status == OFFLINE {
-		online = false
+		old = false
 	}
 
-	return supervisor.DependantDeviceInfoUpdate(d.UUID, (string)(d.Status), d.Commit, online)
+	d.Status = status
+
+	// Get the new is_online state
+	new := true
+	if d.Status == OFFLINE {
+		new = false
+	}
+
+	// Update the is_online state
+	if old != new {
+		return supervisor.DependantDeviceInfoUpdateWithOnlineState(d.UUID, (string)(d.Status), d.Commit, new)
+	}
+	// Don't update the is_online state
+	return supervisor.DependantDeviceInfoUpdateWithoutOnlineState(d.UUID, (string)(d.Status), d.Commit)
 }

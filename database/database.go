@@ -26,18 +26,18 @@ func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte)
 	defer db.Close()
 
 	if err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Applications"))
-		if b == nil {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Applications")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		converted, err := i2b(applicationUUID)
-		if err != nil {
+		var converted []byte
+		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
-		a, err := b.CreateBucketIfNotExists(converted)
-		if err != nil {
+		var a *bolt.Bucket
+		if a, err = b.CreateBucketIfNotExists(converted); err != nil {
 			return err
 		}
 
@@ -58,18 +58,18 @@ func PutDevices(applicationUUID int, devices map[string][]byte) error {
 	defer db.Close()
 
 	return db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Applications"))
-		if b == nil {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Applications")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		converted, err := i2b(applicationUUID)
-		if err != nil {
+		var converted []byte
+		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
-		a, err := b.CreateBucketIfNotExists(converted)
-		if err != nil {
+		var a *bolt.Bucket
+		if a, err = b.CreateBucketIfNotExists(converted); err != nil {
 			return err
 		}
 
@@ -93,23 +93,23 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 
 	var device []byte
 	if err = db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Applications"))
-		if b == nil {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Applications")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		converted, err := i2b(applicationUUID)
-		if err != nil {
+		var converted []byte
+		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
-		a := b.Bucket(converted)
-		if a == nil {
+		var a *bolt.Bucket
+		if a = b.Bucket(converted); a == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		value := a.Get([]byte(deviceUUID))
-		if value == nil {
+		var value []byte
+		if value = a.Get([]byte(deviceUUID)); value == nil {
 			return fmt.Errorf("Value not found")
 		}
 
@@ -134,18 +134,18 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 
 	var devices map[string][]byte
 	if err = db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Applications"))
-		if b == nil {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Applications")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		converted, err := i2b(applicationUUID)
-		if err != nil {
+		var converted []byte
+		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
-		a := b.Bucket(converted)
-		if a == nil {
+		var a *bolt.Bucket
+		if a = b.Bucket(converted); a == nil {
 			return nil
 		}
 
@@ -165,6 +165,34 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	return devices, nil
 }
 
+// DeleteDevice deletes a specific device
+func DeleteDevice(applicationUUID int, deviceUUID string) error {
+	db, err := open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	return db.Update(func(tx *bolt.Tx) error {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Applications")); b == nil {
+			return fmt.Errorf("Bucket not found")
+		}
+
+		var converted []byte
+		if converted, err = i2b(applicationUUID); err != nil {
+			return err
+		}
+
+		var a *bolt.Bucket
+		if a = b.Bucket(converted); a == nil {
+			return fmt.Errorf("Bucket not found")
+		}
+
+		return a.Delete([]byte(deviceUUID))
+	})
+}
+
 // GetDeviceMapping gets the applicationUUID and localUUID for a specific device
 func GetDeviceMapping(deviceUUID string) (int, string, error) {
 	db, err := open()
@@ -176,27 +204,28 @@ func GetDeviceMapping(deviceUUID string) (int, string, error) {
 	var applicationUUID []byte
 	var localUUID []byte
 	if err = db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Mapping"))
-		if b == nil {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Mapping")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		d := b.Bucket([]byte(deviceUUID))
-		if d == nil {
+		var d *bolt.Bucket
+		if d = b.Bucket([]byte(deviceUUID)); d == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		value := d.Get([]byte("applicationUUID"))
-		if value == nil {
+		var value []byte
+		if value = d.Get([]byte("applicationUUID")); value == nil {
 			return fmt.Errorf("Value not found")
 		}
+
 		applicationUUID = make([]byte, len(value))
 		copy(applicationUUID, value)
 
-		value = d.Get([]byte("localUUID"))
-		if value == nil {
+		if value = d.Get([]byte("localUUID")); value == nil {
 			return fmt.Errorf("Value not found")
 		}
+
 		localUUID = make([]byte, len(value))
 		copy(localUUID, value)
 
@@ -205,8 +234,8 @@ func GetDeviceMapping(deviceUUID string) (int, string, error) {
 		return 0, "", err
 	}
 
-	a, err := b2i(applicationUUID)
-	if err != nil {
+	var a int
+	if a, err = b2i(applicationUUID); err != nil {
 		return 0, "", err
 	}
 
@@ -266,22 +295,23 @@ func makeBucket(db *bolt.DB, name string) error {
 
 func putDeviceMapping(db *bolt.DB, applicationUUID int, localUUID, deviceUUID string) error {
 	return db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Mapping"))
-		if b == nil {
+		var b *bolt.Bucket
+		if b = tx.Bucket([]byte("Mapping")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		d, err := b.CreateBucketIfNotExists([]byte(deviceUUID))
-		if err != nil {
+		var d *bolt.Bucket
+		var err error
+		if d, err = b.CreateBucketIfNotExists([]byte(deviceUUID)); err != nil {
 			return err
 		}
 
-		converted, err := i2b(applicationUUID)
-		if err != nil {
+		var converted []byte
+		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
-		if err := d.Put([]byte("applicationUUID"), converted); err != nil {
+		if err = d.Put([]byte("applicationUUID"), converted); err != nil {
 			return err
 		}
 
@@ -291,7 +321,6 @@ func putDeviceMapping(db *bolt.DB, applicationUUID int, localUUID, deviceUUID st
 
 func i2b(value int) ([]byte, error) {
 	result := new(bytes.Buffer)
-
 	if err := binary.Write(result, binary.LittleEndian, (int32)(value)); err != nil {
 		return nil, err
 	}
@@ -301,7 +330,6 @@ func i2b(value int) ([]byte, error) {
 
 func b2i(value []byte) (int, error) {
 	var result int32
-
 	if err := binary.Read(bytes.NewReader(value), binary.LittleEndian, &result); err != nil {
 		return 0, err
 	}

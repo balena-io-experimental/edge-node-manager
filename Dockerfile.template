@@ -24,9 +24,6 @@ RUN go get github.com/tools/godep
 # Set our working directory
 WORKDIR /go/src/github.com/josephroberts/edge-node-manager
 
-# Set RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS environment variable
-ENV RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS http://127.0.0.1:1337/v1/devices/
-
 # Disable systemd init system
 ENV INITSYSTEM off
 
