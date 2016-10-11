@@ -294,6 +294,7 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 		return err
 	}
 
+	// The device name is used to check whether the device is in bootloader mode
 	if name == "DfuTarg" {
 		log.Debug("In bootloader mode")
 		fota.restart = false
@@ -705,6 +706,8 @@ func (d Nrf51822) pack() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// print is a test function that can be used to help develop
+// a device type for any bluetooth device
 func (d Nrf51822) print(periph gatt.Peripheral) error {
 	ss, err := periph.DiscoverServices(nil)
 	if err != nil {

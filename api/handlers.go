@@ -53,6 +53,38 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// DependantDeviceDelete deletes a specific device
+func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deviceUUID := vars["uuid"]
+
+	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to get device mapping")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"ApplicationUUID": applicationUUID,
+		"DeviceUUID":      deviceUUID,
+		"LocalUUID":       localUUID,
+	}).Debug("Dependant device delete hook")
+
+	delete(application.List[applicationUUID].Devices, localUUID)
+	if err := database.DeleteDevice(applicationUUID, deviceUUID); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to delete device")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 //DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
