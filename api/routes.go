@@ -21,6 +21,12 @@ var routes = Routes{
 		DependantDeviceUpdate,
 	},
 	Route{
+		"DependantDeviceDelete",
+		"DELETE",
+		"/v1/devices/{uuid}",
+		DependantDeviceDelete,
+	},
+	Route{
 		"DependantDeviceRestart",
 		"PUT",
 		"/v1/devices/{uuid}/restart",
