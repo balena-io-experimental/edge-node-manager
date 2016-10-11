@@ -70,7 +70,7 @@ func GetSuperAPIKey() string {
 
 // GetHookPort returns the port used to serve the API to the supervisor
 func GetHookPort() (string, error) {
-	addr := getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:3000/v1/devices/")
+	addr := getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:1337/v1/devices/")
 
 	u, err := url.Parse(addr)
 	if err != nil {
