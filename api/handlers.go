@@ -3,10 +3,12 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/database"
+	"github.com/josephroberts/edge-node-manager/process"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -85,7 +87,7 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-//DependantDeviceRestart puts the restart flag for a specific device
+// DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -105,5 +107,54 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 
 	application.List[applicationUUID].Devices[localUUID].RestartFlag = true
 
+	w.WriteHeader(http.StatusOK)
+}
+
+// PauseTarget sets the process pause target flag
+func PauseTarget(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	target, err := strconv.ParseBool(vars["state"])
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to parse state field")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"Pause target": target,
+	}).Debug("Set pause hook")
+
+	process.PauseTarget = target
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// PauseState gets the process pause state flag
+func PauseState(w http.ResponseWriter, r *http.Request) {
+	type pauseState struct {
+		State bool `json:"state"`
+	}
+
+	content := &pauseState{
+		State: process.PauseState,
+	}
+
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to parse state field")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"Pause state": process.PauseState,
+	}).Debug("Get pause hook")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(bytes)
 	w.WriteHeader(http.StatusOK)
 }

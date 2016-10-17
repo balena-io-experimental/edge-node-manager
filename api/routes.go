@@ -32,4 +32,16 @@ var routes = Routes{
 		"/v1/devices/{uuid}/restart",
 		DependantDeviceRestart,
 	},
+	Route{
+		"PauseTarget",
+		"PUT",
+		"/v1/enm/pause/{state}",
+		PauseTarget,
+	},
+	Route{
+		"PauseState",
+		"GET",
+		"/v1/enm/pause",
+		PauseState,
+	},
 }

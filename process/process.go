@@ -1,12 +1,26 @@
 package process
 
 import (
+	"time"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/application"
 )
 
+var (
+	PauseTarget = false
+	PauseState  = false
+)
+
 // Run processes the application, checking for new commits, provisioning and updating devices
-func Run(a *application.Application) []error {
+func Run(a *application.Application, delay time.Duration) []error {
+	// Pause the process if necessary
+	for PauseTarget {
+		PauseState = true
+		time.Sleep(delay * time.Second)
+	}
+	PauseState = false
+
 	log.Info("----------------------------------------------------------------------------------------------------")
 
 	// Validate application to ensure the micro and radio type has been manually set

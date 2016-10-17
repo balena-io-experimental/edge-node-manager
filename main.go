@@ -21,20 +21,28 @@ func main() {
 		"Number": len(application.List),
 	}).Info("edge-node-manager applications")
 
-	delay, err := config.GetLoopDelay()
+	loopDelay, err := config.GetLoopDelay()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Fatal("Unable to load loop delay")
 	}
 
+	pauseDelay, err := config.GetPauseDelay()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load pause delay")
+	}
+
 	log.WithFields(log.Fields{
-		"Loop delay": delay,
+		"Loop delay":  loopDelay,
+		"Pause delay": pauseDelay,
 	}).Info("Started edge-node-manager")
 
 	for {
 		for _, application := range application.List {
-			if errs := process.Run(application); errs != nil {
+			if errs := process.Run(application, pauseDelay); errs != nil {
 				log.WithFields(log.Fields{
 					"Application": application,
 					"Errors":      errs,
@@ -43,7 +51,7 @@ func main() {
 		}
 
 		// Delay between processing each set of applications to prevent 100% CPU usage
-		time.Sleep(delay * time.Second)
+		time.Sleep(loopDelay * time.Second)
 	}
 }
 

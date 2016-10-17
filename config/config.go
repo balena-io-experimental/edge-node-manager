@@ -38,6 +38,12 @@ func GetLoopDelay() (time.Duration, error) {
 	return time.Duration(value), err
 }
 
+// GetPauseDelay returns the time delay in seconds between each pause check
+func GetPauseDelay() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_CONFIG_PAUSE_DELAY", "60"))
+	return time.Duration(value), err
+}
+
 // GetAssetsDir returns the root directory used to store the database and application commits
 func GetAssetsDir() string {
 	return getEnv("ENM_ASSETS_DIRECTORY", "/data/assets")
