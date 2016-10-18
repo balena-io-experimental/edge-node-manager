@@ -115,14 +115,14 @@ func SetState(w http.ResponseWriter, r *http.Request) {
 	if err := decoder.Decode(&process.State); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to decode Target state hook")
+		}).Error("Unable to decode State hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	log.WithFields(log.Fields{
 		"State": process.State,
-	}).Debug("Set Target state")
+	}).Debug("Set state")
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -133,14 +133,14 @@ func GetState(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to encode Target state hook")
+		}).Error("Unable to encode State hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	log.WithFields(log.Fields{
 		"State": process.State,
-	}).Debug("Get Target state")
+	}).Debug("Get state")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytes)
