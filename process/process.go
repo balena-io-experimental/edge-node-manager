@@ -12,13 +12,13 @@ import (
 type Status string
 
 const (
-	RUNNING Status = "Running"
-	PAUSED         = "Paused"
+	RUNNING Status = "RUNNING"
+	PAUSED         = "PAUSED"
 )
 
 type status struct {
-	CurrentStatus Status `json:"currentStatus"`
-	TargetStatus  Status `json:"targetStatus"`
+	CurrentStatus Status `json:"current"`
+	TargetStatus  Status `json:"target"`
 }
 
 var (
