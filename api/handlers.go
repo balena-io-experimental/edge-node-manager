@@ -109,8 +109,8 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// SetTargetState sets the target status
-func SetTargetState(w http.ResponseWriter, r *http.Request) {
+// SetState sets the state
+func SetState(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&process.State); err != nil {
 		log.WithFields(log.Fields{
@@ -127,8 +127,8 @@ func SetTargetState(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// GetTargetState gets the target status
-func GetTargetState(w http.ResponseWriter, r *http.Request) {
+// GetState gets the state
+func GetState(w http.ResponseWriter, r *http.Request) {
 	bytes, err := json.Marshal(process.State)
 	if err != nil {
 		log.WithFields(log.Fields{
