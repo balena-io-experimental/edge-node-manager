@@ -16,7 +16,7 @@ type Type struct {
 	Radio radio.Type `json:"radio"`
 }
 
-// Status defines the device states
+// Status defines the device statuses
 type Status string
 
 const (

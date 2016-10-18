@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/josephroberts/edge-node-manager/application"
@@ -110,49 +109,38 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// PauseTarget sets the process pause target flag
-func PauseTarget(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	target, err := strconv.ParseBool(vars["state"])
-	if err != nil {
+// SetTargetState sets the target status
+func SetTargetState(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&process.State); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to parse state field")
+		}).Error("Unable to decode Target state hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	log.WithFields(log.Fields{
-		"Pause target": target,
-	}).Debug("Set pause hook")
-
-	process.PauseTarget = target
+		"State": process.State,
+	}).Debug("Set Target state")
 
 	w.WriteHeader(http.StatusOK)
 }
 
-// PauseState gets the process pause state flag
-func PauseState(w http.ResponseWriter, r *http.Request) {
-	type pauseState struct {
-		State bool `json:"state"`
-	}
-
-	content := &pauseState{
-		State: process.PauseState,
-	}
-
-	bytes, err := json.Marshal(content)
+// GetTargetState gets the target status
+func GetTargetState(w http.ResponseWriter, r *http.Request) {
+	bytes, err := json.Marshal(process.State)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to parse state field")
+		}).Error("Unable to encode Target state hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	log.WithFields(log.Fields{
-		"Pause state": process.PauseState,
-	}).Debug("Get pause hook")
+		"State": process.State,
+	}).Debug("Get Target state")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytes)
