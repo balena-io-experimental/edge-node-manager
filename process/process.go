@@ -1,13 +1,42 @@
 package process
 
 import (
+	"time"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/application"
+	"github.com/josephroberts/edge-node-manager/config"
+)
+
+// Status defines the process statuses
+type Status string
+
+const (
+	RUNNING Status = "RUNNING"
+	PAUSED         = "PAUSED"
+)
+
+type status struct {
+	CurrentStatus Status `json:"current"`
+	TargetStatus  Status `json:"target"`
+}
+
+var (
+	delay time.Duration
+	State = status{
+		CurrentStatus: RUNNING,
+		TargetStatus:  RUNNING,
+	}
 )
 
 // Run processes the application, checking for new commits, provisioning and updating devices
 func Run(a *application.Application) []error {
 	log.Info("----------------------------------------------------------------------------------------------------")
+
+	// Pause the process if necessary
+	if State.TargetStatus == PAUSED {
+		pause()
+	}
 
 	// Validate application to ensure the micro and radio type has been manually set
 	if !a.Validate() {
@@ -50,4 +79,35 @@ func Run(a *application.Application) []error {
 	}
 
 	return nil
+}
+
+func init() {
+	log.SetLevel(config.GetLogLevel())
+
+	var err error
+	if delay, err = config.GetPauseDelay(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load pause delay")
+	}
+
+	log.WithFields(log.Fields{
+		"Pause delay": delay,
+	}).Debug("Initialise process")
+}
+
+func pause() {
+	State.CurrentStatus = PAUSED
+	log.WithFields(log.Fields{
+		"Status": State.CurrentStatus,
+	}).Info("Process status")
+
+	for State.TargetStatus == PAUSED {
+		time.Sleep(delay * time.Second)
+	}
+
+	State.CurrentStatus = RUNNING
+	log.WithFields(log.Fields{
+		"Status": State.CurrentStatus,
+	}).Info("Process status")
 }

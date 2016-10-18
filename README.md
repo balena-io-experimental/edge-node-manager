@@ -12,6 +12,7 @@ The following functionality is implemented:
  - Dependant device restart.
  - Dependent device over-the-air (OTA) updating.
  - Dependent device logging and information updating.
+ - API.
 
 Currently it only supports a single dependent device type, the nRF51822 BLE SoC from Nordic.
 
@@ -129,6 +130,45 @@ $ git commit -m "Set the application UUID"
 $ git push resin master
 ```
  - Turn on your nRF51822 dependent device within range of the RPi3 gateway device and watch it appear on the Resin dashboard!
+
+## API
+The edge-node-manager provides an API that allows the user to set the target state of the main process. This can be useful for a couple of reasons:
+ - Ensure the edge-node-manager process is not running during an update of the user container.
+ - Free up the on-board radios to allow user code to interact directly with the dependent devices e.g. to collect sensor data.
+
+### States
+ - `RUNNING`
+ - `PAUSED`
+
+### SET /v1/enm/state
+Set the edge-node-manager process state/
+
+#### Example
+```
+curl -H "Content-Type: application/json" -X PUT --data '{"target":"PAUSED"}' http://127.0.0.1:1337/v1/enm/state
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+```
+
+### GET /v1/enm/state
+Get the edge-node-manager process state.
+
+#### Example
+```
+curl -X GET http://127.0.0.1:1337/v1/enm/state
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+{
+    "current":"RUNNING",
+    "target":"PAUSED"
+}
+```
 
 ## Dependent devices
 ### Supported dependant devices

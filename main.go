@@ -28,9 +28,7 @@ func main() {
 		}).Fatal("Unable to load loop delay")
 	}
 
-	log.WithFields(log.Fields{
-		"Loop delay": delay,
-	}).Info("Started edge-node-manager")
+	log.Info("Started edge-node-manager")
 
 	for {
 		for _, application := range application.List {
