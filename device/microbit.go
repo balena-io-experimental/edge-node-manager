@@ -677,12 +677,12 @@ func (d MicroBit) extractFirmware(filePath string) error {
 
 	var err error
 
-	fota.binary, err = ioutil.ReadFile(path.Join(filePath, "nrf51422_xxac_s130.bin"))
+	fota.binary, err = ioutil.ReadFile(path.Join(filePath, "micro-bit.bin"))
 	if err != nil {
 		return err
 	}
 
-	fota.data, err = ioutil.ReadFile(path.Join(filePath, "nrf51422_xxac_s130.dat"))
+	fota.data, err = ioutil.ReadFile(path.Join(filePath, "micro-bit.dat"))
 	if err != nil {
 		return err
 	}
