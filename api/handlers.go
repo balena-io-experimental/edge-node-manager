@@ -48,8 +48,18 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		"Target commit":   content.Commit,
 	}).Debug("Dependant device update hook")
 
+	log.Warn("here")
+	log.Warn(content.Commit)
+	log.Warn(application.List[applicationUUID].TargetCommit)
+	log.Warn(application.List[applicationUUID].Devices[localUUID].TargetCommit)
+
 	application.List[applicationUUID].TargetCommit = content.Commit
 	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
+
+	log.Warn("here1")
+	log.Warn(content.Commit)
+	log.Warn(application.List[applicationUUID].TargetCommit)
+	log.Warn(application.List[applicationUUID].Devices[localUUID].TargetCommit)
 
 	w.WriteHeader(http.StatusOK)
 }

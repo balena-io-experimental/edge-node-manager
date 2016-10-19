@@ -114,7 +114,7 @@ func (a Application) Validate() bool {
 	}
 
 	log.WithFields(log.Fields{
-		"UUID": a.UUID,
+		"Application": a,
 	}).Info("Processing application")
 
 	return true
