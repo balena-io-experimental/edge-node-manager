@@ -150,7 +150,7 @@ func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 	type dependantDeviceInfo struct {
 		Status string `json:"status"`
 		Online bool   `json:"is_online"`
-		Commit string `json:"commit"`
+		Commit string `json:"commit,omitempty"`
 	}
 
 	content := &dependantDeviceInfo{
@@ -190,7 +190,7 @@ func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []
 
 	type dependantDeviceInfo struct {
 		Status string `json:"status"`
-		Commit string `json:"commit"`
+		Commit string `json:"commit,omitempty"`
 	}
 
 	content := &dependantDeviceInfo{
