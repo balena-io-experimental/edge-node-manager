@@ -88,6 +88,14 @@ func init() {
 	// initApplication(13829, micro.NRF51822)
 	initApplication(14323, micro.MICROBIT)
 
+	for _, value := range List {
+		if err := value.getDevices(); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Fatal("Unable to load devices")
+		}
+	}
+
 	log.Debug("Initialised applications")
 }
 
@@ -117,11 +125,19 @@ func (a Application) Validate() bool {
 		"Application": a,
 	}).Info("Processing application")
 
+	if log.GetLevel() == log.DebugLevel {
+		for _, value := range a.Devices {
+			log.WithFields(log.Fields{
+				"Device": value,
+			}).Debug("Application device")
+		}
+	}
+
 	return true
 }
 
 // GetDevices gets all provisioned devices associated with the application
-func (a *Application) GetDevices() error {
+func (a *Application) getDevices() error {
 	a.Devices = make(map[string]*device.Device)
 
 	buffer, err := database.GetDevices(a.UUID)
@@ -142,16 +158,6 @@ func (a *Application) GetDevices() error {
 		"Number": len(a.Devices),
 	}).Info("Application devices")
 
-	if log.GetLevel() != log.DebugLevel {
-		return nil
-	}
-
-	for _, value := range a.Devices {
-		log.WithFields(log.Fields{
-			"Device": value,
-		}).Debug("Application device")
-	}
-
 	return nil
 }
 
@@ -159,6 +165,7 @@ func (a *Application) GetDevices() error {
 func (a *Application) PutDevices() error {
 	buffer := make(map[string][]byte)
 	for _, value := range a.Devices {
+		log.Warn(value)
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			return err

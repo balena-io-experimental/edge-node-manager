@@ -43,11 +43,6 @@ func Run(a *application.Application) []error {
 		return nil
 	}
 
-	// Get all provisioned devices associated with this application
-	if err := a.GetDevices(); err != nil {
-		return []error{err}
-	}
-
 	// Get all online devices associated with this application
 	if err := a.GetOnlineDevices(); err != nil {
 		return []error{err}
