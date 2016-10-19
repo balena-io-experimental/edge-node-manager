@@ -304,6 +304,8 @@ func (d MicroBit) startBootloader(periph gatt.Peripheral) error {
 		return err
 	}
 
+	log.Debug("name:" + name)
+
 	// The device name is used to check whether the device is in bootloader mode
 	if name == "DfuTarg" {
 		log.Debug("In bootloader mode")
@@ -313,11 +315,11 @@ func (d MicroBit) startBootloader(periph gatt.Peripheral) error {
 
 	fota.restart = true
 
-	if err = d.enableCCCD(periph); err != nil {
-		return err
-	}
+	// if err = d.enableCCCD(periph); err != nil {
+	// 	return err
+	// }
 
-	if err = d.writeDFUControlPoint(periph, []byte{start}, false); err != nil {
+	if err = d.writeEnableDFUControlPoint(periph, []byte{start}, false); err != nil {
 		return err
 	}
 
@@ -556,6 +558,15 @@ func (d MicroBit) getChar(serUUID, charUUID, descUUID string, props gatt.Propert
 	characteristic.SetDescriptor(descriptor)
 
 	return characteristic, nil
+}
+
+func (d MicroBit) writeEnableDFUControlPoint(periph gatt.Peripheral, value []byte, noRsp bool) error {
+	characteristic, err := d.getChar("e95d93b0251d470aa062fa1922dfa9a8", "e95d93b1251d470aa062fa1922dfa9a8", "2902", gatt.CharRead+gatt.CharWrite, 13, 14)
+	if err != nil {
+		return err
+	}
+
+	return periph.WriteCharacteristic(characteristic, value, noRsp)
 }
 
 func (d MicroBit) enableCCCD(periph gatt.Peripheral) error {
