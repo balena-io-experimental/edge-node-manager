@@ -114,7 +114,7 @@ func New(deviceType Type, localUUID, UUID, name string, applicationUUID int, app
 		ApplicationName: applicationName,
 		Commit:          "",
 		TargetCommit:    targetCommit,
-		Status:          IDLE,
+		Status:          OFFLINE,
 		Progress:        0.0,
 		RestartFlag:     false,
 		Config:          config,
