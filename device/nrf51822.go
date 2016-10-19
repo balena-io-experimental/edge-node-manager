@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -144,6 +145,14 @@ func (d Nrf51822) Update(path string) error {
 			}
 		}
 	}
+}
+
+// Scan checks which devices are online
+func (d Nrf51822) Scan() (map[string]bool, error) {
+	log.WithFields(log.Fields{
+		"Device": d,
+	}).Debug("Scan")
+	return bluetooth.Scan(strconv.Itoa(d.ApplicationUUID), 10)
 }
 
 // Online checks whether the device is online

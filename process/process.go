@@ -12,8 +12,8 @@ import (
 type Status string
 
 const (
-	RUNNING Status = "RUNNING"
-	PAUSED         = "PAUSED"
+	RUNNING Status = "Running"
+	PAUSED         = "Paused"
 )
 
 type status struct {
@@ -38,7 +38,7 @@ func Run(a *application.Application) []error {
 		pause()
 	}
 
-	// Validate application to ensure the micro and radio type has been manually set
+	// Validate application to ensure the micro type has been manually set
 	if !a.Validate() {
 		return nil
 	}
