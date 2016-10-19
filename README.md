@@ -137,15 +137,15 @@ The edge-node-manager provides an API that allows the user to set the target sta
  - Free up the on-board radios to allow user code to interact directly with the dependent devices e.g. to collect sensor data.
 
 ### States
- - `RUNNING`
- - `PAUSED`
+ - `Running`
+ - `Paused`
 
 ### SET /v1/enm/state
 Set the edge-node-manager process state/
 
 #### Example
 ```
-curl -H "Content-Type: application/json" -X PUT --data '{"target":"PAUSED"}' http://127.0.0.1:1337/v1/enm/state
+curl -H "Content-Type: application/json" -X PUT --data '{"target":"Paused"}' http://127.0.0.1:1337/v1/enm/state
 ```
 
 #### Response
@@ -165,8 +165,8 @@ curl -X GET http://127.0.0.1:1337/v1/enm/state
 ```
 HTTP/1.1 200 OK
 {
-    "current":"RUNNING",
-    "target":"PAUSED"
+    "current":"Running",
+    "target":"Paused"
 }
 ```
 

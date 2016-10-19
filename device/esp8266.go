@@ -1,6 +1,8 @@
 package device
 
 import (
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/radio/wifi"
 )
@@ -20,6 +22,14 @@ func (d Esp8266) Update(path string) error {
 		"Path":   path,
 	}).Debug("Update")
 	return nil
+}
+
+// Scan checks which devices are online
+func (d Esp8266) Scan() (map[string]bool, error) {
+	log.WithFields(log.Fields{
+		"Device": d,
+	}).Debug("Scan")
+	return wifi.Scan(strconv.Itoa(d.ApplicationUUID), 10)
 }
 
 // Online checks whether the device is online
