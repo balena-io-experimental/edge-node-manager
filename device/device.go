@@ -18,12 +18,12 @@ type Type struct {
 type Status string
 
 const (
-	DOWNLOADING Status = "DOWNLOADING"
-	INSTALLING         = "INSTALLING"
-	STARTING           = "STARTING"
-	STOPPING           = "STOPPING"
-	IDLE               = "IDLE"
-	OFFLINE            = "OFFLINE"
+	DOWNLOADING Status = "Downloading"
+	INSTALLING         = "Installing"
+	STARTING           = "Starting"
+	STOPPING           = "Stopping"
+	IDLE               = "Idle"
+	OFFLINE            = "Offline"
 )
 
 // Device contains all the variables needed to define a device

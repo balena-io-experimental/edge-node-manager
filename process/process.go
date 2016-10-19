@@ -12,8 +12,8 @@ import (
 type Status string
 
 const (
-	RUNNING Status = "RUNNING"
-	PAUSED         = "PAUSED"
+	RUNNING Status = "Running"
+	PAUSED         = "Paused"
 )
 
 type status struct {
