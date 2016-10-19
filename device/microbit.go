@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -84,7 +85,7 @@ const (
 
 // Nrf51822 is an NRF51822 based device
 // https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822
-type Nrf51822 Device
+type MicroBit Device
 
 // FOTA contains all the variables needed during the firmware-over-the-air update process
 type FOTA struct {
@@ -103,12 +104,12 @@ var (
 	fota        = FOTA{}
 )
 
-func (d Nrf51822) String() string {
+func (d MicroBit) String() string {
 	return (Device)(d).String()
 }
 
 // Update updates the device following the firmware-over-the-air update process
-func (d Nrf51822) Update(path string) error {
+func (d MicroBit) Update(path string) error {
 	if err := d.extractFirmware(path); err != nil {
 		return err
 	}
@@ -146,22 +147,31 @@ func (d Nrf51822) Update(path string) error {
 	}
 }
 
+// Scan checks which devices are online
+func (d MicroBit) Scan() (map[string]bool, error) {
+	log.WithFields(log.Fields{
+		"Device": d,
+	}).Debug("Scan")
+	id := "BBC micro:bit [" + strconv.Itoa(d.ApplicationUUID) + "]"
+	return bluetooth.Scan(id, 10)
+}
+
 // Online checks whether the device is online
-func (d Nrf51822) Online() (bool, error) {
+func (d MicroBit) Online() (bool, error) {
 	return bluetooth.Online(d.LocalUUID, 10)
 }
 
 // Identify flashes LEDs' on the device
-func (d Nrf51822) Identify() error {
+func (d MicroBit) Identify() error {
 	return d.processRequest(d.identifyOnPeriphConnected)
 }
 
 // Restart restarts the device
-func (d Nrf51822) Restart() error {
+func (d MicroBit) Restart() error {
 	return d.processRequest(d.restartOnPeriphConnected)
 }
 
-func (d Nrf51822) onStateChanged(radio gatt.Device, state gatt.State) {
+func (d MicroBit) onStateChanged(radio gatt.Device, state gatt.State) {
 	switch state {
 	case gatt.StatePoweredOn:
 		radio.Scan([]gatt.UUID{}, false)
@@ -171,7 +181,7 @@ func (d Nrf51822) onStateChanged(radio gatt.Device, state gatt.State) {
 	}
 }
 
-func (d Nrf51822) onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
+func (d MicroBit) onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
 	if periph.ID() != d.LocalUUID {
 		return
 	}
@@ -180,12 +190,12 @@ func (d Nrf51822) onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertise
 	periph.Device().Connect(periph)
 }
 
-func (d Nrf51822) onPeriphDisconnected(periph gatt.Peripheral, err error) {
+func (d MicroBit) onPeriphDisconnected(periph gatt.Peripheral, err error) {
 	fota.connected = false
 	fotaChannel <- fota
 }
 
-func (d Nrf51822) updateOnPeriphConnected(periph gatt.Peripheral, err error) {
+func (d MicroBit) updateOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
 	fota.connected = true
@@ -232,7 +242,7 @@ func (d Nrf51822) updateOnPeriphConnected(periph gatt.Peripheral, err error) {
 	}
 }
 
-func (d Nrf51822) identifyOnPeriphConnected(periph gatt.Peripheral, err error) {
+func (d MicroBit) identifyOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
 	fota.connected = true
@@ -252,7 +262,7 @@ func (d Nrf51822) identifyOnPeriphConnected(periph gatt.Peripheral, err error) {
 	return
 }
 
-func (d Nrf51822) restartOnPeriphConnected(periph gatt.Peripheral, err error) {
+func (d MicroBit) restartOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
 	fota.connected = true
@@ -272,7 +282,7 @@ func (d Nrf51822) restartOnPeriphConnected(periph gatt.Peripheral, err error) {
 	return
 }
 
-func (d Nrf51822) getName(periph gatt.Peripheral) (string, error) {
+func (d MicroBit) getName(periph gatt.Peripheral) (string, error) {
 	characteristic, err := d.getChar("1800", "2a00", "", gatt.CharRead+gatt.CharWrite, 2, 3)
 	if err != nil {
 		return "", err
@@ -286,7 +296,7 @@ func (d Nrf51822) getName(periph gatt.Peripheral) (string, error) {
 	return string(byte), nil
 }
 
-func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
+func (d MicroBit) startBootloader(periph gatt.Peripheral) error {
 	log.Debug("Starting bootloader mode")
 
 	name, err := d.getName(periph)
@@ -316,7 +326,7 @@ func (d Nrf51822) startBootloader(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
+func (d MicroBit) checkFOTA(periph gatt.Peripheral) error {
 	log.Debug("Checking FOTA")
 
 	if err := d.enableCCCD(periph); err != nil {
@@ -344,7 +354,7 @@ func (d Nrf51822) checkFOTA(periph gatt.Peripheral) error {
 	return err
 }
 
-func (d Nrf51822) initFOTA(periph gatt.Peripheral) error {
+func (d MicroBit) initFOTA(periph gatt.Peripheral) error {
 	log.Debug("Initialising FOTA")
 
 	if err := d.enableCCCD(periph); err != nil {
@@ -399,7 +409,7 @@ func (d Nrf51822) initFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (d Nrf51822) transferFOTA(periph gatt.Peripheral) error {
+func (d MicroBit) transferFOTA(periph gatt.Peripheral) error {
 	blockCounter := 1
 	blockSize := 20
 	if fota.currentBlock != 0 {
@@ -482,7 +492,7 @@ func (d Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (d Nrf51822) validateFOTA(periph gatt.Peripheral) error {
+func (d MicroBit) validateFOTA(periph gatt.Peripheral) error {
 	log.Debug("Validating FOTA")
 
 	if err := d.checkFOTA(periph); err != nil {
@@ -507,7 +517,7 @@ func (d Nrf51822) validateFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (d Nrf51822) finaliseFOTA(periph gatt.Peripheral) error {
+func (d MicroBit) finaliseFOTA(periph gatt.Peripheral) error {
 	log.Debug("Finalising FOTA")
 
 	if err := d.writeDFUControlPoint(periph, []byte{activate}, false); err != nil {
@@ -519,7 +529,7 @@ func (d Nrf51822) finaliseFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (d Nrf51822) getChar(serUUID, charUUID, descUUID string, props gatt.Property, h, vh uint16) (*gatt.Characteristic, error) {
+func (d MicroBit) getChar(serUUID, charUUID, descUUID string, props gatt.Property, h, vh uint16) (*gatt.Characteristic, error) {
 	serviceUUID, err := gatt.ParseUUID(serUUID)
 	if err != nil {
 		return &gatt.Characteristic{}, err
@@ -548,7 +558,7 @@ func (d Nrf51822) getChar(serUUID, charUUID, descUUID string, props gatt.Propert
 	return characteristic, nil
 }
 
-func (d Nrf51822) enableCCCD(periph gatt.Peripheral) error {
+func (d MicroBit) enableCCCD(periph gatt.Peripheral) error {
 	characteristic, err := d.getChar("000015301212efde1523785feabcd123", "000015311212efde1523785feabcd123", "2902", gatt.CharWrite+gatt.CharNotify, 15, 16)
 	if err != nil {
 		return err
@@ -557,7 +567,7 @@ func (d Nrf51822) enableCCCD(periph gatt.Peripheral) error {
 	return periph.WriteDescriptor(characteristic.Descriptor(), []byte{start, 0x00})
 }
 
-func (d Nrf51822) writeDFUControlPoint(periph gatt.Peripheral, value []byte, noRsp bool) error {
+func (d MicroBit) writeDFUControlPoint(periph gatt.Peripheral, value []byte, noRsp bool) error {
 	characteristic, err := d.getChar("000015301212efde1523785feabcd123", "000015311212efde1523785feabcd123", "2902", gatt.CharWrite+gatt.CharNotify, 15, 16)
 	if err != nil {
 		return err
@@ -566,7 +576,7 @@ func (d Nrf51822) writeDFUControlPoint(periph gatt.Peripheral, value []byte, noR
 	return periph.WriteCharacteristic(characteristic, value, noRsp)
 }
 
-func (d Nrf51822) writeDFUPacket(periph gatt.Peripheral, value []byte, noRsp bool) error {
+func (d MicroBit) writeDFUPacket(periph gatt.Peripheral, value []byte, noRsp bool) error {
 	characteristic, err := d.getChar("000015301212efde1523785feabcd123", "000015321212efde1523785feabcd123", "2902", gatt.CharWriteNR, 13, 14)
 	if err != nil {
 		return err
@@ -575,7 +585,7 @@ func (d Nrf51822) writeDFUPacket(periph gatt.Peripheral, value []byte, noRsp boo
 	return periph.WriteCharacteristic(characteristic, value, noRsp)
 }
 
-func (d Nrf51822) notifyDFUControlPoint(periph gatt.Peripheral, value []byte) ([]byte, error) {
+func (d MicroBit) notifyDFUControlPoint(periph gatt.Peripheral, value []byte) ([]byte, error) {
 	notifyChannel, err := d.initNotify(periph)
 	if err != nil {
 		return nil, err
@@ -589,7 +599,7 @@ func (d Nrf51822) notifyDFUControlPoint(periph gatt.Peripheral, value []byte) ([
 
 }
 
-func (d Nrf51822) notifyDFUPacket(periph gatt.Peripheral, value []byte) ([]byte, error) {
+func (d MicroBit) notifyDFUPacket(periph gatt.Peripheral, value []byte) ([]byte, error) {
 	notifyChannel, err := d.initNotify(periph)
 	if err != nil {
 		return nil, err
@@ -602,7 +612,7 @@ func (d Nrf51822) notifyDFUPacket(periph gatt.Peripheral, value []byte) ([]byte,
 	return d.timeoutNotify(notifyChannel)
 }
 
-func (d Nrf51822) initNotify(periph gatt.Peripheral) (chan []byte, error) {
+func (d MicroBit) initNotify(periph gatt.Peripheral) (chan []byte, error) {
 	notifyChannel := make(chan []byte)
 
 	characteristic, err := d.getChar("000015301212efde1523785feabcd123", "000015311212efde1523785feabcd123", "2902", gatt.CharWrite+gatt.CharNotify, 15, 16)
@@ -619,7 +629,7 @@ func (d Nrf51822) initNotify(periph gatt.Peripheral) (chan []byte, error) {
 	return notifyChannel, err
 }
 
-func (d Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
+func (d MicroBit) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
 	for {
 		select {
 		case <-time.After(10 * time.Second):
@@ -635,7 +645,7 @@ func (d Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
 	}
 }
 
-func (d Nrf51822) processRequest(f func(gatt.Peripheral, error)) error {
+func (d MicroBit) processRequest(f func(gatt.Peripheral, error)) error {
 	bluetooth.Radio.Handle(
 		gatt.PeripheralDiscovered(d.onPeriphDiscovered),
 		gatt.PeripheralConnected(f),
@@ -660,7 +670,7 @@ func (d Nrf51822) processRequest(f func(gatt.Peripheral, error)) error {
 	}
 }
 
-func (d Nrf51822) extractFirmware(filePath string) error {
+func (d MicroBit) extractFirmware(filePath string) error {
 	if err := archiver.Unzip(path.Join(filePath, "application.zip"), filePath); err != nil {
 		return err
 	}
@@ -682,7 +692,7 @@ func (d Nrf51822) extractFirmware(filePath string) error {
 	return nil
 }
 
-func (d Nrf51822) unpack(resp []byte) (int, error) {
+func (d MicroBit) unpack(resp []byte) (int, error) {
 	var result int32
 	buf := bytes.NewReader(resp)
 	if err := binary.Read(buf, binary.LittleEndian, &result); err != nil {
@@ -691,7 +701,7 @@ func (d Nrf51822) unpack(resp []byte) (int, error) {
 	return (int)(result), nil
 }
 
-func (d Nrf51822) pack() ([]byte, error) {
+func (d MicroBit) pack() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Pad the buffer with 8 zeroed bytes
@@ -708,7 +718,7 @@ func (d Nrf51822) pack() ([]byte, error) {
 
 // print is a test function that can be used to help develop
 // a device type for any bluetooth device
-func (d Nrf51822) print(periph gatt.Peripheral) error {
+func (d MicroBit) print(periph gatt.Peripheral) error {
 	ss, err := periph.DiscoverServices(nil)
 	if err != nil {
 		fmt.Printf("Failed to discover services, err: %s\n", err)

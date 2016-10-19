@@ -69,40 +69,40 @@ H:  21  VH:  22
 H:  23  VH:  24
 */
 
-const (
-	success            byte = 0x01
-	start                   = 0x01
-	initialise              = 0x02
-	receive                 = 0x03
-	validate                = 0x04
-	activate                = 0x05
-	restart                 = 0x06
-	receivedSize            = 0x07
-	requestBlockRecipt      = 0x08
-	response                = 0x10
-	blockRecipt             = 0x11
-)
+// const (
+// 	success            byte = 0x01
+// 	start                   = 0x01
+// 	initialise              = 0x02
+// 	receive                 = 0x03
+// 	validate                = 0x04
+// 	activate                = 0x05
+// 	restart                 = 0x06
+// 	receivedSize            = 0x07
+// 	requestBlockRecipt      = 0x08
+// 	response                = 0x10
+// 	blockRecipt             = 0x11
+// )
 
 // Nrf51822 is an NRF51822 based device
 // https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822
 type Nrf51822 Device
 
 // FOTA contains all the variables needed during the firmware-over-the-air update process
-type FOTA struct {
-	progress     float32
-	currentBlock int
-	binary       []byte
-	data         []byte
-	size         int
-	restart      bool
-	connected    bool
-}
+// type FOTA struct {
+// 	progress     float32
+// 	currentBlock int
+// 	binary       []byte
+// 	data         []byte
+// 	size         int
+// 	restart      bool
+// 	connected    bool
+// }
 
-var (
-	errChanel   = make(chan error)
-	fotaChannel = make(chan FOTA)
-	fota        = FOTA{}
-)
+// var (
+// 	errChanel   = make(chan error)
+// 	fotaChannel = make(chan FOTA)
+// 	fota        = FOTA{}
+// )
 
 func (d Nrf51822) String() string {
 	return (Device)(d).String()

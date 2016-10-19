@@ -85,7 +85,7 @@ func init() {
 
 	// For now we have to manually initialise an applications micro type
 	// This is because the device type returned from the supervisor is always edge
-	initApplication(13829, micro.NRF51822)
+	// initApplication(13829, micro.NRF51822)
 	initApplication(14323, micro.MICROBIT)
 
 	log.Debug("Initialised applications")

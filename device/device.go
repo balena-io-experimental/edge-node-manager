@@ -151,6 +151,8 @@ func (d Device) Cast() Interface {
 		return (Nrf51822)(d)
 	case micro.ESP8266:
 		return (Esp8266)(d)
+	case micro.MICROBIT:
+		return (MicroBit)(d)
 	}
 
 	return nil
