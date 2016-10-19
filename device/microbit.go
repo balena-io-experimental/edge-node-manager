@@ -149,9 +149,6 @@ func (d MicroBit) Update(path string) error {
 
 // Scan checks which devices are online
 func (d MicroBit) Scan() (map[string]bool, error) {
-	log.WithFields(log.Fields{
-		"Device": d,
-	}).Debug("Scan")
 	id := "BBC micro:bit [" + strconv.Itoa(d.ApplicationUUID) + "]"
 	return bluetooth.Scan(id, 10)
 }
@@ -200,6 +197,9 @@ func (d MicroBit) updateOnPeriphConnected(periph gatt.Peripheral, err error) {
 
 	fota.connected = true
 	fotaChannel <- fota
+
+	log.Debug("yo")
+	d.print(periph)
 
 	if err := periph.SetMTU(500); err != nil {
 		errChanel <- err
