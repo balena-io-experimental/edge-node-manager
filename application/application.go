@@ -11,7 +11,6 @@ import (
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
 	"github.com/josephroberts/edge-node-manager/micro"
-	"github.com/josephroberts/edge-node-manager/radio"
 	"github.com/josephroberts/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
@@ -44,7 +43,6 @@ func (a Application) String() string {
 			"Target commit: %s, "+
 			"Config: %v, "+
 			"Micro type: %s, "+
-			"Radio type: %s, "+
 			"File path: %s",
 		a.UUID,
 		a.Name,
@@ -52,7 +50,6 @@ func (a Application) String() string {
 		a.TargetCommit,
 		a.Config,
 		a.Type.Micro,
-		a.Type.Radio,
 		a.FilePath)
 }
 
@@ -86,14 +83,14 @@ func init() {
 		}).Debug("Dependant application")
 	}
 
-	// For now we have to manually initialise an applications micro and radio type
+	// For now we have to manually initialise an applications micro type
 	// This is because the device type returned from the supervisor is always edge
-	initApplication(13829, micro.NRF51822, radio.BLUETOOTH)
+	initApplication(13829, micro.NRF51822)
 
 	log.Debug("Initialised applications")
 }
 
-func initApplication(UUID int, micro micro.Type, radio radio.Type) {
+func initApplication(UUID int, micro micro.Type) {
 	if _, exists := List[UUID]; !exists {
 		log.WithFields(log.Fields{
 			"UUID": UUID,
@@ -102,16 +99,15 @@ func initApplication(UUID int, micro micro.Type, radio radio.Type) {
 
 	List[UUID].Type = device.Type{
 		Micro: micro,
-		Radio: radio,
 	}
 }
 
-// Validate ensures the application micro and radio type has been manually set
+// Validate ensures the application micro type has been manually set
 func (a Application) Validate() bool {
-	if a.Micro == "" || a.Radio == "" {
+	if a.Micro == "" {
 		log.WithFields(log.Fields{
 			"Application": a,
-			"Error":       "Application micro or radio type not set",
+			"Error":       "Application micro type not set",
 		}).Warn("Processing application")
 		return false
 	}
@@ -174,8 +170,14 @@ func (a *Application) PutDevices() error {
 
 // GetOnlineDevices gets all online devices associated with the application
 func (a *Application) GetOnlineDevices() error {
+	// Temporary device used to scan
+	tempDevice := &device.Device{
+		Type:            a.Type,
+		ApplicationUUID: a.UUID,
+	}
+
 	var err error
-	if a.OnlineDevices, err = a.Type.Radio.Scan(strconv.Itoa(a.UUID), 10); err != nil {
+	if a.OnlineDevices, err = tempDevice.Scan(); err != nil {
 		return err
 	}
 

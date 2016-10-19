@@ -6,26 +6,24 @@ import (
 
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/micro"
-	"github.com/josephroberts/edge-node-manager/radio"
 	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
-// Type contains the micro and radio that make up a device type
+// Type contains the micro that make up a device type
 type Type struct {
 	Micro micro.Type `json:"micro"`
-	Radio radio.Type `json:"radio"`
 }
 
 // Status defines the device statuses
 type Status string
 
 const (
-	DOWNLOADING Status = "Downloading"
-	INSTALLING         = "Installing"
-	STARTING           = "Starting"
-	STOPPING           = "Stopping"
-	IDLE               = "Idle"
-	OFFLINE            = "Offline"
+	DOWNLOADING Status = "DOWNLOADING"
+	INSTALLING         = "INSTALLING"
+	STARTING           = "STARTING"
+	STOPPING           = "STOPPING"
+	IDLE               = "IDLE"
+	OFFLINE            = "OFFLINE"
 )
 
 // Device contains all the variables needed to define a device
@@ -43,13 +41,13 @@ type Device struct {
 	RestartFlag     bool        `json:"restartFlag"`
 	Config          interface{} `json:"config"`
 	Environment     interface{} `json:"environment"`
-	// TODO: targetEnvironment and targetConfig
 }
 
 // Interface defines the common functions a device must implement
 type Interface interface {
 	String() string
 	Update(path string) error
+	Scan() (map[string]bool, error)
 	Online() (bool, error)
 	Restart() error
 }
@@ -57,7 +55,6 @@ type Interface interface {
 func (d Device) String() string {
 	return fmt.Sprintf(
 		"Micro type: %s, "+
-			"Radio type: %s, "+
 			"Local UUID: %s, "+
 			"UUID: %s, "+
 			"Name: %s, "+
@@ -71,7 +68,6 @@ func (d Device) String() string {
 			"Config: %v, "+
 			"Environment: %v",
 		d.Type.Micro,
-		d.Type.Radio,
 		d.LocalUUID,
 		d.UUID,
 		d.Name,
@@ -90,6 +86,11 @@ func (d Device) String() string {
 func (d Device) Update(path string) error {
 	err := d.Cast().Update(path)
 	return err
+}
+
+// Scan checks which devices are online
+func (d Device) Scan() (map[string]bool, error) {
+	return d.Cast().Scan()
 }
 
 // Online checks if a specific device is online
