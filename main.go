@@ -1,65 +1,67 @@
 package main
 
 import (
-	"net/http"
-	"time"
+	"fmt"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/josephroberts/edge-node-manager/api"
-	"github.com/josephroberts/edge-node-manager/application"
-	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/process"
+	"github.com/josephroberts/edge-node-manager/board"
+	"github.com/josephroberts/edge-node-manager/device"
 )
 
 // Uses the logrus package
 // https://github.com/Sirupsen/logrus
 
 func main() {
-	log.Info("Starting edge-node-manager")
+	d := device.Create(board.MICROBIT, "test_name", "test_localUUID", "test_resinUUID", 123456789, "test_applicationName", "test_targetCommit", nil, nil)
+	fmt.Println(d)
+	d.Board.Update("")
 
-	log.WithFields(log.Fields{
-		"Number": len(application.List),
-	}).Info("edge-node-manager applications")
-
-	delay, err := config.GetLoopDelay()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Fatal("Unable to load loop delay")
-	}
-
-	log.Info("Started edge-node-manager")
-
-	for {
-		for _, application := range application.List {
-			if errs := process.Run(application); errs != nil {
-				log.WithFields(log.Fields{
-					"Application": application,
-					"Errors":      errs,
-				}).Error("Unable to process application")
-			}
-		}
-
-		// Delay between processing each set of applications to prevent 100% CPU usage
-		time.Sleep(delay * time.Second)
-	}
 }
 
-func init() {
-	log.SetLevel(config.GetLogLevel())
+// 	log.Info("Starting edge-node-manager")
 
-	go func() {
-		router := api.NewRouter()
-		port := ":1337"
+// 	log.WithFields(log.Fields{
+// 		"Number": len(application.List),
+// 	}).Info("edge-node-manager applications")
 
-		log.WithFields(log.Fields{
-			"Port": port,
-		}).Debug("Initialising incoming supervisor API")
+// 	delay, err := config.GetLoopDelay()
+// 	if err != nil {
+// 		log.WithFields(log.Fields{
+// 			"Error": err,
+// 		}).Fatal("Unable to load loop delay")
+// 	}
 
-		if err := http.ListenAndServe(port, router); err != nil {
-			log.WithFields(log.Fields{
-				"Error": err,
-			}).Fatal("Unable to initialise incoming supervisor API")
-		}
-	}()
-}
+// 	log.Info("Started edge-node-manager")
+
+// 	for {
+// 		for _, application := range application.List {
+// 			if errs := process.Run(application); errs != nil {
+// 				log.WithFields(log.Fields{
+// 					"Application": application,
+// 					"Errors":      errs,
+// 				}).Error("Unable to process application")
+// 			}
+// 		}
+
+// 		// Delay between processing each set of applications to prevent 100% CPU usage
+// 		time.Sleep(delay * time.Second)
+// 	}
+// }
+
+// func init() {
+// 	log.SetLevel(config.GetLogLevel())
+
+// 	go func() {
+// 		router := api.NewRouter()
+// 		port := ":1337"
+
+// 		log.WithFields(log.Fields{
+// 			"Port": port,
+// 		}).Debug("Initialising incoming supervisor API")
+
+// 		if err := http.ListenAndServe(port, router); err != nil {
+// 			log.WithFields(log.Fields{
+// 				"Error": err,
+// 			}).Fatal("Unable to initialise incoming supervisor API")
+// 		}
+// 	}()
+// }

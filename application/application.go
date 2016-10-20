@@ -10,7 +10,6 @@ import (
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
-	"github.com/josephroberts/edge-node-manager/micro"
 	"github.com/josephroberts/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
