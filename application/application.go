@@ -165,7 +165,6 @@ func (a *Application) getDevices() error {
 func (a *Application) PutDevices() error {
 	buffer := make(map[string][]byte)
 	for _, value := range a.Devices {
-		log.Warn(value)
 		bytes, err := json.Marshal(value)
 		if err != nil {
 			return err
