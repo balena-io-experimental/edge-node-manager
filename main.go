@@ -7,14 +7,14 @@ import (
 	"github.com/josephroberts/edge-node-manager/device"
 )
 
-// Uses the logrus package
-// https://github.com/Sirupsen/logrus
-
 func main() {
 	d := device.Create(board.MICROBIT, "test_name", "test_localUUID", "test_resinUUID", 123456789, "test_applicationName", "test_targetCommit", nil, nil)
 	fmt.Println(d)
 	d.Board.Update("")
 
+	d = device.Create(board.NRF51822DK, "test_name", "test_localUUID", "test_resinUUID", 123456789, "test_applicationName", "test_targetCommit", nil, nil)
+	fmt.Println(d)
+	d.Board.Update("")
 }
 
 // 	log.Info("Starting edge-node-manager")

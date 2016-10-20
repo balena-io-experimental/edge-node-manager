@@ -10,15 +10,11 @@ import (
 	"github.com/paypal/gatt/examples/option"
 )
 
-// Uses the gatt package
-// https://github.com/paypal/gatt
-
 var (
 	Radio         gatt.Device
 	periphChannel = make(chan gatt.Peripheral)
 )
 
-// Scan scans for online devices where the device name matches the id passed in
 func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
 	if err := Radio.Init(OnStateChanged); err != nil {
@@ -40,7 +36,6 @@ func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	}
 }
 
-// Online checks if a device is online where the device name matches the id passed in
 func Online(id string, timeout time.Duration) (bool, error) {
 	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
 	if err := Radio.Init(OnStateChanged); err != nil {
@@ -61,7 +56,6 @@ func Online(id string, timeout time.Duration) (bool, error) {
 	}
 }
 
-// Print prints services and characteristics
 func Print(periph gatt.Peripheral) error {
 	ss, err := periph.DiscoverServices(nil)
 	if err != nil {
@@ -130,7 +124,6 @@ func Print(periph gatt.Peripheral) error {
 	return nil
 }
 
-// GetChar creates a characteristic
 func GetChar(serUUID, charUUID, descUUID string, props gatt.Property, h, vh uint16) (*gatt.Characteristic, error) {
 	serviceUUID, err := gatt.ParseUUID(serUUID)
 	if err != nil {
@@ -160,7 +153,6 @@ func GetChar(serUUID, charUUID, descUUID string, props gatt.Property, h, vh uint
 	return characteristic, nil
 }
 
-// GetName gets the device name
 func GetName(periph gatt.Peripheral) (string, error) {
 	characteristic, err := GetChar("1800", "2a00", "", gatt.CharRead+gatt.CharWrite, 2, 3)
 	if err != nil {
@@ -175,7 +167,6 @@ func GetName(periph gatt.Peripheral) (string, error) {
 	return string(byte), nil
 }
 
-// OnStateChanged starts/stops device scanning on state change
 func OnStateChanged(device gatt.Device, state gatt.State) {
 	switch state {
 	case gatt.StatePoweredOn:
