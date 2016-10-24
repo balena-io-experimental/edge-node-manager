@@ -15,11 +15,6 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-// Uses the grab package
-// https://github.com/cavaliercoder/grab
-// Uses the gorequest package
-// https://github.com/parnurzeal/gorequest
-
 var (
 	address string
 	version string
@@ -226,10 +221,10 @@ func DependantDeviceInfo() error {
 }
 
 // DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(applicationUUID int) (string, string, interface{}, interface{}, []error) {
+func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, config, env interface{}, errs []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
-		return "", "", "", "", []error{err}
+		return
 	}
 
 	type dependantDeviceProvision struct {
@@ -242,7 +237,8 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
-		return "", "", "", "", []error{err}
+		errs = []error{err}
+		return
 	}
 
 	req := gorequest.New()
@@ -260,12 +256,13 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 201); errs != nil {
-		return "", "", "", "", errs
+		return
 	}
 
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return "", "", "", "", []error{err}
+		errs = []error{err}
+		return
 	}
 
 	if _, ok := buffer["config"].(interface{}); !ok {
@@ -276,11 +273,7 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 		buffer["environment"] = nil
 	}
 
-	return buffer["uuid"].(string),
-		buffer["name"].(string),
-		buffer["config"],
-		buffer["environment"],
-		nil
+	return
 }
 
 // DependantDevicesList returns all dependant devices assigned to the edge-node-manager

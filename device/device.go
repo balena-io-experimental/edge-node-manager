@@ -5,6 +5,7 @@ import (
 
 	"github.com/josephroberts/edge-node-manager/board"
 	"github.com/josephroberts/edge-node-manager/device/status"
+	"github.com/josephroberts/edge-node-manager/supervisor"
 )
 
 type Device struct {
@@ -54,9 +55,9 @@ func (d Device) String() string {
 		d.Environment)
 }
 
-func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) Device {
-	return Device{
-		Board:           board.Create(boardType),
+func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) *Device {
+	return &Device{
+		Board:           board.Create(boardType, localUUID),
 		Name:            name,
 		BoardType:       boardType,
 		LocalUUID:       localUUID,
@@ -71,4 +72,24 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 		Config:          config,
 		Environment:     environment,
 	}
+}
+
+// Only set the is_online field if the device is_online state has changed
+func (d *Device) SetStatus(newStatus status.Status) []error {
+	oldOnline := true
+	if d.Status == status.OFFLINE {
+		oldOnline = false
+	}
+
+	d.Status = newStatus
+
+	newOnline := true
+	if d.Status == status.OFFLINE {
+		newOnline = false
+	}
+
+	if oldOnline != newOnline {
+		return supervisor.DependantDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
+	}
+	return supervisor.DependantDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
 }

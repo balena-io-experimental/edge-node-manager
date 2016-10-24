@@ -12,12 +12,8 @@ import (
 	"github.com/josephroberts/edge-node-manager/config"
 )
 
-// Uses the bolt package
-// https://github.com/boltdb/bolt
-
 var dbPath string
 
-// PutDevice puts a specific device
 func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte) error {
 	db, err := open()
 	if err != nil {
@@ -49,7 +45,6 @@ func PutDevice(applicationUUID int, localUUID, deviceUUID string, device []byte)
 	return putDeviceMapping(db, applicationUUID, localUUID, deviceUUID)
 }
 
-// PutDevices puts all devices associated to a specific application
 func PutDevices(applicationUUID int, devices map[string][]byte) error {
 	db, err := open()
 	if err != nil {
@@ -83,7 +78,6 @@ func PutDevices(applicationUUID int, devices map[string][]byte) error {
 	})
 }
 
-// GetDevice gets a specific device
 func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 	db, err := open()
 	if err != nil {
@@ -124,7 +118,6 @@ func GetDevice(applicationUUID int, deviceUUID string) ([]byte, error) {
 	return device, nil
 }
 
-// GetDevices gets all devices associated to a specific application
 func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	db, err := open()
 	if err != nil {
@@ -165,7 +158,6 @@ func GetDevices(applicationUUID int) (map[string][]byte, error) {
 	return devices, nil
 }
 
-// DeleteDevice deletes a specific device
 func DeleteDevice(applicationUUID int, deviceUUID string) error {
 	db, err := open()
 	if err != nil {
@@ -193,7 +185,6 @@ func DeleteDevice(applicationUUID int, deviceUUID string) error {
 	})
 }
 
-// GetDeviceMapping gets the applicationUUID and localUUID for a specific device
 func GetDeviceMapping(deviceUUID string) (int, string, error) {
 	db, err := open()
 	if err != nil {

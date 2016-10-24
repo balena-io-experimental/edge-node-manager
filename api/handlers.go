@@ -7,12 +7,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/process"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-// DependantDeviceUpdate puts the target commit for a specific device and its parent application
 func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -54,7 +52,6 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// DependantDeviceDelete deletes a specific device
 func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -86,7 +83,6 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -109,40 +105,38 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// SetState sets the state
 func SetState(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&process.State); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to decode State hook")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	// decoder := json.NewDecoder(r.Body)
+	// if err := decoder.Decode(&process.State); err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to decode State hook")
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
 
-	log.WithFields(log.Fields{
-		"State": process.State,
-	}).Debug("Set state")
+	// log.WithFields(log.Fields{
+	// 	"State": process.State,
+	// }).Debug("Set state")
 
-	w.WriteHeader(http.StatusOK)
+	// w.WriteHeader(http.StatusOK)
 }
 
-// GetState gets the state
 func GetState(w http.ResponseWriter, r *http.Request) {
-	bytes, err := json.Marshal(process.State)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to encode State hook")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	// bytes, err := json.Marshal(process.State)
+	// if err != nil {
+	// 	log.WithFields(log.Fields{
+	// 		"Error": err,
+	// 	}).Error("Unable to encode State hook")
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
 
-	log.WithFields(log.Fields{
-		"State": process.State,
-	}).Debug("Get state")
+	// log.WithFields(log.Fields{
+	// 	"State": process.State,
+	// }).Debug("Get state")
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(bytes)
-	w.WriteHeader(http.StatusOK)
+	// w.Header().Set("Content-Type", "application/json")
+	// w.Write(bytes)
+	// w.WriteHeader(http.StatusOK)
 }
