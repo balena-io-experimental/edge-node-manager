@@ -1,6 +1,7 @@
 package device
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/josephroberts/edge-node-manager/board"
@@ -72,6 +73,21 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 		Config:          config,
 		Environment:     environment,
 	}
+}
+
+func (d *Device) Marshall() ([]byte, error) {
+	return json.Marshal(d)
+}
+
+func Unmarshall(bytes []byte) (*Device, error) {
+	var d *Device
+	if err := json.Unmarshal(bytes, &d); err != nil {
+		return nil, err
+	}
+
+	d.Board = board.Create(d.BoardType, d.LocalUUID)
+
+	return d, nil
 }
 
 // Only set the is_online field if the device is_online state has changed

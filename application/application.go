@@ -169,8 +169,6 @@ func (a *Application) ProvisionDevices() []error {
 
 		device := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
 
-		fmt.Println(device)
-
 		a.Devices[device.LocalUUID] = device
 
 		if err := a.putDevice(device.LocalUUID); err != nil {
@@ -179,10 +177,6 @@ func (a *Application) ProvisionDevices() []error {
 
 		log.WithFields(log.Fields{
 			"Device": device,
-		}).Debug("Device provisioned")
-
-		log.WithFields(log.Fields{
-			"Name": device.Name,
 		}).Info("Device provisioned")
 	}
 
@@ -298,7 +292,7 @@ func initApplication(UUID int, boardType board.Type) {
 func (a *Application) PutDevices() error {
 	buffer := make(map[string][]byte)
 	for _, d := range a.Devices {
-		bytes, err := json.Marshal(d)
+		bytes, err := d.Marshall()
 		if err != nil {
 			return err
 		}
@@ -316,13 +310,13 @@ func (a *Application) getDevices() error {
 		return err
 	}
 
-	for _, d := range buffer {
-		var device device.Device
-		if err = json.Unmarshal(d, &device); err != nil {
+	for _, bytes := range buffer {
+		d, err := device.Unmarshall(bytes)
+		if err != nil {
 			return err
 		}
 
-		a.Devices[device.LocalUUID] = &device
+		a.Devices[d.LocalUUID] = d
 	}
 
 	log.WithFields(log.Fields{
@@ -334,10 +328,9 @@ func (a *Application) getDevices() error {
 
 func (a *Application) putDevice(localUUID string) error {
 	d := a.Devices[localUUID]
-	fmt.Println(d)
-	bytes, err := json.Marshal(d)
+
+	bytes, err := d.Marshall()
 	if err != nil {
-		fmt.Println("ERROR HERE")
 		return err
 	}
 

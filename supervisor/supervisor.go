@@ -254,8 +254,6 @@ func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, conf
 		return
 	}
 
-	fmt.Println((string)(body))
-
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
 		errs = []error{err}
