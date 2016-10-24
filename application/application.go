@@ -159,7 +159,17 @@ func (a *Application) ProvisionDevices() []error {
 			return errs
 		}
 
+		log.WithFields(log.Fields{
+			"resinUUID": resinUUID,
+			"name":      name,
+			"config":    config,
+			"env":       env,
+			"errs":      errs,
+		}).Debug("YO")
+
 		device := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
+
+		fmt.Println(device)
 
 		a.Devices[device.LocalUUID] = device
 
@@ -324,8 +334,10 @@ func (a *Application) getDevices() error {
 
 func (a *Application) putDevice(localUUID string) error {
 	d := a.Devices[localUUID]
+	fmt.Println(d)
 	bytes, err := json.Marshal(d)
 	if err != nil {
+		fmt.Println("ERROR HERE")
 		return err
 	}
 
