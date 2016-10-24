@@ -79,7 +79,7 @@ func init() {
 		}).Debug("Dependant application")
 	}
 
-	initApplication(14323, board.MICROBIT)
+	initApplication(14495, board.NRF51822DK)
 
 	for _, a := range List {
 		if err := a.getDevices(); err != nil {
