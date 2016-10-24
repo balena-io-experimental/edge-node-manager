@@ -168,6 +168,10 @@ func (a *Application) ProvisionDevices() []error {
 		}
 
 		log.WithFields(log.Fields{
+			"Device": device,
+		}).Debug("Device provisioned")
+
+		log.WithFields(log.Fields{
 			"Name": device.Name,
 		}).Info("Device provisioned")
 	}
