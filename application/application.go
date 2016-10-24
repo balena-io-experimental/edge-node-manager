@@ -82,7 +82,7 @@ func init() {
 	initApplication(14495, board.NRF51822DK)
 
 	for _, a := range List {
-		if err := a.getDevices(); err != nil {
+		if err := a.GetDevices(); err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,
 			}).Fatal("Unable to load application devices")
@@ -167,16 +167,15 @@ func (a *Application) ProvisionDevices() []error {
 			"errs":      errs,
 		}).Debug("YO")
 
-		device := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
-
-		a.Devices[device.LocalUUID] = device
-
-		if err := a.putDevice(device.LocalUUID); err != nil {
+		d, err := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
+		if err != nil {
 			return []error{err}
 		}
 
+		a.Devices[d.LocalUUID] = d
+
 		log.WithFields(log.Fields{
-			"Device": device,
+			"Device": a.Devices[d.LocalUUID],
 		}).Info("Device provisioned")
 	}
 
@@ -279,16 +278,6 @@ func (a *Application) RestartOnlineDevices() error {
 	return nil
 }
 
-func initApplication(UUID int, boardType board.Type) {
-	if _, exists := List[UUID]; !exists {
-		log.WithFields(log.Fields{
-			"UUID": UUID,
-		}).Fatal("Application does not exist")
-	}
-
-	List[UUID].BoardType = boardType
-}
-
 func (a *Application) PutDevices() error {
 	buffer := make(map[string][]byte)
 	for _, d := range a.Devices {
@@ -302,7 +291,7 @@ func (a *Application) PutDevices() error {
 	return database.PutDevices(a.ResinUUID, buffer)
 }
 
-func (a *Application) getDevices() error {
+func (a *Application) GetDevices() error {
 	a.Devices = make(map[string]*device.Device)
 
 	buffer, err := database.GetDevices(a.ResinUUID)
@@ -326,15 +315,14 @@ func (a *Application) getDevices() error {
 	return nil
 }
 
-func (a *Application) putDevice(localUUID string) error {
-	d := a.Devices[localUUID]
-
-	bytes, err := d.Marshall()
-	if err != nil {
-		return err
+func initApplication(UUID int, boardType board.Type) {
+	if _, exists := List[UUID]; !exists {
+		log.WithFields(log.Fields{
+			"UUID": UUID,
+		}).Fatal("Application does not exist")
 	}
 
-	return database.PutDevice(a.ResinUUID, d.LocalUUID, d.ResinUUID, bytes)
+	List[UUID].BoardType = boardType
 }
 
 func (a *Application) checkCommit() error {

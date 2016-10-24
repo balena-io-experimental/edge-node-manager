@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/josephroberts/edge-node-manager/board"
+	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device/status"
 	"github.com/josephroberts/edge-node-manager/supervisor"
 )
@@ -56,8 +57,8 @@ func (d Device) String() string {
 		d.Environment)
 }
 
-func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) *Device {
-	return &Device{
+func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) (*Device, error) {
+	d := &Device{
 		Board:           board.Create(boardType, localUUID),
 		Name:            name,
 		BoardType:       boardType,
@@ -73,6 +74,17 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 		Config:          config,
 		Environment:     environment,
 	}
+
+	return d, d.putDevice()
+}
+
+func (d *Device) putDevice() error {
+	bytes, err := d.Marshall()
+	if err != nil {
+		return err
+	}
+
+	return database.PutDevice(d.ApplicationUUID, d.LocalUUID, d.ResinUUID, bytes)
 }
 
 func (d *Device) Marshall() ([]byte, error) {
