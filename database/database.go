@@ -178,7 +178,7 @@ func DeleteDevice(applicationUUID int, deviceUUID string) error {
 
 		var a *bolt.Bucket
 		if a = b.Bucket(converted); a == nil {
-			return fmt.Errorf("Bucket not found")
+			return nil
 		}
 
 		return a.Delete([]byte(deviceUUID))

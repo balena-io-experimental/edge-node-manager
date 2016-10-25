@@ -21,15 +21,15 @@ import (
 var List map[int]*Application
 
 type Application struct {
-	ResinUUID     int    `json:"id"`
-	Name          string `json:"name"`
-	BoardType     board.Type
-	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
-	TargetCommit  string      `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
-	Config        interface{} `json:"config"`
-	FilePath      string
-	Devices       map[string]*device.Device // Key is the device's localUUID
-	OnlineDevices map[string]bool           // Key is the device's localUUID
+	ResinUUID     int                       `json:"id"`
+	Name          string                    `json:"name"`
+	BoardType     board.Type                `json:"-"`
+	Commit        string                    `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
+	TargetCommit  string                    `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
+	Config        interface{}               `json:"config"`
+	FilePath      string                    `json:"-"`
+	Devices       map[string]*device.Device `json:"-"` // Key is the device's localUUID
+	OnlineDevices map[string]bool           `json:"-"` // Key is the device's localUUID
 }
 
 func (a Application) String() string {
@@ -158,14 +158,6 @@ func (a *Application) ProvisionDevices() []error {
 		if errs != nil {
 			return errs
 		}
-
-		log.WithFields(log.Fields{
-			"resinUUID": resinUUID,
-			"name":      name,
-			"config":    config,
-			"env":       env,
-			"errs":      errs,
-		}).Debug("YO")
 
 		d, err := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
 		if err != nil {
