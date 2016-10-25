@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/database"
+	"github.com/josephroberts/edge-node-manager/process"
+	"github.com/josephroberts/edge-node-manager/process/status"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -106,38 +108,52 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func SetState(w http.ResponseWriter, r *http.Request) {
-	// decoder := json.NewDecoder(r.Body)
-	// if err := decoder.Decode(&process.State); err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to decode State hook")
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
+func SetStatus(w http.ResponseWriter, r *http.Request) {
+	var buffer map[string]interface{}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&buffer); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to decode status hook")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	// log.WithFields(log.Fields{
-	// 	"State": process.State,
-	// }).Debug("Set state")
+	process.TargetStatus = buffer["target"].(status.Status)
 
-	// w.WriteHeader(http.StatusOK)
+	log.WithFields(log.Fields{
+		"Target status": process.TargetStatus,
+	}).Debug("Set status")
+
+	w.WriteHeader(http.StatusOK)
 }
 
-func GetState(w http.ResponseWriter, r *http.Request) {
-	// bytes, err := json.Marshal(process.State)
-	// if err != nil {
-	// 	log.WithFields(log.Fields{
-	// 		"Error": err,
-	// 	}).Error("Unable to encode State hook")
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
+func GetStatus(w http.ResponseWriter, r *http.Request) {
+	type s struct {
+		CurrentStatus status.Status `json:"current"`
+		TargetStatus  status.Status `json:"target"`
+	}
 
-	// log.WithFields(log.Fields{
-	// 	"State": process.State,
-	// }).Debug("Get state")
+	content := &s{
+		CurrentStatus: process.CurrentStatus,
+		TargetStatus:  process.TargetStatus,
+	}
 
-	// w.Header().Set("Content-Type", "application/json")
-	// w.Write(bytes)
-	// w.WriteHeader(http.StatusOK)
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to encode status hook")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"Target status": process.TargetStatus,
+		"Curent status": process.CurrentStatus,
+	}).Debug("Get status")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(bytes)
+	w.WriteHeader(http.StatusOK)
 }
