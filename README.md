@@ -105,7 +105,7 @@ ENM_DB_NAME| `my.db` | `my.db` | Set the database name.
 ENM_API_VERSION | `v1` | `v1` | The supervisor API version.
 
 ### Getting started - Dependent application
- - Follow the readme for the supported board you would to use
+ - Follow the readme for the supported board you would like to use
 
 ## API
 The edge-node-manager provides an API that allows the user to set the target status of the main process. This can be useful for a couple of reasons:
