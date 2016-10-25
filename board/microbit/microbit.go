@@ -24,6 +24,7 @@ func (b Microbit) Update(path string) error {
 		gatt.PeripheralConnected(b.bootloadOnPeriphConnected),
 		gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
 	)
+
 	if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
 		return err
 	}

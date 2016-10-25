@@ -98,6 +98,11 @@ func (m *Nrf51822) ProcessRequest(f func(gatt.Peripheral, error)) error {
 }
 
 func (m *Nrf51822) OnPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
+	log.WithFields(log.Fields{
+		"ID":    periph.ID(),
+		"local": m.LocalUUID,
+	}).Debug("Periph discovered")
+
 	if periph.ID() != m.LocalUUID {
 		return
 	}
@@ -107,6 +112,7 @@ func (m *Nrf51822) OnPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertis
 }
 
 func (m *Nrf51822) OnPeriphDisconnected(periph gatt.Peripheral, err error) {
+	log.Debug("disconnected")
 	m.StateChannel <- map[string]bool{
 		"connected": false,
 	}
@@ -114,6 +120,8 @@ func (m *Nrf51822) OnPeriphDisconnected(periph gatt.Peripheral, err error) {
 
 func (m *Nrf51822) UpdateOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
+
+	log.Debug("update")
 
 	m.StateChannel <- map[string]bool{
 		"connected": true,

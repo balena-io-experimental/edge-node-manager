@@ -1,6 +1,7 @@
 package nrf51822dk
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -19,19 +20,29 @@ func (b Nrf51822dk) Update(path string) error {
 		return err
 	}
 
+	log.Debug("here")
+
 	bluetooth.Radio.Handle(
 		gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
 		gatt.PeripheralConnected(b.bootloadOnPeriphConnected),
 		gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
 	)
+
 	if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
 		return err
 	}
 
+	log.Debug("here1")
+
 	var savedErr error
 	for {
 		select {
+		case <-time.After(60 * time.Second):
+			return fmt.Errorf("Update timed out, error: %s", savedErr)
 		case savedErr = <-b.Micro.ErrChannel:
+			log.WithFields(log.Fields{
+				"Error": savedErr,
+			}).Error("Saved error")
 		case state := <-b.Micro.StateChannel:
 			if state["connected"] {
 				log.Debug("Connected")
@@ -42,14 +53,21 @@ func (b Nrf51822dk) Update(path string) error {
 					return savedErr
 				}
 
+				log.Debug("here2")
+
 				bluetooth.Radio.Handle(
 					gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
 					gatt.PeripheralConnected(b.Micro.UpdateOnPeriphConnected),
 					gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
 				)
+
+				log.Debug("here3")
+
 				if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
 					return err
 				}
+
+				log.Debug("here4")
 			}
 		}
 	}
@@ -73,6 +91,8 @@ func (b Nrf51822dk) Identify() error {
 
 func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
+
+	log.Debug("Bootloader")
 
 	b.Micro.StateChannel <- map[string]bool{
 		"connected": true,

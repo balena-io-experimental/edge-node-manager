@@ -61,7 +61,8 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to get device mapping")
-		w.WriteHeader(http.StatusOK) // Send back 200 as the devce must of already been deleted if we can't find it in the DB
+		// Send back 200 as the devce must of already been deleted if we can't find it in the DB
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
