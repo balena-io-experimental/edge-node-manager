@@ -20,54 +20,46 @@ func (b Nrf51822dk) Update(path string) error {
 		return err
 	}
 
-	log.Debug("here")
-
 	bluetooth.Radio.Handle(
 		gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
 		gatt.PeripheralConnected(b.bootloadOnPeriphConnected),
 		gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
 	)
-
 	if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
 		return err
 	}
 
-	log.Debug("here1")
-
 	var savedErr error
+	var savedRestart bool
 	for {
 		select {
 		case <-time.After(60 * time.Second):
 			return fmt.Errorf("Update timed out, error: %s", savedErr)
 		case savedErr = <-b.Micro.ErrChannel:
-			log.WithFields(log.Fields{
-				"Error": savedErr,
-			}).Error("Saved error")
-		case state := <-b.Micro.StateChannel:
-			if state["connected"] {
+		case savedRestart = <-b.Micro.RestartChannel:
+		case connected := <-b.Micro.ConnectedChannel:
+			if connected {
 				log.Debug("Connected")
 			} else {
 				log.Debug("Disconnected")
 
-				if !state["restart"] {
+				if !savedRestart {
 					return savedErr
 				}
 
-				log.Debug("here2")
+				savedRestart = false
+
+				// Time delay to allow device to restart after being placed into bootloader mode
+				time.Sleep(1 * time.Second)
 
 				bluetooth.Radio.Handle(
 					gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
 					gatt.PeripheralConnected(b.Micro.UpdateOnPeriphConnected),
 					gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
 				)
-
-				log.Debug("here3")
-
 				if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
 					return err
 				}
-
-				log.Debug("here4")
 			}
 		}
 	}
@@ -92,66 +84,47 @@ func (b Nrf51822dk) Identify() error {
 func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
-	log.Debug("Bootloader")
-
-	b.Micro.StateChannel <- map[string]bool{
-		"connected": true,
-	}
+	b.Micro.ConnectedChannel <- true
 
 	if err := periph.SetMTU(500); err != nil {
 		b.Micro.ErrChannel <- err
 		return
 	}
 
-	if err := b.startBootloader(periph); err != nil {
+	name, err := bluetooth.GetName(periph)
+	if err != nil {
 		b.Micro.ErrChannel <- err
 		return
 	}
 
-	// Time delay to allow device restart after being placed into bootloader mode
-	time.Sleep(1 * time.Second)
-}
-
-func (b Nrf51822dk) startBootloader(periph gatt.Peripheral) error {
-	log.Debug("Starting bootloader mode")
-
-	name, err := bluetooth.GetName(periph)
-	if err != nil {
-		return err
-	}
-
-	// The device name is used to check whether the device is in bootloader mode
 	if name == "DfuTarg" {
-		log.Debug("In bootloader mode")
-		b.Micro.StateChannel <- map[string]bool{
-			"restart": false,
-		}
-		return nil
+		log.Debug("Bootloader started")
+		b.Micro.UpdateOnPeriphConnected(periph, err)
+		return
 	}
 
-	b.Micro.StateChannel <- map[string]bool{
-		"restart": true,
+	log.Debug("Bootloader not started")
+	log.Debug("Starting bootloader")
+
+	b.Micro.RestartChannel <- true
+
+	if err := b.Micro.EnableCCCD(periph); err != nil {
+		b.Micro.ErrChannel <- err
+		return
 	}
 
-	if err = b.Micro.EnableCCCD(periph); err != nil {
-		return err
+	if err := b.Micro.WriteDFUControlPoint(periph, []byte{nrf51822.Start, 0x04}, false); err != nil {
+		b.Micro.ErrChannel <- err
+		return
 	}
 
-	if err = b.Micro.WriteDFUControlPoint(periph, []byte{nrf51822.Start, 0x04}, false); err != nil {
-		return err
-	}
-
-	log.Debug("Started bootloader mode")
-
-	return nil
+	log.Debug("Started bootloader")
 }
 
 func (b Nrf51822dk) restartOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
-	b.Micro.StateChannel <- map[string]bool{
-		"connected": true,
-	}
+	b.Micro.ConnectedChannel <- true
 
 	characteristic, err := bluetooth.GetChar("0000f00d1212efde1523785fef13d123", "0000feed1212efde1523785fef13d123", "", gatt.CharWrite, 23, 24)
 	if err != nil {
@@ -170,9 +143,7 @@ func (b Nrf51822dk) restartOnPeriphConnected(periph gatt.Peripheral, err error) 
 func (b Nrf51822dk) identifyOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
-	b.Micro.StateChannel <- map[string]bool{
-		"connected": true,
-	}
+	b.Micro.ConnectedChannel <- true
 
 	characteristic, err := bluetooth.GetChar("0000f00d1212efde1523785fef13d123", "0000beef1212efde1523785fef13d123", "", gatt.CharWrite, 21, 22)
 	if err != nil {

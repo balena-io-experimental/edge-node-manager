@@ -26,19 +26,21 @@ func Create(boardType Type, localUUID string) Interface {
 	case MICROBIT:
 		return microbit.Microbit{
 			Micro: nrf51822.Nrf51822{
-				LocalUUID:    localUUID,
-				Fota:         nrf51822.FOTA{},
-				StateChannel: make(chan map[string]bool),
-				ErrChannel:   make(chan error),
+				LocalUUID:        localUUID,
+				Fota:             nrf51822.FOTA{},
+				ConnectedChannel: make(chan bool),
+				RestartChannel:   make(chan bool),
+				ErrChannel:       make(chan error),
 			},
 		}
 	case NRF51822DK:
 		return nrf51822dk.Nrf51822dk{
 			Micro: nrf51822.Nrf51822{
-				LocalUUID:    localUUID,
-				Fota:         nrf51822.FOTA{},
-				StateChannel: make(chan map[string]bool),
-				ErrChannel:   make(chan error),
+				LocalUUID:        localUUID,
+				Fota:             nrf51822.FOTA{},
+				ConnectedChannel: make(chan bool),
+				RestartChannel:   make(chan bool),
+				ErrChannel:       make(chan error),
 			},
 		}
 	}

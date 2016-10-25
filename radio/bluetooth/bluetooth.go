@@ -168,9 +168,6 @@ func GetName(periph gatt.Peripheral) (string, error) {
 }
 
 func OnStateChanged(device gatt.Device, state gatt.State) {
-	log.WithFields(log.Fields{
-		"State": state,
-	}).Debug("State changed")
 	switch state {
 	case gatt.StatePoweredOn:
 		device.Scan([]gatt.UUID{}, false)

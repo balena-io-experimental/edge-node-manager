@@ -21,25 +21,26 @@ import (
 
 const (
 	Success            byte = 0x01
-	Start              byte = 0x01
-	Initialise         byte = 0x02
-	Receive            byte = 0x03
-	Validate           byte = 0x04
-	Activate           byte = 0x05
-	Restart            byte = 0x06
-	ReceivedSize       byte = 0x07
-	RequestBlockRecipt byte = 0x08
-	Response           byte = 0x10
-	BlockRecipt        byte = 0x11
+	Start                   = 0x01
+	Initialise              = 0x02
+	Receive                 = 0x03
+	Validate                = 0x04
+	Activate                = 0x05
+	Restart                 = 0x06
+	ReceivedSize            = 0x07
+	RequestBlockRecipt      = 0x08
+	Response                = 0x10
+	BlockRecipt             = 0x11
 )
 
 // Nrf51822 is a BLE SoC from Nordic
 // https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822
 type Nrf51822 struct {
-	LocalUUID    string
-	Fota         FOTA
-	StateChannel chan map[string]bool
-	ErrChannel   chan error
+	LocalUUID        string
+	Fota             FOTA
+	ConnectedChannel chan bool
+	RestartChannel   chan bool
+	ErrChannel       chan error
 }
 
 type FOTA struct {
@@ -86,8 +87,8 @@ func (m *Nrf51822) ProcessRequest(f func(gatt.Peripheral, error)) error {
 	for {
 		select {
 		case savedErr = <-m.ErrChannel:
-		case state := <-m.StateChannel:
-			if state["connected"] {
+		case connected := <-m.ConnectedChannel:
+			if connected {
 				log.Debug("Connected")
 			} else {
 				log.Debug("Disconnected")
@@ -98,11 +99,6 @@ func (m *Nrf51822) ProcessRequest(f func(gatt.Peripheral, error)) error {
 }
 
 func (m *Nrf51822) OnPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
-	log.WithFields(log.Fields{
-		"ID":    periph.ID(),
-		"local": m.LocalUUID,
-	}).Debug("Periph discovered")
-
 	if periph.ID() != m.LocalUUID {
 		return
 	}
@@ -112,36 +108,23 @@ func (m *Nrf51822) OnPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertis
 }
 
 func (m *Nrf51822) OnPeriphDisconnected(periph gatt.Peripheral, err error) {
-	log.Debug("disconnected")
-	m.StateChannel <- map[string]bool{
-		"connected": false,
-	}
+	m.ConnectedChannel <- false
 }
 
 func (m *Nrf51822) UpdateOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
-	log.Debug("update")
-
-	m.StateChannel <- map[string]bool{
-		"connected": true,
-	}
-
-	log.Debug("here10")
+	m.ConnectedChannel <- true
 
 	if err := periph.SetMTU(500); err != nil {
 		m.ErrChannel <- err
 		return
 	}
 
-	log.Debug("here11")
-
 	if err := m.checkFOTA(periph); err != nil {
 		m.ErrChannel <- err
 		return
 	}
-
-	log.Debug("here12")
 
 	if m.Fota.currentBlock == 0 {
 		if err := m.initFOTA(periph); err != nil {
@@ -149,8 +132,6 @@ func (m *Nrf51822) UpdateOnPeriphConnected(periph gatt.Peripheral, err error) {
 			return
 		}
 	}
-
-	log.Debug("here13")
 
 	if err := m.transferFOTA(periph); err != nil {
 		m.ErrChannel <- err
@@ -291,7 +272,6 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 	}
 
 	for i := m.Fota.currentBlock; i < m.Fota.size; i += blockSize {
-		// Extract the block from the binary
 		sliceIndex := i + blockSize
 		if sliceIndex > m.Fota.size {
 			// Limit the slice to Fota.Size to avoid extra zeros being tagged on the end of the block
@@ -452,7 +432,7 @@ func (m *Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
 				"[0]": resp[0],
 				"[1]": resp[1],
 				"[2]": resp[2],
-			}).Debug("notification")
+			}).Debug("Notification")
 			return resp, nil
 		}
 	}
