@@ -103,13 +103,14 @@ func (a Application) Validate() bool {
 	}
 
 	log.WithFields(log.Fields{
-		"Application": a,
+		"Application": a.Name,
 	}).Info("Processing application")
 
 	if log.GetLevel() == log.DebugLevel {
 		for _, d := range a.Devices {
 			log.WithFields(log.Fields{
-				"Device": d,
+				"Application": a.Name,
+				"Device":      d,
 			}).Debug("Application device")
 		}
 	}
