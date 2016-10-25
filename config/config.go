@@ -1,10 +1,8 @@
 package config
 
 import (
-	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -72,18 +70,6 @@ func GetSuperAddr() string {
 // GetSuperAPIKey returns the API key used to communicate with the supervisor
 func GetSuperAPIKey() string {
 	return getEnv("RESIN_SUPERVISOR_API_KEY", "")
-}
-
-// GetHookPort returns the port used to serve the API to the supervisor
-func GetHookPort() (string, error) {
-	addr := getEnv("RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS", "http://127.0.0.1:1337/v1/devices/")
-
-	u, err := url.Parse(addr)
-	if err != nil {
-		return "", err
-	}
-
-	return ":" + strings.Split(u.Host, ":")[1], nil
 }
 
 func getEnv(key, fallback string) string {

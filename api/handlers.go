@@ -8,11 +8,11 @@ import (
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/process"
+	"github.com/josephroberts/edge-node-manager/process/status"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-// DependantDeviceUpdate puts the target commit for a specific device and its parent application
 func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -54,7 +54,6 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// DependantDeviceDelete deletes a specific device
 func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -64,7 +63,8 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to get device mapping")
-		w.WriteHeader(http.StatusNotFound)
+		// Send back 200 as the devce must of already been deleted if we can't find it in the DB
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -86,7 +86,6 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// DependantDeviceRestart puts the restart flag for a specific device
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
@@ -109,38 +108,50 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// SetState sets the state
-func SetState(w http.ResponseWriter, r *http.Request) {
+func SetStatus(w http.ResponseWriter, r *http.Request) {
+	var buffer map[string]interface{}
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&process.State); err != nil {
+	if err := decoder.Decode(&buffer); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to decode State hook")
+		}).Error("Unable to decode status hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	process.TargetStatus = buffer["target"].(status.Status)
+
 	log.WithFields(log.Fields{
-		"State": process.State,
-	}).Debug("Set state")
+		"Target status": process.TargetStatus,
+	}).Debug("Set status")
 
 	w.WriteHeader(http.StatusOK)
 }
 
-// GetState gets the state
-func GetState(w http.ResponseWriter, r *http.Request) {
-	bytes, err := json.Marshal(process.State)
+func GetStatus(w http.ResponseWriter, r *http.Request) {
+	type s struct {
+		CurrentStatus status.Status `json:"current"`
+		TargetStatus  status.Status `json:"target"`
+	}
+
+	content := &s{
+		CurrentStatus: process.CurrentStatus,
+		TargetStatus:  process.TargetStatus,
+	}
+
+	bytes, err := json.Marshal(content)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to encode State hook")
+		}).Error("Unable to encode status hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	log.WithFields(log.Fields{
-		"State": process.State,
-	}).Debug("Get state")
+		"Target status": process.TargetStatus,
+		"Curent status": process.CurrentStatus,
+	}).Debug("Get status")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytes)

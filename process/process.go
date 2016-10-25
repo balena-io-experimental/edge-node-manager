@@ -6,27 +6,13 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/josephroberts/edge-node-manager/application"
 	"github.com/josephroberts/edge-node-manager/config"
+	"github.com/josephroberts/edge-node-manager/process/status"
 )
-
-// Status defines the process statuses
-type Status string
-
-const (
-	RUNNING Status = "RUNNING"
-	PAUSED         = "PAUSED"
-)
-
-type status struct {
-	CurrentStatus Status `json:"current"`
-	TargetStatus  Status `json:"target"`
-}
 
 var (
-	delay time.Duration
-	State = status{
-		CurrentStatus: RUNNING,
-		TargetStatus:  RUNNING,
-	}
+	delay         time.Duration
+	CurrentStatus status.Status
+	TargetStatus  status.Status
 )
 
 // Run processes the application, checking for new commits, provisioning and updating devices
@@ -34,18 +20,13 @@ func Run(a *application.Application) []error {
 	log.Info("----------------------------------------------------------------------------------------------------")
 
 	// Pause the process if necessary
-	if State.TargetStatus == PAUSED {
+	if TargetStatus == status.PAUSED {
 		pause()
 	}
 
-	// Validate application to ensure the micro and radio type has been manually set
+	// Validate application to ensure the board type has been manually set
 	if !a.Validate() {
 		return nil
-	}
-
-	// Get all provisioned devices associated with this application
-	if err := a.GetDevices(); err != nil {
-		return []error{err}
 	}
 
 	// Get all online devices associated with this application
@@ -97,17 +78,17 @@ func init() {
 }
 
 func pause() {
-	State.CurrentStatus = PAUSED
+	CurrentStatus = status.PAUSED
 	log.WithFields(log.Fields{
-		"Status": State.CurrentStatus,
+		"Status": CurrentStatus,
 	}).Info("Process status")
 
-	for State.TargetStatus == PAUSED {
+	for TargetStatus == status.PAUSED {
 		time.Sleep(delay * time.Second)
 	}
 
-	State.CurrentStatus = RUNNING
+	CurrentStatus = status.RUNNING
 	log.WithFields(log.Fields{
-		"Status": State.CurrentStatus,
+		"Status": CurrentStatus,
 	}).Info("Process status")
 }

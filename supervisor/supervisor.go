@@ -15,11 +15,6 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-// Uses the grab package
-// https://github.com/cavaliercoder/grab
-// Uses the gorequest package
-// https://github.com/parnurzeal/gorequest
-
 var (
 	address string
 	version string
@@ -27,7 +22,6 @@ var (
 	rawKey  string
 )
 
-// DependantApplicationsList returns all dependant applications assigned to the edge-node-manager
 func DependantApplicationsList() ([]byte, []error) {
 	url, err := buildPath(address, []string{version, "dependent-apps"})
 	if err != nil {
@@ -52,7 +46,7 @@ func DependantApplicationsList() ([]byte, []error) {
 	return body, nil
 }
 
-// DependantApplicationUpdate downloads the binary.tar for a specific application and target commit
+// Downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
 func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
 	url, err := buildPath(address, []string{version, "dependent-apps", strconv.Itoa(applicationUUID), "assets", targetCommit})
@@ -101,7 +95,6 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 	return nil
 }
 
-// DependantDeviceLog transmits a log message and timestamp for a specific device
 func DependantDeviceLog(UUID, message string) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID, "logs"})
 	if err != nil {
@@ -140,7 +133,6 @@ func DependantDeviceLog(UUID, message string) []error {
 	return handleResp(resp, errs, 202)
 }
 
-// DependantDeviceInfoUpdateWithOnlineState transmits status, commit and is_online for a specific device
 func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
@@ -150,7 +142,7 @@ func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 	type dependantDeviceInfo struct {
 		Status string `json:"status"`
 		Online bool   `json:"is_online"`
-		Commit string `json:"commit"`
+		Commit string `json:"commit,omitempty"`
 	}
 
 	content := &dependantDeviceInfo{
@@ -181,7 +173,6 @@ func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 	return handleResp(resp, errs, 200)
 }
 
-// DependantDeviceInfoUpdateWithoutOnlineState transmits status and commit specific device
 func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
@@ -190,7 +181,7 @@ func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []
 
 	type dependantDeviceInfo struct {
 		Status string `json:"status"`
-		Commit string `json:"commit"`
+		Commit string `json:"commit,omitempty"`
 	}
 
 	content := &dependantDeviceInfo{
@@ -220,16 +211,15 @@ func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []
 	return handleResp(resp, errs, 200)
 }
 
-// DependantDeviceInfo returns a single dependant device assigned to the edge-node-manager
 func DependantDeviceInfo() error {
 	return fmt.Errorf("Not implemented")
 }
 
-// DependantDeviceProvision provisions a single dependant device to a specific application
-func DependantDeviceProvision(applicationUUID int) (string, string, interface{}, interface{}, []error) {
+func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, config, env interface{}, errs []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
-		return "", "", "", "", []error{err}
+		errs = []error{err}
+		return
 	}
 
 	type dependantDeviceProvision struct {
@@ -242,7 +232,8 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 
 	bytes, err := json.Marshal(content)
 	if err != nil {
-		return "", "", "", "", []error{err}
+		errs = []error{err}
+		return
 	}
 
 	req := gorequest.New()
@@ -260,30 +251,29 @@ func DependantDeviceProvision(applicationUUID int) (string, string, interface{},
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 201); errs != nil {
-		return "", "", "", "", errs
+		return
 	}
 
 	var buffer map[string]interface{}
 	if err := json.Unmarshal(body, &buffer); err != nil {
-		return "", "", "", "", []error{err}
+		errs = []error{err}
+		return
 	}
 
-	if _, ok := buffer["config"].(interface{}); !ok {
-		buffer["config"] = nil
+	resinUUID = buffer["uuid"].(string)
+	name = buffer["name"].(string)
+
+	if _, ok := buffer["config"].(interface{}); ok {
+		config = buffer["config"]
 	}
 
-	if _, ok := buffer["environment"].(interface{}); !ok {
-		buffer["environment"] = nil
+	if _, ok := buffer["environment"].(interface{}); ok {
+		env = buffer["environment"]
 	}
 
-	return buffer["uuid"].(string),
-		buffer["name"].(string),
-		buffer["config"],
-		buffer["environment"],
-		nil
+	return
 }
 
-// DependantDevicesList returns all dependant devices assigned to the edge-node-manager
 func DependantDevicesList() error {
 	return fmt.Errorf("Not implemented")
 }
