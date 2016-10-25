@@ -11,9 +11,6 @@ import (
 	"github.com/josephroberts/edge-node-manager/process"
 )
 
-// Uses the logrus package
-// https://github.com/Sirupsen/logrus
-
 func main() {
 	log.Info("Starting edge-node-manager")
 
@@ -31,10 +28,10 @@ func main() {
 	log.Info("Started edge-node-manager")
 
 	for {
-		for _, application := range application.List {
-			if errs := process.Run(application); errs != nil {
+		for _, a := range application.List {
+			if errs := process.Run(a); errs != nil {
 				log.WithFields(log.Fields{
-					"Application": application,
+					"Application": a,
 					"Errors":      errs,
 				}).Error("Unable to process application")
 			}

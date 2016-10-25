@@ -7,49 +7,46 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/josephroberts/edge-node-manager/board"
 	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/josephroberts/edge-node-manager/database"
 	"github.com/josephroberts/edge-node-manager/device"
-	"github.com/josephroberts/edge-node-manager/micro"
+	"github.com/josephroberts/edge-node-manager/device/status"
 	"github.com/josephroberts/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
-
-// Uses the tarinator-go package
-// https://github.com/verybluebot/tarinator-go
 
 // List holds all the applications assigned to the edge-node-manager
 // Key is the applicationUUID
 var List map[int]*Application
 
-// Application contains all the variables needed to define an application
 type Application struct {
-	UUID          int         `json:"id"`
-	Name          string      `json:"name"`
-	Commit        string      `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
-	TargetCommit  string      `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
-	Config        interface{} `json:"config"`
-	device.Type   `json:"type"`
-	FilePath      string
-	Devices       map[string]*device.Device // Key is the device's localUUID
-	OnlineDevices map[string]bool           // Key is the device's localUUID
+	ResinUUID     int                       `json:"id"`
+	Name          string                    `json:"name"`
+	BoardType     board.Type                `json:"-"`
+	Commit        string                    `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
+	TargetCommit  string                    `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
+	Config        interface{}               `json:"config"`
+	FilePath      string                    `json:"-"`
+	Devices       map[string]*device.Device `json:"-"` // Key is the device's localUUID
+	OnlineDevices map[string]bool           `json:"-"` // Key is the device's localUUID
 }
 
 func (a Application) String() string {
 	return fmt.Sprintf(
 		"UUID: %d, "+
 			"Name: %s, "+
+			"Board type: %s, "+
 			"Commit: %s, "+
 			"Target commit: %s, "+
 			"Config: %v, "+
-			"Micro type: %s, "+
 			"File path: %s",
-		a.UUID,
+		a.ResinUUID,
 		a.Name,
+		a.BoardType,
 		a.Commit,
 		a.TargetCommit,
 		a.Config,
-		a.Type.Micro,
 		a.FilePath)
 }
 
@@ -73,111 +70,59 @@ func init() {
 		}).Fatal("Unable to unmarshal the dependant application list")
 	}
 
-	for key := range buffer {
-		UUID := buffer[key].UUID
-		List[UUID] = &buffer[key]
+	for a := range buffer {
+		ResinUUID := buffer[a].ResinUUID
+		List[ResinUUID] = &buffer[a]
 
 		log.WithFields(log.Fields{
-			"Key":         UUID,
-			"Application": List[UUID],
+			"Application": List[ResinUUID],
 		}).Debug("Dependant application")
 	}
 
-	// For now we have to manually initialise an applications micro type
-	// This is because the device type returned from the supervisor is always edge
-	initApplication(13829, micro.NRF51822)
+	initApplication(14495, board.NRF51822DK)
+	initApplication(14539, board.MICROBIT)
+
+	for _, a := range List {
+		if err := a.GetDevices(); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Fatal("Unable to load application devices")
+		}
+	}
 
 	log.Debug("Initialised applications")
 }
 
-func initApplication(UUID int, micro micro.Type) {
-	if _, exists := List[UUID]; !exists {
-		log.WithFields(log.Fields{
-			"UUID": UUID,
-		}).Fatal("Application does not exist")
-	}
-
-	List[UUID].Type = device.Type{
-		Micro: micro,
-	}
-}
-
-// Validate ensures the application micro type has been manually set
 func (a Application) Validate() bool {
-	if a.Micro == "" {
+	if a.BoardType == "" {
 		log.WithFields(log.Fields{
 			"Application": a,
-			"Error":       "Application micro type not set",
+			"Error":       "Application board type not set",
 		}).Warn("Processing application")
 		return false
 	}
 
 	log.WithFields(log.Fields{
-		"UUID": a.UUID,
+		"Application": a.Name,
 	}).Info("Processing application")
+
+	if log.GetLevel() == log.DebugLevel {
+		for _, d := range a.Devices {
+			log.WithFields(log.Fields{
+				"Application": a.Name,
+				"Device":      d,
+			}).Debug("Application device")
+		}
+	}
 
 	return true
 }
 
-// GetDevices gets all provisioned devices associated with the application
-func (a *Application) GetDevices() error {
-	a.Devices = make(map[string]*device.Device)
-
-	buffer, err := database.GetDevices(a.UUID)
-	if err != nil {
-		return err
-	}
-
-	for _, value := range buffer {
-		var device device.Device
-		if err = json.Unmarshal(value, &device); err != nil {
-			return err
-		}
-
-		a.Devices[device.LocalUUID] = &device
-	}
-
-	log.WithFields(log.Fields{
-		"Number": len(a.Devices),
-	}).Info("Application devices")
-
-	if log.GetLevel() != log.DebugLevel {
-		return nil
-	}
-
-	for _, value := range a.Devices {
-		log.WithFields(log.Fields{
-			"Device": value,
-		}).Debug("Application device")
-	}
-
-	return nil
-}
-
-// PutDevices puts all provisioned devices associated with the application
-func (a *Application) PutDevices() error {
-	buffer := make(map[string][]byte)
-	for _, value := range a.Devices {
-		bytes, err := json.Marshal(value)
-		if err != nil {
-			return err
-		}
-		buffer[value.UUID] = bytes
-	}
-
-	return database.PutDevices(a.UUID, buffer)
-}
-
-// GetOnlineDevices gets all online devices associated with the application
 func (a *Application) GetOnlineDevices() error {
-	// Temporary device used to scan
-	tempDevice := &device.Device{
-		Type:            a.Type,
-		ApplicationUUID: a.UUID,
-	}
+	board := board.Create(a.BoardType, "")
 
 	var err error
-	if a.OnlineDevices, err = tempDevice.Scan(); err != nil {
+	if a.OnlineDevices, err = board.Scan(a.ResinUUID); err != nil {
 		return err
 	}
 
@@ -189,59 +134,52 @@ func (a *Application) GetOnlineDevices() error {
 		return nil
 	}
 
-	for key := range a.OnlineDevices {
+	for localUUID := range a.OnlineDevices {
 		log.WithFields(log.Fields{
-			"Local UUID": key,
+			"Local UUID": localUUID,
 		}).Debug("Online device")
 	}
 
 	return nil
 }
 
-// ProvisionDevices provisions all non-provisoned online devices associated with the application
 func (a *Application) ProvisionDevices() []error {
-	for key := range a.OnlineDevices {
-		if _, exists := a.Devices[key]; exists {
+	for localUUID := range a.OnlineDevices {
+		if _, exists := a.Devices[localUUID]; exists {
 			log.WithFields(log.Fields{
-				"Local UUID": key,
+				"Local UUID": localUUID,
 			}).Debug("Device already provisioned")
 			continue
 		}
 
 		log.WithFields(log.Fields{
-			"Local UUID": key,
+			"Local UUID": localUUID,
 		}).Info("Device not provisioned")
 
-		deviceUUID, deviceName, deviceConfig, deviceEnv, errs := supervisor.DependantDeviceProvision(a.UUID)
+		resinUUID, name, config, env, errs := supervisor.DependantDeviceProvision(a.ResinUUID)
 		if errs != nil {
 			return errs
 		}
 
-		err := device.New(a.Type, key, deviceUUID, deviceName, a.UUID, a.Name, a.Commit, deviceConfig, deviceEnv)
+		d, err := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
 		if err != nil {
 			return []error{err}
 		}
 
-		newDevice, err := device.Get(a.UUID, deviceUUID)
-		if err != nil {
-			return []error{err}
-		}
-
-		a.Devices[newDevice.LocalUUID] = newDevice
+		a.Devices[d.LocalUUID] = d
 
 		log.WithFields(log.Fields{
-			"Name": newDevice.Name,
+			"Device": a.Devices[d.LocalUUID],
 		}).Info("Device provisioned")
 	}
 
 	return nil
 }
 
-// SetOfflineDeviceStatus sets the status for all offline provisioned devices associated with the application
 func (a *Application) SetOfflineDeviceStatus() []error {
-	for key, d := range a.Devices {
-		if _, exists := a.OnlineDevices[key]; !exists {
-			if errs := d.SetStatus(device.OFFLINE); errs != nil {
+	for _, d := range a.Devices {
+		if _, exists := a.OnlineDevices[d.LocalUUID]; !exists {
+			if errs := d.SetStatus(status.OFFLINE); errs != nil {
 				return errs
 			}
 		}
@@ -250,22 +188,21 @@ func (a *Application) SetOfflineDeviceStatus() []error {
 	return nil
 }
 
-// UpdateOnlineDevices updates all online devices associated with the application
 func (a *Application) UpdateOnlineDevices() []error {
-	for key := range a.OnlineDevices {
-		d := a.Devices[key]
+	for localUUID := range a.OnlineDevices {
+		d := a.Devices[localUUID]
 
-		online, err := d.Online()
+		online, err := d.Board.Online()
 		if err != nil {
 			return []error{err}
 		}
 
 		if !online {
-			d.SetStatus(device.OFFLINE)
+			d.SetStatus(status.OFFLINE)
 			return nil
 		}
 
-		d.SetStatus(device.IDLE)
+		d.SetStatus(status.IDLE)
 
 		if d.Commit == d.TargetCommit {
 			log.WithFields(log.Fields{
@@ -286,12 +223,20 @@ func (a *Application) UpdateOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting update")
 
-		d.SetStatus(device.INSTALLING)
-		if err := d.Update(a.FilePath); err != nil {
-			return []error{err}
+		d.SetStatus(status.INSTALLING)
+
+		for i := 0; i < 3; i++ {
+			if err := d.Board.Update(a.FilePath); err != nil {
+				if err.Error() == "Update timed out" {
+					continue
+				}
+				return []error{err}
+			}
+			break
 		}
+
 		d.Commit = d.TargetCommit
-		d.SetStatus(device.IDLE)
+		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,
@@ -301,28 +246,27 @@ func (a *Application) UpdateOnlineDevices() []error {
 	return nil
 }
 
-// RestartOnlineDevices restarts online devices associated with the application if the restart flag is set
 func (a *Application) RestartOnlineDevices() error {
-	for key := range a.OnlineDevices {
-		d := a.Devices[key]
+	for localUUID := range a.OnlineDevices {
+		d := a.Devices[localUUID]
 
 		if !d.RestartFlag {
 			continue
 		}
 
-		online, err := d.Online()
+		online, err := d.Board.Online()
 		if err != nil {
 			return err
 		}
 
 		if !online {
-			d.SetStatus(device.OFFLINE)
+			d.SetStatus(status.OFFLINE)
 			return nil
 		}
 
-		d.SetStatus(device.IDLE)
+		d.SetStatus(status.IDLE)
 
-		if err = d.Restart(); err != nil {
+		if err = d.Board.Restart(); err != nil {
 			return err
 		}
 
@@ -336,17 +280,64 @@ func (a *Application) RestartOnlineDevices() error {
 	return nil
 }
 
+func (a *Application) PutDevices() error {
+	buffer := make(map[string][]byte)
+	for _, d := range a.Devices {
+		bytes, err := d.Marshall()
+		if err != nil {
+			return err
+		}
+		buffer[d.ResinUUID] = bytes
+	}
+
+	return database.PutDevices(a.ResinUUID, buffer)
+}
+
+func (a *Application) GetDevices() error {
+	a.Devices = make(map[string]*device.Device)
+
+	buffer, err := database.GetDevices(a.ResinUUID)
+	if err != nil {
+		return err
+	}
+
+	for _, bytes := range buffer {
+		d, err := device.Unmarshall(bytes)
+		if err != nil {
+			return err
+		}
+
+		a.Devices[d.LocalUUID] = d
+	}
+
+	log.WithFields(log.Fields{
+		"Number": len(a.Devices),
+	}).Info("Application devices")
+
+	return nil
+}
+
+func initApplication(UUID int, boardType board.Type) {
+	if _, exists := List[UUID]; !exists {
+		log.WithFields(log.Fields{
+			"UUID": UUID,
+		}).Fatal("Application does not exist")
+	}
+
+	List[UUID].BoardType = boardType
+}
+
 func (a *Application) checkCommit() error {
 	if a.Commit == a.TargetCommit {
 		return nil
 	}
 
-	if err := supervisor.DependantApplicationUpdate(a.UUID, a.TargetCommit); err != nil {
+	if err := supervisor.DependantApplicationUpdate(a.ResinUUID, a.TargetCommit); err != nil {
 		return err
 	}
 
 	a.FilePath = config.GetAssetsDir()
-	a.FilePath = path.Join(a.FilePath, strconv.Itoa(a.UUID))
+	a.FilePath = path.Join(a.FilePath, strconv.Itoa(a.ResinUUID))
 	a.FilePath = path.Join(a.FilePath, a.TargetCommit)
 	tarPath := path.Join(a.FilePath, "binary.tar")
 

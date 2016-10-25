@@ -1,4 +1,4 @@
-uuid: b6b10f350163a16a41aa3bcdd83f2fe5f45d49b9d94bb84f0cacacdcabbce3
+uuid: c482e266141684e878d6e606a2baa08ddd6cdc25a0ebd21960ad1d9cd1ffed
 destination: /go/src/github.com/josephroberts/edge-node-manager
 port: 22
 before: env GOOS=linux GOARCH=arm godep go build
