@@ -33,8 +33,8 @@ func (b Nrf51822dk) Update(path string) error {
 	var savedRestart bool
 	for {
 		select {
-		case <-time.After(60 * time.Second):
-			return fmt.Errorf("Update timed out, error: %s", savedErr)
+		case <-time.After(120 * time.Second):
+			return fmt.Errorf("Update timed out")
 		case savedErr = <-b.Micro.ErrChannel:
 		case savedRestart = <-b.Micro.RestartChannel:
 		case connected := <-b.Micro.ConnectedChannel:

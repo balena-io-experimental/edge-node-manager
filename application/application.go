@@ -80,6 +80,7 @@ func init() {
 	}
 
 	initApplication(14495, board.NRF51822DK)
+	initApplication(14539, board.MICROBIT)
 
 	for _, a := range List {
 		if err := a.GetDevices(); err != nil {
@@ -222,9 +223,17 @@ func (a *Application) UpdateOnlineDevices() []error {
 		}).Info("Starting update")
 
 		d.SetStatus(status.INSTALLING)
-		if err := d.Board.Update(a.FilePath); err != nil {
-			return []error{err}
+
+		for i := 0; i < 3; i++ {
+			if err := d.Board.Update(a.FilePath); err != nil {
+				if err.Error() == "Update timed out" {
+					continue
+				}
+				return []error{err}
+			}
+			break
 		}
+
 		d.Commit = d.TargetCommit
 		d.SetStatus(status.IDLE)
 
