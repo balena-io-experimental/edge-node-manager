@@ -127,15 +127,21 @@ func (m *Nrf51822) UpdateOnPeriphConnected(periph gatt.Peripheral, err error) {
 		"connected": true,
 	}
 
+	log.Debug("here10")
+
 	if err := periph.SetMTU(500); err != nil {
 		m.ErrChannel <- err
 		return
 	}
 
+	log.Debug("here11")
+
 	if err := m.checkFOTA(periph); err != nil {
 		m.ErrChannel <- err
 		return
 	}
+
+	log.Debug("here12")
 
 	if m.Fota.currentBlock == 0 {
 		if err := m.initFOTA(periph); err != nil {
@@ -143,6 +149,8 @@ func (m *Nrf51822) UpdateOnPeriphConnected(periph gatt.Peripheral, err error) {
 			return
 		}
 	}
+
+	log.Debug("here13")
 
 	if err := m.transferFOTA(periph); err != nil {
 		m.ErrChannel <- err
