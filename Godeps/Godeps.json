@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/josephroberts/edge-node-manager",
+	"ImportPath": "github.com/resin-io/edge-node-manager",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Deps": [

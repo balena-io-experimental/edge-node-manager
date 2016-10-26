@@ -8,9 +8,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 	"github.com/mholt/archiver"
 	"github.com/paypal/gatt"
+	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 
 	log "github.com/Sirupsen/logrus"
 )

@@ -1,9 +1,9 @@
 package board
 
 import (
-	"github.com/josephroberts/edge-node-manager/board/microbit"
-	"github.com/josephroberts/edge-node-manager/board/nrf51822dk"
-	"github.com/josephroberts/edge-node-manager/micro/nrf51822"
+	"github.com/resin-io/edge-node-manager/board/microbit"
+	"github.com/resin-io/edge-node-manager/board/nrf51822dk"
+	"github.com/resin-io/edge-node-manager/micro/nrf51822"
 )
 
 type Type string

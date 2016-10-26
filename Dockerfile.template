@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -yq \
 RUN go get github.com/tools/godep
 
 # Set our working directory
-WORKDIR /go/src/github.com/josephroberts/edge-node-manager
+WORKDIR /go/src/github.com/resin-io/edge-node-manager
 
 # Disable systemd init system
 ENV INITSYSTEM off

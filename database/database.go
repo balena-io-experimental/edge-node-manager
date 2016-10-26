@@ -9,7 +9,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/boltdb/bolt"
-	"github.com/josephroberts/edge-node-manager/config"
+	"github.com/resin-io/edge-node-manager/config"
 )
 
 var dbPath string

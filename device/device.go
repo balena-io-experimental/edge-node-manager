@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/josephroberts/edge-node-manager/board"
-	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/device/status"
-	"github.com/josephroberts/edge-node-manager/supervisor"
+	"github.com/resin-io/edge-node-manager/board"
+	"github.com/resin-io/edge-node-manager/database"
+	"github.com/resin-io/edge-node-manager/device/status"
+	"github.com/resin-io/edge-node-manager/supervisor"
 )
 
 type Device struct {

@@ -5,10 +5,10 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/josephroberts/edge-node-manager/api"
-	"github.com/josephroberts/edge-node-manager/application"
-	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/process"
+	"github.com/resin-io/edge-node-manager/api"
+	"github.com/resin-io/edge-node-manager/application"
+	"github.com/resin-io/edge-node-manager/config"
+	"github.com/resin-io/edge-node-manager/process"
 )
 
 func main() {

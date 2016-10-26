@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/josephroberts/edge-node-manager/application"
-	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/process"
-	"github.com/josephroberts/edge-node-manager/process/status"
+	"github.com/resin-io/edge-node-manager/application"
+	"github.com/resin-io/edge-node-manager/database"
+	"github.com/resin-io/edge-node-manager/process"
+	"github.com/resin-io/edge-node-manager/process/status"
 
 	log "github.com/Sirupsen/logrus"
 )

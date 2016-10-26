@@ -6,9 +6,9 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/josephroberts/edge-node-manager/micro/nrf51822"
-	"github.com/josephroberts/edge-node-manager/radio/bluetooth"
 	"github.com/paypal/gatt"
+	"github.com/resin-io/edge-node-manager/micro/nrf51822"
+	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 )
 
 type Nrf51822dk struct {

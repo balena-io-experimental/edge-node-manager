@@ -5,9 +5,9 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/paypal/gatt"
 	"github.com/paypal/gatt/examples/option"
+	"github.com/resin-io/edge-node-manager/config"
 )
 
 var (

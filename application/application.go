@@ -7,12 +7,12 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/josephroberts/edge-node-manager/board"
-	"github.com/josephroberts/edge-node-manager/config"
-	"github.com/josephroberts/edge-node-manager/database"
-	"github.com/josephroberts/edge-node-manager/device"
-	"github.com/josephroberts/edge-node-manager/device/status"
-	"github.com/josephroberts/edge-node-manager/supervisor"
+	"github.com/resin-io/edge-node-manager/board"
+	"github.com/resin-io/edge-node-manager/config"
+	"github.com/resin-io/edge-node-manager/database"
+	"github.com/resin-io/edge-node-manager/device"
+	"github.com/resin-io/edge-node-manager/device/status"
+	"github.com/resin-io/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
 

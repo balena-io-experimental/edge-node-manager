@@ -11,8 +11,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/cavaliercoder/grab"
-	"github.com/josephroberts/edge-node-manager/config"
 	"github.com/parnurzeal/gorequest"
+	"github.com/resin-io/edge-node-manager/config"
 )
 
 var (
