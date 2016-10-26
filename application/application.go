@@ -79,7 +79,7 @@ func Load() []error {
 		}
 		//End temporary
 
-		List[ResinUUID].BoardType = List[ResinUUID].Config["BOARD"].(board.Type)
+		List[ResinUUID].BoardType = (board.Type)(List[ResinUUID].Config["BOARD"].(string))
 
 		if err := List[ResinUUID].GetDevices(); err != nil {
 			return []error{err}
