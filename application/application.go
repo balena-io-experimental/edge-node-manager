@@ -62,36 +62,35 @@ func Load() []error {
 		return []error{err}
 	}
 
-	for _, app := range List {
-		app.deleteFlag = true
+	for _, application := range List {
+		application.deleteFlag = true
 	}
 
 	for key := range buffer {
 		ResinUUID := buffer[key].ResinUUID
 
-		app, exists := List[ResinUUID]
-		if exists {
-			app.deleteFlag = false
+		if application, exists := List[ResinUUID]; exists {
+			application.deleteFlag = false
 			continue
 		}
 
-		app = &buffer[key]
-		app.deleteFlag = false
+		List[ResinUUID] = &buffer[key]
+		application := List[ResinUUID]
 
 		// Start temporary
 		if ResinUUID == 14539 {
-			app.Config["BOARD"] = "micro:bit"
+			application.Config["BOARD"] = "micro:bit"
 		}
 		if ResinUUID == 14495 {
-			app.Config["BOARD"] = "nRF51822-DK"
+			application.Config["BOARD"] = "nRF51822-DK"
 		}
 		// End temporary
 
-		if _, exists := app.Config["BOARD"]; exists {
-			app.BoardType = (board.Type)(app.Config["BOARD"].(string))
+		if _, exists := application.Config["BOARD"]; exists {
+			application.BoardType = (board.Type)(application.Config["BOARD"].(string))
 		}
 
-		if err := app.GetDevices(); err != nil {
+		if err := application.GetDevices(); err != nil {
 			return []error{err}
 		}
 	}
