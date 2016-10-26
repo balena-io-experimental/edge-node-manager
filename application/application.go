@@ -72,10 +72,10 @@ func Load() []error {
 
 		//Start temporary
 		if ResinUUID == 14539 {
-			List[ResinUUID].Config["BOARD"] = "MICROBIT"
+			List[ResinUUID].Config["BOARD"] = "micro:bit"
 		}
 		if ResinUUID == 14495 {
-			List[ResinUUID].Config["BOARD"] = "NRF51822DK"
+			List[ResinUUID].Config["BOARD"] = "nRF51822-DK"
 		}
 		//End temporary
 
@@ -96,9 +96,11 @@ func Load() []error {
 }
 
 func (a *Application) GetOnlineDevices() error {
-	board := board.Create(a.BoardType, "")
+	board, err := board.Create(a.BoardType, "")
+	if err != nil {
+		return err
+	}
 
-	var err error
 	if a.OnlineDevices, err = board.Scan(a.ResinUUID); err != nil {
 		return err
 	}

@@ -1,6 +1,8 @@
 package board
 
 import (
+	"fmt"
+
 	"github.com/resin-io/edge-node-manager/board/microbit"
 	"github.com/resin-io/edge-node-manager/board/nrf51822dk"
 	"github.com/resin-io/edge-node-manager/micro/nrf51822"
@@ -9,7 +11,7 @@ import (
 type Type string
 
 const (
-	MICROBIT   Type = "MicroBit"
+	MICROBIT   Type = "micro:bit"
 	NRF51822DK      = "nRF51822-DK"
 )
 
@@ -21,7 +23,7 @@ type Interface interface {
 	Identify() error
 }
 
-func Create(boardType Type, localUUID string) Interface {
+func Create(boardType Type, localUUID string) (Interface, error) {
 	switch boardType {
 	case MICROBIT:
 		return microbit.Microbit{
@@ -32,7 +34,7 @@ func Create(boardType Type, localUUID string) Interface {
 				RestartChannel:   make(chan bool),
 				ErrChannel:       make(chan error),
 			},
-		}
+		}, nil
 	case NRF51822DK:
 		return nrf51822dk.Nrf51822dk{
 			Micro: nrf51822.Nrf51822{
@@ -42,7 +44,7 @@ func Create(boardType Type, localUUID string) Interface {
 				RestartChannel:   make(chan bool),
 				ErrChannel:       make(chan error),
 			},
-		}
+		}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("Unsupported board type")
 }
