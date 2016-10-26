@@ -1,4 +1,4 @@
-# edge-node-manager [![Go Report Card](https://goreportcard.com/badge/github.com/resin-io/edge-node-manager)](https://goreportcard.com/report/github.com/resin-io/edge-node-manager)
+# edge-node-manager [![Go Report Card](https://goreportcard.com/badge/github.com/resin-io/edge-node-manager)](https://goreportcard.com/report/github.com/resin-io/edge-node-manager) [![Build Status](https://travis-ci.org/resin-io/edge-node-manager.svg?branch=master)](https://travis-ci.org/resin-io/edge-node-manager)
 resin.io dependent device edge-node-manager written in Go.
 
 ## About
