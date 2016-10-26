@@ -32,7 +32,8 @@ func Run(a *application.Application) []error {
 	}
 
 	log.WithFields(log.Fields{
-		"Application": a.Name,
+		"Application":       a.Name,
+		"Number of devices": len(a.Devices),
 	}).Info("Processing application")
 
 	// Get all online devices associated with this application
