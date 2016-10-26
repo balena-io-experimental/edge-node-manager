@@ -22,9 +22,10 @@ type Device struct {
 	TargetCommit    string          `json:"targetCommit"`
 	Status          status.Status   `json:"status"`
 	Progress        float32         `json:"progress"`
-	RestartFlag     bool            `json:"restartFlag"`
 	Config          interface{}     `json:"config"`
 	Environment     interface{}     `json:"environment"`
+	RestartFlag     bool            `json:"restartFlag"`
+	DeleteFlag      bool            `json:"deleteFlag"`
 }
 
 func (d Device) String() string {
@@ -39,7 +40,6 @@ func (d Device) String() string {
 			"Target commit: %s, "+
 			"Status: %s, "+
 			"Progress: %2.2f, "+
-			"Restart flag: %t, "+
 			"Config: %v, "+
 			"Environment: %v",
 		d.Name,
@@ -52,14 +52,18 @@ func (d Device) String() string {
 		d.TargetCommit,
 		d.Status,
 		d.Progress,
-		d.RestartFlag,
 		d.Config,
 		d.Environment)
 }
 
 func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) (*Device, error) {
+	board, err := board.Create(boardType, localUUID)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &Device{
-		Board:           board.Create(boardType, localUUID),
+		Board:           board,
 		Name:            name,
 		BoardType:       boardType,
 		LocalUUID:       localUUID,
@@ -70,7 +74,6 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 		TargetCommit:    targetCommit,
 		Status:          status.OFFLINE,
 		Progress:        0.0,
-		RestartFlag:     false,
 		Config:          config,
 		Environment:     environment,
 	}
@@ -97,7 +100,12 @@ func Unmarshall(bytes []byte) (*Device, error) {
 		return nil, err
 	}
 
-	d.Board = board.Create(d.BoardType, d.LocalUUID)
+	board, err := board.Create(d.BoardType, d.LocalUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	d.Board = board
 
 	return d, nil
 }

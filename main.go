@@ -12,12 +12,6 @@ import (
 )
 
 func main() {
-	log.Info("Starting edge-node-manager")
-
-	log.WithFields(log.Fields{
-		"Number": len(application.List),
-	}).Info("edge-node-manager applications")
-
 	delay, err := config.GetLoopDelay()
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -25,9 +19,9 @@ func main() {
 		}).Fatal("Unable to load loop delay")
 	}
 
-	log.Info("Started edge-node-manager")
-
 	for {
+		application.Load()
+
 		for _, a := range application.List {
 			if errs := process.Run(a); errs != nil {
 				log.WithFields(log.Fields{
