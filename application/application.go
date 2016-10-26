@@ -61,14 +61,14 @@ func Load() []error {
 		return []error{err}
 	}
 
-	for _, app := range buffer {
+	for key, app := range buffer {
 		ResinUUID := app.ResinUUID
 
 		if _, exists := List[ResinUUID]; exists {
 			continue
 		}
 
-		List[ResinUUID] = &app
+		List[ResinUUID] = &buffer[key]
 
 		//Start temporary
 		if ResinUUID == 14539 {
