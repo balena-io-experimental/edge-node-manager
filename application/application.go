@@ -26,7 +26,7 @@ type Application struct {
 	BoardType     board.Type                `json:"-"`
 	Commit        string                    `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
 	TargetCommit  string                    `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
-	Config        interface{}               `json:"config"`
+	Config        map[string]interface{}    `json:"config"`
 	FilePath      string                    `json:"-"`
 	Devices       map[string]*device.Device `json:"-"` // Key is the device's localUUID
 	OnlineDevices map[string]bool           `json:"-"` // Key is the device's localUUID
@@ -50,72 +50,43 @@ func (a Application) String() string {
 		a.FilePath)
 }
 
-func init() {
-	log.SetLevel(config.GetLogLevel())
-
-	List = make(map[int]*Application)
-
+func Load() []error {
 	bytes, errs := supervisor.DependantApplicationsList()
 	if errs != nil {
-		log.WithFields(log.Fields{
-			"Errors": errs,
-		}).Fatal("Unable to get the dependant application list")
+		return errs
 	}
 
 	var buffer []Application
 	if err := json.Unmarshal(bytes, &buffer); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-			"Data":  ((string)(bytes)),
-		}).Fatal("Unable to unmarshal the dependant application list")
+		return []error{err}
 	}
 
-	for a := range buffer {
-		ResinUUID := buffer[a].ResinUUID
-		List[ResinUUID] = &buffer[a]
+	for _, app := range buffer {
+		ResinUUID := app.ResinUUID
 
-		log.WithFields(log.Fields{
-			"Application": List[ResinUUID],
-		}).Debug("Dependant application")
-	}
+		if _, exists := List[ResinUUID]; exists {
+			continue
+		}
 
-	initApplication(14495, board.NRF51822DK)
-	initApplication(14539, board.MICROBIT)
+		List[ResinUUID] = &app
 
-	for _, a := range List {
-		if err := a.GetDevices(); err != nil {
-			log.WithFields(log.Fields{
-				"Error": err,
-			}).Fatal("Unable to load application devices")
+		//Start temporary
+		if ResinUUID == 14539 {
+			List[ResinUUID].Config["BOARD"] = "MICROBIT"
+		}
+		if ResinUUID == 14495 {
+			List[ResinUUID].Config["BOARD"] = "NRF51822DK"
+		}
+		//End temporary
+
+		List[ResinUUID].BoardType = List[ResinUUID].Config["BOARD"].(board.Type)
+
+		if err := List[ResinUUID].GetDevices(); err != nil {
+			return []error{err}
 		}
 	}
 
-	log.Debug("Initialised applications")
-}
-
-func (a Application) Validate() bool {
-	if a.BoardType == "" {
-		log.WithFields(log.Fields{
-			"Application": a,
-			"Error":       "Application board type not set",
-		}).Warn("Processing application")
-		return false
-	}
-
-	log.WithFields(log.Fields{
-		"Application": a.Name,
-	}).Info("Processing application")
-
-	if log.GetLevel() == log.DebugLevel {
-		for _, d := range a.Devices {
-			log.WithFields(log.Fields{
-				"Application": a.Name,
-				"Device":      d,
-			}).Debug("Application device")
-		}
-	}
-
-	return true
+	return nil
 }
 
 func (a *Application) GetOnlineDevices() error {
@@ -295,14 +266,12 @@ func (a *Application) GetDevices() error {
 	return nil
 }
 
-func initApplication(UUID int, boardType board.Type) {
-	if _, exists := List[UUID]; !exists {
-		log.WithFields(log.Fields{
-			"UUID": UUID,
-		}).Fatal("Application does not exist")
-	}
+func init() {
+	log.SetLevel(config.GetLogLevel())
 
-	List[UUID].BoardType = boardType
+	List = make(map[int]*Application)
+
+	log.Debug("Initialised applications")
 }
 
 func (a *Application) checkCommit() error {

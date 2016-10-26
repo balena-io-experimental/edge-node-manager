@@ -20,14 +20,20 @@ func Run(a *application.Application) []error {
 	log.Info("----------------------------------------------------------------------------------------------------")
 
 	// Pause the process if necessary
-	if TargetStatus == status.PAUSED {
-		pause()
-	}
+	pause()
 
-	// Validate application to ensure the board type has been manually set
-	if !a.Validate() {
+	// Validate application to ensure the board type has been set
+	if a.BoardType == "" {
+		log.WithFields(log.Fields{
+			"Application": a.Name,
+			"Error":       "Application board type not set",
+		}).Warn("Processing application")
 		return nil
 	}
+
+	log.WithFields(log.Fields{
+		"Application": a.Name,
+	}).Info("Processing application")
 
 	// Get all online devices associated with this application
 	if err := a.GetOnlineDevices(); err != nil {
@@ -78,6 +84,10 @@ func init() {
 }
 
 func pause() {
+	if TargetStatus != status.PAUSED {
+		return
+	}
+
 	CurrentStatus = status.PAUSED
 	log.WithFields(log.Fields{
 		"Status": CurrentStatus,
