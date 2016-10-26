@@ -30,6 +30,7 @@ type Application struct {
 	FilePath      string                    `json:"-"`
 	Devices       map[string]*device.Device `json:"-"` // Key is the device's localUUID
 	OnlineDevices map[string]bool           `json:"-"` // Key is the device's localUUID
+	deleteFlag    bool
 }
 
 func (a Application) String() string {
@@ -61,30 +62,42 @@ func Load() []error {
 		return []error{err}
 	}
 
-	for key, app := range buffer {
-		ResinUUID := app.ResinUUID
+	for _, app := range List {
+		app.deleteFlag = true
+	}
 
-		if _, exists := List[ResinUUID]; exists {
+	for key := range buffer {
+		ResinUUID := buffer[key].ResinUUID
+
+		app, exists := List[ResinUUID]
+		if exists {
+			app.deleteFlag = false
 			continue
 		}
 
-		List[ResinUUID] = &buffer[key]
+		app = &buffer[key]
 
-		//Start temporary
+		// Start temporary
 		if ResinUUID == 14539 {
-			List[ResinUUID].Config["BOARD"] = "micro:bit"
+			app.Config["BOARD"] = "micro:bit"
 		}
 		if ResinUUID == 14495 {
-			List[ResinUUID].Config["BOARD"] = "nRF51822-DK"
+			app.Config["BOARD"] = "nRF51822-DK"
 		}
-		//End temporary
+		// End temporary
 
-		if _, exists := List[ResinUUID].Config["BOARD"]; exists {
-			List[ResinUUID].BoardType = (board.Type)(List[ResinUUID].Config["BOARD"].(string))
+		if _, exists := app.Config["BOARD"]; exists {
+			app.BoardType = (board.Type)(app.Config["BOARD"].(string))
 		}
 
-		if err := List[ResinUUID].GetDevices(); err != nil {
+		if err := app.GetDevices(); err != nil {
 			return []error{err}
+		}
+	}
+
+	for key, app := range List {
+		if app.deleteFlag {
+			delete(List, key)
 		}
 	}
 
