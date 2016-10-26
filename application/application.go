@@ -121,8 +121,8 @@ func (a *Application) GetOnlineDevices() error {
 	}
 
 	log.WithFields(log.Fields{
-		"Number": len(a.OnlineDevices),
-	}).Info("Application online devices")
+		"Number of online devices": len(a.OnlineDevices),
+	}).Info("Processing application")
 
 	if log.GetLevel() != log.DebugLevel {
 		return nil
@@ -148,7 +148,7 @@ func (a *Application) ProvisionDevices() []error {
 
 		log.WithFields(log.Fields{
 			"Local UUID": localUUID,
-		}).Info("Device not provisioned")
+		}).Info("Provisioning device")
 
 		resinUUID, name, config, env, errs := supervisor.DependantDeviceProvision(a.ResinUUID)
 		if errs != nil {
@@ -163,8 +163,9 @@ func (a *Application) ProvisionDevices() []error {
 		a.Devices[d.LocalUUID] = d
 
 		log.WithFields(log.Fields{
-			"Device": a.Devices[d.LocalUUID],
-		}).Info("Device provisioned")
+			"Name":       d.Name,
+			"Local UUID": localUUID,
+		}).Info("Provisioned device")
 	}
 
 	return nil
@@ -206,8 +207,8 @@ func (a *Application) UpdateOnlineDevices() []error {
 		}
 
 		log.WithFields(log.Fields{
-			"Name": d.Name,
-		}).Info("Device not up to date")
+			"Device": d,
+		}).Debug("Device not up to date")
 
 		if err := a.checkCommit(); err != nil {
 			return []error{err}
