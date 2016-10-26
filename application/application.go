@@ -95,14 +95,8 @@ func Load() []error {
 		}
 	}
 
-	for _, application := range List {
-		log.WithFields(log.Fields{
-			"Application": application,
-		}).Debug("PRE-Application")
-	}
-
-	for key, app := range List {
-		if app.deleteFlag {
+	for key, application := range List {
+		if application.deleteFlag {
 			delete(List, key)
 		}
 	}
@@ -247,11 +241,11 @@ func (a *Application) UpdateOnlineDevices() []error {
 }
 
 func (a *Application) HandleFlags() error {
-	if err := a.deleteFlag(); err != nil {
+	if err := a.handleDeleteFlag(); err != nil {
 		return err
 	}
 
-	if err := a.restartFlag(); err != nil {
+	if err := a.handleRestartFlag(); err != nil {
 		return err
 	}
 
@@ -324,7 +318,7 @@ func (a *Application) checkCommit() error {
 	return nil
 }
 
-func (a *Application) deleteFlag() error {
+func (a *Application) handleDeleteFlag() error {
 	for key, d := range a.Devices {
 		if !d.DeleteFlag {
 			continue
@@ -340,7 +334,7 @@ func (a *Application) deleteFlag() error {
 	return nil
 }
 
-func (a *Application) restartFlag() error {
+func (a *Application) handleRestartFlag() error {
 	for localUUID := range a.OnlineDevices {
 		d := a.Devices[localUUID]
 
