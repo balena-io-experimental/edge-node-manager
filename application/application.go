@@ -86,7 +86,7 @@ func Load() []error {
 		}
 	}
 
-	for application := range List {
+	for _, application := range List {
 		log.WithFields(log.Fields{
 			"Application": application,
 		}).Debug("Application")
