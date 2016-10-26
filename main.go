@@ -12,8 +12,6 @@ import (
 )
 
 func main() {
-	log.Info("Starting edge-node-manager")
-
 	delay, err := config.GetLoopDelay()
 	if err != nil {
 		log.WithFields(log.Fields{

@@ -265,10 +265,6 @@ func (a *Application) GetDevices() error {
 		a.Devices[d.LocalUUID] = d
 	}
 
-	log.WithFields(log.Fields{
-		"Number": len(a.Devices),
-	}).Info("Application devices")
-
 	return nil
 }
 
