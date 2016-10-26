@@ -57,8 +57,13 @@ func (d Device) String() string {
 }
 
 func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) (*Device, error) {
+	board, err := board.Create(boardType, localUUID)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &Device{
-		Board:           board.Create(boardType, localUUID),
+		Board:           board,
 		Name:            name,
 		BoardType:       boardType,
 		LocalUUID:       localUUID,
@@ -95,7 +100,12 @@ func Unmarshall(bytes []byte) (*Device, error) {
 		return nil, err
 	}
 
-	d.Board = board.Create(d.BoardType, d.LocalUUID)
+	board, err := board.Create(d.BoardType, d.LocalUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	d.Board = board
 
 	return d, nil
 }
