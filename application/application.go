@@ -76,6 +76,7 @@ func Load() []error {
 		}
 
 		app = &buffer[key]
+		app.deleteFlag = false
 
 		// Start temporary
 		if ResinUUID == 14539 {
@@ -93,6 +94,12 @@ func Load() []error {
 		if err := app.GetDevices(); err != nil {
 			return []error{err}
 		}
+	}
+
+	for _, application := range List {
+		log.WithFields(log.Fields{
+			"Application": application,
+		}).Debug("PRE-Application")
 	}
 
 	for key, app := range List {
