@@ -41,17 +41,17 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	application.List[applicationUUID].TargetCommit = content.Commit
+	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
+
+	w.WriteHeader(http.StatusOK)
+
 	log.WithFields(log.Fields{
 		"ApplicationUUID": applicationUUID,
 		"DeviceUUID":      deviceUUID,
 		"LocalUUID":       localUUID,
 		"Target commit":   content.Commit,
 	}).Debug("Dependant device update hook")
-
-	application.List[applicationUUID].TargetCommit = content.Commit
-	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
@@ -63,18 +63,13 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to get device mapping")
-		// Send back 200 as the devce must of already been deleted if we can't find it in the DB
+		// Send back 200 as the device must of already been deleted if we can't find it in the DB
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	log.WithFields(log.Fields{
-		"ApplicationUUID": applicationUUID,
-		"DeviceUUID":      deviceUUID,
-		"LocalUUID":       localUUID,
-	}).Debug("Dependant device delete hook")
+	application.List[applicationUUID].Devices[localUUID].DeleteFlag = true
 
-	delete(application.List[applicationUUID].Devices, localUUID)
 	if err := database.DeleteDevice(applicationUUID, deviceUUID); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
@@ -84,6 +79,12 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+
+	log.WithFields(log.Fields{
+		"ApplicationUUID": applicationUUID,
+		"DeviceUUID":      deviceUUID,
+		"LocalUUID":       localUUID,
+	}).Debug("Dependant device delete hook")
 }
 
 func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
@@ -99,13 +100,13 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.WithFields(log.Fields{
-		"UUID": deviceUUID,
-	}).Debug("Dependant device restart hook")
-
 	application.List[applicationUUID].Devices[localUUID].RestartFlag = true
 
 	w.WriteHeader(http.StatusOK)
+
+	log.WithFields(log.Fields{
+		"UUID": deviceUUID,
+	}).Debug("Dependant device restart hook")
 }
 
 func SetStatus(w http.ResponseWriter, r *http.Request) {
@@ -121,11 +122,11 @@ func SetStatus(w http.ResponseWriter, r *http.Request) {
 
 	process.TargetStatus = buffer["target"].(status.Status)
 
+	w.WriteHeader(http.StatusOK)
+
 	log.WithFields(log.Fields{
 		"Target status": process.TargetStatus,
 	}).Debug("Set status")
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func GetStatus(w http.ResponseWriter, r *http.Request) {
@@ -148,12 +149,12 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(bytes)
+	w.WriteHeader(http.StatusOK)
+
 	log.WithFields(log.Fields{
 		"Target status": process.TargetStatus,
 		"Curent status": process.CurrentStatus,
 	}).Debug("Get status")
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(bytes)
-	w.WriteHeader(http.StatusOK)
 }

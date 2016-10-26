@@ -49,8 +49,8 @@ func Run(a *application.Application) []error {
 		return errs
 	}
 
-	// Restart online devices associated with this application
-	if err := a.RestartOnlineDevices(); err != nil {
+	// Handle device flags
+	if err := a.HandleFlags(); err != nil {
 		return []error{err}
 	}
 
