@@ -246,35 +246,13 @@ func (a *Application) UpdateOnlineDevices() []error {
 	return nil
 }
 
-func (a *Application) RestartOnlineDevices() error {
-	for localUUID := range a.OnlineDevices {
-		d := a.Devices[localUUID]
+func (a *Application) HandleFlags() error {
+	if err := a.deleteFlag(); err != nil {
+		return err
+	}
 
-		if !d.RestartFlag {
-			continue
-		}
-
-		online, err := d.Board.Online()
-		if err != nil {
-			return err
-		}
-
-		if !online {
-			d.SetStatus(status.OFFLINE)
-			return nil
-		}
-
-		d.SetStatus(status.IDLE)
-
-		if err = d.Board.Restart(); err != nil {
-			return err
-		}
-
-		d.RestartFlag = false
-
-		log.WithFields(log.Fields{
-			"Device": d,
-		}).Info("Device restarted")
+	if err := a.restartFlag(); err != nil {
+		return err
 	}
 
 	return nil
@@ -348,6 +326,56 @@ func (a *Application) checkCommit() error {
 	a.Commit = a.TargetCommit
 
 	log.Info("Application firmware extracted")
+
+	return nil
+}
+
+func (a *Application) deleteFlag() error {
+	for key, d := range a.Devices {
+		if !d.DeleteFlag {
+			continue
+		}
+
+		delete(a.Devices, key)
+
+		log.WithFields(log.Fields{
+			"name": d.Name,
+		}).Info("Device deleted")
+	}
+
+	return nil
+}
+
+func (a *Application) restartFlag() error {
+	for localUUID := range a.OnlineDevices {
+		d := a.Devices[localUUID]
+
+		if !d.RestartFlag {
+			continue
+		}
+
+		online, err := d.Board.Online()
+		if err != nil {
+			return err
+		}
+
+		if !online {
+			d.SetStatus(status.OFFLINE)
+			return nil
+		}
+
+		d.SetStatus(status.IDLE)
+
+		if err = d.Board.Restart(); err != nil {
+			return err
+		}
+
+		d.RestartFlag = false
+
+		log.WithFields(log.Fields{
+			"name": d.Name,
+		}).Info("Device restarted")
+	}
 
 	return nil
 }

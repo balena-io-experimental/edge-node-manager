@@ -22,9 +22,10 @@ type Device struct {
 	TargetCommit    string          `json:"targetCommit"`
 	Status          status.Status   `json:"status"`
 	Progress        float32         `json:"progress"`
-	RestartFlag     bool            `json:"restartFlag"`
 	Config          interface{}     `json:"config"`
 	Environment     interface{}     `json:"environment"`
+	RestartFlag     bool            `json:"restartFlag"`
+	DeleteFlag      bool            `json:"deleteFlag"`
 }
 
 func (d Device) String() string {
@@ -39,7 +40,6 @@ func (d Device) String() string {
 			"Target commit: %s, "+
 			"Status: %s, "+
 			"Progress: %2.2f, "+
-			"Restart flag: %t, "+
 			"Config: %v, "+
 			"Environment: %v",
 		d.Name,
@@ -52,7 +52,6 @@ func (d Device) String() string {
 		d.TargetCommit,
 		d.Status,
 		d.Progress,
-		d.RestartFlag,
 		d.Config,
 		d.Environment)
 }
@@ -70,7 +69,6 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 		TargetCommit:    targetCommit,
 		Status:          status.OFFLINE,
 		Progress:        0.0,
-		RestartFlag:     false,
 		Config:          config,
 		Environment:     environment,
 	}
