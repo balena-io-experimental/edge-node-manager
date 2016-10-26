@@ -31,6 +31,7 @@ func Run(a *application.Application) []error {
 		return nil
 	}
 
+	// Print application info
 	log.WithFields(log.Fields{
 		"Application":       a.Name,
 		"Number of devices": len(a.Devices),
