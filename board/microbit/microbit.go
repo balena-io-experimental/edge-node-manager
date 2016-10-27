@@ -26,8 +26,8 @@ func (b Microbit) Update(path string) error {
 RetryLoop:
 	for i := 1; i <= 3; i++ {
 		b.Log.WithFields(logrus.Fields{
-			"Attempt number": i,
-		}).Info("Update")
+			"Number": i,
+		}).Info("Update attempt")
 
 		bluetooth.Radio.Handle(
 			gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),

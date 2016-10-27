@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -44,7 +45,6 @@ type Nrf51822 struct {
 }
 
 type FOTA struct {
-	progress     float32
 	currentBlock int
 	binary       []byte
 	data         []byte
@@ -269,10 +269,8 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 		blockCounter += (m.Fota.currentBlock / blockSize)
 	}
 
-	m.Fota.progress = ((float32)(m.Fota.currentBlock) / (float32)(m.Fota.size)) * 100.0
-
 	m.Log.WithFields(logrus.Fields{
-		"Progress %": m.Fota.progress,
+		"Progress": m.getProgress(),
 	}).Info("Transferring FOTA")
 
 	notifyChannel, err := m.initNotify(periph)
@@ -311,17 +309,13 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 				return fmt.Errorf("FOTA transer out of sync")
 			}
 
-			m.Fota.progress = ((float32)(currentBlock) / (float32)(m.Fota.size)) * 100.0
-
 			m.Log.WithFields(logrus.Fields{
-				"Progress %": m.Fota.progress,
+				"Progress %": m.getProgress(),
 			}).Info("Transferring FOTA")
 		}
 
 		blockCounter++
 	}
-
-	m.Fota.progress = 100
 
 	resp, err := m.timeoutNotify(notifyChannel)
 	if err != nil {
@@ -333,7 +327,7 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 	}
 
 	m.Log.WithFields(logrus.Fields{
-		"Progress %": m.Fota.progress,
+		"Progress %": "100%",
 	}).Info("Transferring FOTA")
 
 	return nil
@@ -467,4 +461,8 @@ func (m *Nrf51822) pack() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (m *Nrf51822) getProgress() string {
+	return strconv.Itoa((int)(((float32)(m.Fota.currentBlock)/(float32)(m.Fota.size))*100.0)) + "%"
 }
