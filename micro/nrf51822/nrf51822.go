@@ -309,7 +309,7 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 			}
 
 			m.Log.WithFields(logrus.Fields{
-				"Progress %": m.getProgress(),
+				"Progress": m.getProgress(),
 			}).Info("Transferring FOTA")
 		}
 
@@ -326,7 +326,7 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 	}
 
 	m.Log.WithFields(logrus.Fields{
-		"Progress %": "100%",
+		"Progress": "100%",
 	}).Info("Transferring FOTA")
 
 	return nil
