@@ -165,9 +165,6 @@ func DeleteDevice(applicationUUID int, deviceUUID string) error {
 	}
 	defer db.Close()
 
-	fmt.Println(applicationUUID)
-	fmt.Println(deviceUUID)
-
 	if err := db.Update(func(tx *bolt.Tx) error {
 		var b *bolt.Bucket
 		if b = tx.Bucket([]byte("Applications")); b == nil {
