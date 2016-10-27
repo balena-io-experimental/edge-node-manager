@@ -17,53 +17,79 @@ type Nrf51822dk struct {
 }
 
 func (b Nrf51822dk) Update(path string) error {
+	b.Log.Info("Starting update")
+
 	if err := b.Micro.ExtractFirmware(path, "nrf51422_xxac_s130.bin", "nrf51422_xxac_s130.dat"); err != nil {
 		return err
 	}
 
-	bluetooth.Radio.Handle(
-		gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
-		gatt.PeripheralConnected(b.bootloadOnPeriphConnected),
-		gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
-	)
-	if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
-		return err
-	}
+RetryLoop:
+	for i := 1; i <= 3; i++ {
+		b.Log.WithFields(logrus.Fields{
+			"Attempt number": i,
+		}).Info("Update")
 
-	var savedErr error
-	var savedRestart bool
-	for {
-		select {
-		case <-time.After(120 * time.Second):
-			return fmt.Errorf("Update timed out")
-		case savedErr = <-b.Micro.ErrChannel:
-		case savedRestart = <-b.Micro.RestartChannel:
-		case connected := <-b.Micro.ConnectedChannel:
-			if connected {
-				// log.Debug("Connected")
-			} else {
-				// log.Debug("Disconnected")
+		bluetooth.Radio.Handle(
+			gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
+			gatt.PeripheralConnected(b.bootloadOnPeriphConnected),
+			gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
+		)
+		if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
+			b.Log.WithFields(logrus.Fields{
+				"Error": err,
+			}).Error("Update failed")
+			return err
+		}
 
-				if !savedRestart {
-					return savedErr
-				}
+		var savedErr error
+		var savedRestart bool
+		for {
+			select {
+			case <-time.After(120 * time.Second):
+				b.Log.Warn("Timed out")
+				continue RetryLoop
+			case savedErr = <-b.Micro.ErrChannel:
+			case savedRestart = <-b.Micro.RestartChannel:
+			case connected := <-b.Micro.ConnectedChannel:
+				if connected {
+					b.Log.Debug("Connected")
+				} else {
+					b.Log.Debug("Disconnected")
 
-				savedRestart = false
+					if !savedRestart {
+						if savedErr == nil {
+							b.Log.Info("Finished update")
+							return nil
+						}
 
-				// Time delay to allow device to restart after being placed into bootloader mode
-				time.Sleep(1 * time.Second)
+						b.Log.WithFields(logrus.Fields{
+							"Error": savedErr,
+						}).Error("Update failed")
+						return savedErr
+					}
 
-				bluetooth.Radio.Handle(
-					gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
-					gatt.PeripheralConnected(b.Micro.UpdateOnPeriphConnected),
-					gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
-				)
-				if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
-					return err
+					savedRestart = false
+
+					// Time delay to allow device to restart after being placed into bootloader mode
+					time.Sleep(1 * time.Second)
+
+					bluetooth.Radio.Handle(
+						gatt.PeripheralDiscovered(b.Micro.OnPeriphDiscovered),
+						gatt.PeripheralConnected(b.Micro.UpdateOnPeriphConnected),
+						gatt.PeripheralDisconnected(b.Micro.OnPeriphDisconnected),
+					)
+					if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
+						b.Log.WithFields(logrus.Fields{
+							"Error": err,
+						}).Error("Update failed")
+						return err
+					}
 				}
 			}
 		}
 	}
+	b.Log.Error("Update failed after 3 attempts")
+	return fmt.Errorf("Timed out after 3 attempts")
 }
 
 func (b Nrf51822dk) Scan(applicationUUID int) (map[string]bool, error) {
@@ -75,10 +101,12 @@ func (b Nrf51822dk) Online() (bool, error) {
 }
 
 func (b Nrf51822dk) Restart() error {
+	b.Log.Info("Restarting...")
 	return b.Micro.ProcessRequest(b.restartOnPeriphConnected)
 }
 
 func (b Nrf51822dk) Identify() error {
+	b.Log.Info("Identifying...")
 	return b.Micro.ProcessRequest(b.identifyOnPeriphConnected)
 }
 
@@ -99,13 +127,13 @@ func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error)
 	}
 
 	if name == "DfuTarg" {
-		// log.Debug("Bootloader started")
+		b.Log.Debug("Bootloader started")
 		b.Micro.UpdateOnPeriphConnected(periph, err)
 		return
 	}
 
-	// log.Debug("Bootloader not started")
-	// log.Debug("Starting bootloader")
+	b.Log.Debug("Bootloader not started")
+	b.Log.Debug("Starting bootloader")
 
 	b.Micro.RestartChannel <- true
 
@@ -119,7 +147,7 @@ func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error)
 		return
 	}
 
-	// log.Debug("Started bootloader")
+	b.Log.Debug("Started bootloader")
 }
 
 func (b Nrf51822dk) restartOnPeriphConnected(periph gatt.Peripheral, err error) {
