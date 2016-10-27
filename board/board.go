@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/resin-io/edge-node-manager/board/microbit"
 	"github.com/resin-io/edge-node-manager/board/nrf51822dk"
 	"github.com/resin-io/edge-node-manager/micro/nrf51822"
@@ -23,11 +24,13 @@ type Interface interface {
 	Identify() error
 }
 
-func Create(boardType Type, localUUID string) (Interface, error) {
+func Create(boardType Type, localUUID string, log *logrus.Logger) (Interface, error) {
 	switch boardType {
 	case MICROBIT:
 		return microbit.Microbit{
+			Log: log,
 			Micro: nrf51822.Nrf51822{
+				Log:              log,
 				LocalUUID:        localUUID,
 				Fota:             nrf51822.FOTA{},
 				ConnectedChannel: make(chan bool),
@@ -37,7 +40,9 @@ func Create(boardType Type, localUUID string) (Interface, error) {
 		}, nil
 	case NRF51822DK:
 		return nrf51822dk.Nrf51822dk{
+			Log: log,
 			Micro: nrf51822.Nrf51822{
+				Log:              log,
 				LocalUUID:        localUUID,
 				Fota:             nrf51822.FOTA{},
 				ConnectedChannel: make(chan bool),

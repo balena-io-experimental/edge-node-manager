@@ -5,17 +5,54 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/paypal/gatt"
 	"github.com/resin-io/edge-node-manager/micro/nrf51822"
 	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 )
 
+// log.WithFields(log.Fields{
+// 	"Name": d.Name,
+// }).Info("Starting update")
+
+// d.SetStatus(status.INSTALLING)
+
+// for i := 0; i < 3; i++ {
+// 	if err := d.Board.Update(a.FilePath); err != nil {
+// 		if err.Error() == "Update timed out" {
+// 			continue
+// 		}
+// 		return []error{err}
+// 	}
+// 	break
+// }
+
+// d.Commit = d.TargetCommit
+// d.SetStatus(status.IDLE)
+
+// log.WithFields(log.Fields{
+// 	"Name": d.Name,
+// }).Info("Finished update")
+
+const (
+	bin string = "micro-bit.bin"
+	dat        = "micro-bit.dat"
+)
+
 type Microbit struct {
+	Log   *logrus.Logger
 	Micro nrf51822.Nrf51822
 }
 
 func (b Microbit) Update(path string) error {
+	b.Log.WithFields(logrus.Fields{
+		"Firmware path": path,
+		"Bin":           bin,
+		"Dat":           dat,
+	}).Info("Starting update")
+
+	return nil
+
 	if err := b.Micro.ExtractFirmware(path, "micro-bit.bin", "micro-bit.dat"); err != nil {
 		return err
 	}
@@ -39,9 +76,9 @@ func (b Microbit) Update(path string) error {
 		case savedRestart = <-b.Micro.RestartChannel:
 		case connected := <-b.Micro.ConnectedChannel:
 			if connected {
-				log.Debug("Connected")
+				// // log.Debug("Connected")
 			} else {
-				log.Debug("Disconnected")
+				// // log.Debug("Disconnected")
 
 				if !savedRestart {
 					return savedErr
@@ -99,13 +136,13 @@ func (b Microbit) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
 	}
 
 	if name == "DfuTarg" {
-		log.Debug("Bootloader started")
+		// // log.Debug("Bootloader started")
 		b.Micro.UpdateOnPeriphConnected(periph, err)
 		return
 	}
 
-	log.Debug("Bootloader not started")
-	log.Debug("Starting bootloader")
+	// // log.Debug("Bootloader not started")
+	// // log.Debug("Starting bootloader")
 
 	b.Micro.RestartChannel <- true
 
@@ -120,7 +157,7 @@ func (b Microbit) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
 		return
 	}
 
-	log.Debug("Started bootloader")
+	// // log.Debug("Started bootloader")
 }
 
 func (b Microbit) restartOnPeriphConnected(periph gatt.Peripheral, err error) {

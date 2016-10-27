@@ -218,20 +218,12 @@ func (a *Application) UpdateOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting update")
 
-		d.SetStatus(status.INSTALLING)
-
-		for i := 0; i < 3; i++ {
-			if err := d.Board.Update(a.FilePath); err != nil {
-				if err.Error() == "Update timed out" {
-					continue
-				}
-				return []error{err}
-			}
-			break
+		if err := d.Board.Update(a.FilePath); err != nil {
+			log.WithFields(log.Fields{
+				"Name": d.Name,
+			}).Info("Update failed")
+			return []error{err}
 		}
-
-		d.Commit = d.TargetCommit
-		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,

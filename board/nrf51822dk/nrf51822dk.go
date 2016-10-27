@@ -5,13 +5,14 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/paypal/gatt"
 	"github.com/resin-io/edge-node-manager/micro/nrf51822"
 	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 )
 
 type Nrf51822dk struct {
+	Log   *logrus.Logger
 	Micro nrf51822.Nrf51822
 }
 
@@ -39,9 +40,9 @@ func (b Nrf51822dk) Update(path string) error {
 		case savedRestart = <-b.Micro.RestartChannel:
 		case connected := <-b.Micro.ConnectedChannel:
 			if connected {
-				log.Debug("Connected")
+				// log.Debug("Connected")
 			} else {
-				log.Debug("Disconnected")
+				// log.Debug("Disconnected")
 
 				if !savedRestart {
 					return savedErr
@@ -98,13 +99,13 @@ func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error)
 	}
 
 	if name == "DfuTarg" {
-		log.Debug("Bootloader started")
+		// log.Debug("Bootloader started")
 		b.Micro.UpdateOnPeriphConnected(periph, err)
 		return
 	}
 
-	log.Debug("Bootloader not started")
-	log.Debug("Starting bootloader")
+	// log.Debug("Bootloader not started")
+	// log.Debug("Starting bootloader")
 
 	b.Micro.RestartChannel <- true
 
@@ -118,7 +119,7 @@ func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error)
 		return
 	}
 
-	log.Debug("Started bootloader")
+	// log.Debug("Started bootloader")
 }
 
 func (b Nrf51822dk) restartOnPeriphConnected(periph gatt.Peripheral, err error) {
