@@ -173,28 +173,21 @@ func DeleteDevice(applicationUUID int, deviceUUID string) error {
 		if b = tx.Bucket([]byte("Applications")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
-		fmt.Println("here1")
 
 		var converted []byte
 		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
-		fmt.Println("here2")
-
 		var a *bolt.Bucket
 		if a = b.Bucket(converted); a == nil {
 			return nil
 		}
 
-		fmt.Println("here3")
-
 		return a.Delete([]byte(deviceUUID))
 	}); err != nil {
 		return err
 	}
-
-	fmt.Println("here4")
 
 	return deleteDeviceMapping(db, deviceUUID)
 }
@@ -331,7 +324,7 @@ func deleteDeviceMapping(db *bolt.DB, deviceUUID string) error {
 			return fmt.Errorf("Bucket not found")
 		}
 
-		return b.Delete([]byte(deviceUUID))
+		return b.DeleteBucket([]byte(deviceUUID))
 	})
 }
 
