@@ -300,12 +300,11 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 				return fmt.Errorf("Incorrect notification received")
 			}
 
-			currentBlock, err := m.unpack(resp[1:])
-			if err != nil {
+			if m.Fota.currentBlock, err = m.unpack(resp[1:]); err != nil {
 				return err
 			}
 
-			if (i + blockSize) != currentBlock {
+			if (i + blockSize) != m.Fota.currentBlock {
 				return fmt.Errorf("FOTA transer out of sync")
 			}
 

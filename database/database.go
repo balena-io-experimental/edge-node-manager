@@ -165,26 +165,36 @@ func DeleteDevice(applicationUUID int, deviceUUID string) error {
 	}
 	defer db.Close()
 
+	fmt.Println(applicationUUID)
+	fmt.Println(deviceUUID)
+
 	if err := db.Update(func(tx *bolt.Tx) error {
 		var b *bolt.Bucket
 		if b = tx.Bucket([]byte("Applications")); b == nil {
 			return fmt.Errorf("Bucket not found")
 		}
+		fmt.Println("here1")
 
 		var converted []byte
 		if converted, err = i2b(applicationUUID); err != nil {
 			return err
 		}
 
+		fmt.Println("here2")
+
 		var a *bolt.Bucket
 		if a = b.Bucket(converted); a == nil {
 			return nil
 		}
 
+		fmt.Println("here3")
+
 		return a.Delete([]byte(deviceUUID))
 	}); err != nil {
 		return err
 	}
+
+	fmt.Println("here4")
 
 	return deleteDeviceMapping(db, deviceUUID)
 }
