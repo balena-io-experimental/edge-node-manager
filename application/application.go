@@ -234,11 +234,12 @@ func (a *Application) UpdateOnlineDevices() []error {
 }
 
 func (a *Application) HandleFlags() error {
-	if err := a.handleDeleteFlag(); err != nil {
+	if err := a.handleRestartFlag(); err != nil {
 		return err
 	}
 
-	if err := a.handleRestartFlag(); err != nil {
+	// Delete flag must be handled last
+	if err := a.handleDeleteFlag(); err != nil {
 		return err
 	}
 
@@ -318,6 +319,13 @@ func (a *Application) handleDeleteFlag() error {
 		}
 
 		delete(a.Devices, key)
+
+		if err := database.DeleteDevice(a.ResinUUID, d.ResinUUID); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Error("Unable to delete device")
+			return err
+		}
 
 		log.WithFields(log.Fields{
 			"name": d.Name,
