@@ -274,8 +274,28 @@ func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, conf
 	return
 }
 
-func DependantDevicesList() error {
-	return fmt.Errorf("Not implemented")
+func DependantDevicesList() ([]byte, []error) {
+	url, err := buildPath(address, []string{version, "devices"})
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	req := gorequest.New()
+	req.Get(url)
+	req.Query(key)
+
+	log.WithFields(log.Fields{
+		"URL":    req.Url,
+		"Method": req.Method,
+		"Query":  req.QueryData,
+	}).Debug("Requesting dependant devices list")
+
+	resp, body, errs := req.EndBytes()
+	if errs = handleResp(resp, errs, 200); errs != nil {
+		return nil, errs
+	}
+
+	return body, nil
 }
 
 func init() {
