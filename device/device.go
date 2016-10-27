@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/resin-io/edge-node-manager/board"
 	"github.com/resin-io/edge-node-manager/database"
+	"github.com/resin-io/edge-node-manager/device/hook"
 	"github.com/resin-io/edge-node-manager/device/status"
 	"github.com/resin-io/edge-node-manager/supervisor"
 )
 
 type Device struct {
+	Log             *logrus.Logger  `json:"-"`
 	Board           board.Interface `json:"-"`
 	Name            string          `json:"name"`
 	BoardType       board.Type      `json:"boardType"`
@@ -58,12 +61,15 @@ func (d Device) String() string {
 }
 
 func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) (*Device, error) {
-	board, err := board.Create(boardType, localUUID)
+	log := hook.Create(resinUUID)
+
+	board, err := board.Create(boardType, localUUID, log)
 	if err != nil {
 		return nil, err
 	}
 
 	d := &Device{
+		Log:             log,
 		Board:           board,
 		Name:            name,
 		BoardType:       boardType,
@@ -101,12 +107,15 @@ func Unmarshall(bytes []byte) (*Device, error) {
 		return nil, err
 	}
 
-	board, err := board.Create(d.BoardType, d.LocalUUID)
+	log := hook.Create(d.ResinUUID)
+
+	board, err := board.Create(d.BoardType, d.LocalUUID, log)
 	if err != nil {
 		return nil, err
 	}
 
 	d.Board = board
+	d.Log = log
 
 	return d, nil
 }
