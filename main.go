@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sort"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -22,10 +23,18 @@ func main() {
 	for {
 		application.Load()
 
-		for _, a := range application.List {
-			if errs := process.Run(a); errs != nil {
+		// Sort applications to ensure they run in order
+		var keys []int
+		for key := range application.List {
+			keys = append(keys, key)
+		}
+		sort.Ints(keys)
+
+		for _, key := range keys {
+			application := application.List[key]
+			if errs := process.Run(application); errs != nil {
 				log.WithFields(log.Fields{
-					"Application": a,
+					"Application": application,
 					"Errors":      errs,
 				}).Error("Unable to process application")
 			}
