@@ -211,8 +211,28 @@ func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []
 	return handleResp(resp, errs, 200)
 }
 
-func DependantDeviceInfo() error {
-	return fmt.Errorf("Not implemented")
+func DependantDeviceInfo(UUID string) ([]byte, []error) {
+	url, err := buildPath(address, []string{version, "devices", UUID})
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	req := gorequest.New()
+	req.Get(url)
+	req.Query(key)
+
+	log.WithFields(log.Fields{
+		"URL":    req.Url,
+		"Method": req.Method,
+		"Query":  req.QueryData,
+	}).Debug("Requesting dependant device info")
+
+	resp, body, errs := req.EndBytes()
+	if errs = handleResp(resp, errs, 200); errs != nil {
+		return nil, errs
+	}
+
+	return body, nil
 }
 
 func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, config, env interface{}, errs []error) {
