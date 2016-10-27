@@ -26,6 +26,7 @@ type Device struct {
 	Environment     interface{}     `json:"environment"`
 	RestartFlag     bool            `json:"restartFlag"`
 	DeleteFlag      bool            `json:"deleteFlag"`
+	statusFlag      bool            // Used to ensure the is_online is always sent first time after a restart
 }
 
 func (d Device) String() string {
@@ -124,7 +125,9 @@ func (d *Device) SetStatus(newStatus status.Status) []error {
 		newOnline = false
 	}
 
-	if oldOnline != newOnline {
+	// Send is_online if the status has changed or its the first time after a restart
+	if oldOnline != newOnline || !d.statusFlag {
+		d.statusFlag = true
 		return supervisor.DependantDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
 	}
 	return supervisor.DependantDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
