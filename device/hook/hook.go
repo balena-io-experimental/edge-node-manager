@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/supervisor"
 )
 
@@ -32,6 +33,7 @@ func (h *Hook) Levels() []logrus.Level {
 func Create(resinUUID string) *logrus.Logger {
 	log := logrus.New()
 	log.Out = ioutil.Discard
+	log.Level = config.GetLogLevel()
 	log.Hooks.Add(&Hook{
 		ResinUUID: resinUUID,
 	})

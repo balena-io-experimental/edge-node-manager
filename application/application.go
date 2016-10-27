@@ -111,7 +111,7 @@ func Load() []error {
 }
 
 func (a *Application) GetOnlineDevices() error {
-	board, err := board.Create(a.BoardType, "")
+	board, err := board.Create(a.BoardType, "", nil)
 	if err != nil {
 		return err
 	}
@@ -218,12 +218,18 @@ func (a *Application) UpdateOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting update")
 
+		d.SetStatus(status.INSTALLING)
+
 		if err := d.Board.Update(a.FilePath); err != nil {
 			log.WithFields(log.Fields{
 				"Name": d.Name,
-			}).Info("Update failed")
+			}).Error("Update failed")
+			d.SetStatus(status.IDLE)
 			return []error{err}
 		}
+
+		d.Commit = d.TargetCommit
+		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,
