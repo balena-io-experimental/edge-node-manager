@@ -11,16 +11,6 @@ import (
 	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 )
 
-//
-// 	if err := d.Board.Update(a.FilePath); err != nil {
-// 		if err.Error() == "Update timed out" {
-// 			continue
-// 		}
-// 		return []error{err}
-// 	}
-// 	break
-// }
-
 type Microbit struct {
 	Log   *logrus.Logger
 	Micro nrf51822.Nrf51822
