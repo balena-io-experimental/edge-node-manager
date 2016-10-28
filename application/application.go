@@ -253,33 +253,12 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 
 		d.SetStatus(status.IDLE)
 
-		fmt.Println("YO")
-
-		fmt.Println(d.Config)
-		fmt.Println(d.TargetConfig)
-
-		fmt.Println(reflect.TypeOf(d.Config))
-		fmt.Println(reflect.TypeOf(d.TargetConfig))
-
-		fmt.Println("here")
-
-		eq := reflect.DeepEqual(d.Config, d.TargetConfig)
-		if eq {
-			fmt.Println("They're equal.")
-		} else {
-			fmt.Println("They're unequal.")
-		}
-
-		fmt.Println("hdhdh")
-
 		if reflect.DeepEqual(d.Config, d.TargetConfig) {
 			log.WithFields(log.Fields{
 				"Device": d,
 			}).Debug("Device config up to date")
 			continue
 		}
-
-		fmt.Println("dhd171717171717")
 
 		log.WithFields(log.Fields{
 			"Device": d,

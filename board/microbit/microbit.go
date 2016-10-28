@@ -116,7 +116,7 @@ func (b Microbit) UpdateConfig(config interface{}) error {
 }
 
 func (b Microbit) UpdateEnvironment(config interface{}) error {
-	return fmt.Errorf("Update envionment not implemented")
+	return fmt.Errorf("Update environment not implemented")
 }
 
 func (b Microbit) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
