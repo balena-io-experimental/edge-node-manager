@@ -13,25 +13,25 @@ import (
 )
 
 type Device struct {
-	Log               *logrus.Logger  `json:"-"`
-	Board             board.Interface `json:"-"`
-	Name              string          `json:"name"`
-	BoardType         board.Type      `json:"boardType"`
-	LocalUUID         string          `json:"localUUID"`
-	ResinUUID         string          `json:"resinUUID"`
-	ApplicationUUID   int             `json:"applicationUUID"`
-	ApplicationName   string          `json:"applicationName"`
-	Commit            string          `json:"commit"`
-	TargetCommit      string          `json:"targetCommit"`
-	Status            status.Status   `json:"status"`
-	Progress          float32         `json:"progress"`
-	Config            interface{}     `json:"config"`
-	TargetConfig      interface{}     `json:"targetConfig"`
-	Environment       interface{}     `json:"environment"`
-	TargetEnvironment interface{}     `json:"targetEnvironment"`
-	RestartFlag       bool            `json:"restartFlag"`
-	DeleteFlag        bool            `json:"deleteFlag"`
-	statusFlag        bool            // Used to ensure the is_online is always sent first time after a restart
+	Log               *logrus.Logger         `json:"-"`
+	Board             board.Interface        `json:"-"`
+	Name              string                 `json:"name"`
+	BoardType         board.Type             `json:"boardType"`
+	LocalUUID         string                 `json:"localUUID"`
+	ResinUUID         string                 `json:"resinUUID"`
+	ApplicationUUID   int                    `json:"applicationUUID"`
+	ApplicationName   string                 `json:"applicationName"`
+	Commit            string                 `json:"commit"`
+	TargetCommit      string                 `json:"targetCommit"`
+	Status            status.Status          `json:"status"`
+	Progress          float32                `json:"progress"`
+	Config            map[string]interface{} `json:"config"`
+	TargetConfig      map[string]interface{} `json:"targetConfig"`
+	Environment       map[string]interface{} `json:"environment"`
+	TargetEnvironment map[string]interface{} `json:"targetEnvironment"`
+	RestartFlag       bool                   `json:"restartFlag"`
+	DeleteFlag        bool                   `json:"deleteFlag"`
+	statusFlag        bool                   // Used to ensure the is_online is always sent first time after a restart
 }
 
 func (d Device) String() string {

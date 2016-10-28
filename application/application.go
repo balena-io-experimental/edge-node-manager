@@ -272,7 +272,7 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 
 		fmt.Println("hdhdh")
 
-		if d.Config == d.TargetConfig {
+		if reflect.DeepEqual(d.Config, d.TargetConfig) {
 			log.WithFields(log.Fields{
 				"Device": d,
 			}).Debug("Device config up to date")
@@ -328,7 +328,7 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 
 		d.SetStatus(status.IDLE)
 
-		if d.Environment == d.TargetEnvironment {
+		if reflect.DeepEqual(d.Environment, d.TargetEnvironment) {
 			log.WithFields(log.Fields{
 				"Device": d,
 			}).Debug("Device environment up to date")
