@@ -247,11 +247,8 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 		}
 
 		if !online {
-			d.SetStatus(status.OFFLINE)
 			return nil
 		}
-
-		d.SetStatus(status.IDLE)
 
 		if reflect.DeepEqual(d.Config, d.TargetConfig) {
 			log.WithFields(log.Fields{
@@ -268,20 +265,16 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting config update")
 
-		d.SetStatus(status.INSTALLING)
-
 		if err := d.Board.UpdateConfig(d.TargetConfig); err != nil {
 			if err.Error() != "Update config not implemented" {
 				log.WithFields(log.Fields{
 					"Name": d.Name,
 				}).Error("Update config failed")
-				d.SetStatus(status.IDLE)
 				return []error{err}
 			}
 		}
 
 		d.Config = d.TargetConfig
-		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,
@@ -301,11 +294,8 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 		}
 
 		if !online {
-			d.SetStatus(status.OFFLINE)
 			return nil
 		}
-
-		d.SetStatus(status.IDLE)
 
 		if reflect.DeepEqual(d.Environment, d.TargetEnvironment) {
 			log.WithFields(log.Fields{
@@ -322,20 +312,16 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting environment update")
 
-		d.SetStatus(status.INSTALLING)
-
 		if err := d.Board.UpdateEnvironment(d.TargetEnvironment); err != nil {
 			if err.Error() != "Update environment not implemented" {
 				log.WithFields(log.Fields{
 					"Name": d.Name,
 				}).Error("Update environment failed")
-				d.SetStatus(status.IDLE)
 				return []error{err}
 			}
 		}
 
 		d.Environment = d.TargetEnvironment
-		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,
