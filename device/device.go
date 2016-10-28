@@ -119,8 +119,8 @@ func (d *Device) Marshall() ([]byte, error) {
 }
 
 func Unmarshall(bytes []byte) (*Device, error) {
-	var d *Device
-	if err := json.Unmarshal(bytes, &d); err != nil {
+	d, err := unmarshall(bytes)
+	if err != nil {
 		return nil, err
 	}
 
@@ -149,26 +149,35 @@ func (d *Device) Sync() []error {
 
 	fmt.Println("YO")
 
-	buffer, err := Unmarshall(bytes)
+	temp, err := unmarshall(bytes)
 	if err != nil {
 		return []error{err}
 	}
 
 	fmt.Println("YO1")
 
-	fmt.Println(buffer)
+	fmt.Println(temp)
 
 	fmt.Println("YO2")
 
-	d.Name = buffer.Name
-	d.TargetConfig = buffer.TargetConfig
-	d.TargetEnvironment = buffer.TargetEnvironment
+	d.Name = temp.Name
+	d.TargetConfig = temp.TargetConfig
+	d.TargetEnvironment = temp.TargetEnvironment
 
 	fmt.Println(d)
 
 	fmt.Println("YO4")
 
 	return nil
+}
+
+func unmarshall(bytes []byte) (*Device, error) {
+	var d *Device
+	if err := json.Unmarshal(bytes, &d); err != nil {
+		return nil, err
+	}
+
+	return d, nil
 }
 
 func (d *Device) putDevice() error {

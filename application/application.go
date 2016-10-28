@@ -387,7 +387,7 @@ func (a *Application) GetDevices() []error {
 		}
 
 		// Sync device with resin
-		if errs := a.Devices[d.LocalUUID].Sync(); err != nil {
+		if errs := a.Devices[d.LocalUUID].Sync(); errs != nil {
 			return errs
 		}
 
