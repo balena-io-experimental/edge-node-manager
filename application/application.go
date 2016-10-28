@@ -270,11 +270,13 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 		d.SetStatus(status.INSTALLING)
 
 		if err := d.Board.UpdateConfig(d.TargetConfig); err != nil {
-			log.WithFields(log.Fields{
-				"Name": d.Name,
-			}).Error("Update config failed")
-			d.SetStatus(status.IDLE)
-			return []error{err}
+			if err.Error() != "Update config not implemented" {
+				log.WithFields(log.Fields{
+					"Name": d.Name,
+				}).Error("Update config failed")
+				d.SetStatus(status.IDLE)
+				return []error{err}
+			}
 		}
 
 		d.Config = d.TargetConfig
@@ -322,11 +324,13 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 		d.SetStatus(status.INSTALLING)
 
 		if err := d.Board.UpdateEnvironment(d.TargetEnvironment); err != nil {
-			log.WithFields(log.Fields{
-				"Name": d.Name,
-			}).Error("Update environment failed")
-			d.SetStatus(status.IDLE)
-			return []error{err}
+			if err.Error() != "Update environment not implemented" {
+				log.WithFields(log.Fields{
+					"Name": d.Name,
+				}).Error("Update environment failed")
+				d.SetStatus(status.IDLE)
+				return []error{err}
+			}
 		}
 
 		d.Environment = d.TargetEnvironment
@@ -391,10 +395,6 @@ func (a *Application) GetDevices() []error {
 		if errs := a.Devices[d.LocalUUID].Sync(); errs != nil {
 			return errs
 		}
-
-		fmt.Println("byeheyeye")
-
-		fmt.Println(a.Devices[d.LocalUUID])
 	}
 
 	return nil
