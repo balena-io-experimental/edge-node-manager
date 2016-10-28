@@ -66,11 +66,13 @@ func Load() []error {
 		application.deleteFlag = true
 	}
 
-	for key := range buffer {
-		ResinUUID := buffer[key].ResinUUID
+	for key, value := range buffer {
+		ResinUUID := value.ResinUUID
 
 		if application, exists := List[ResinUUID]; exists {
 			application.deleteFlag = false
+			application.Name = value.Name
+			application.Config = value.Config
 			continue
 		}
 
@@ -90,8 +92,8 @@ func Load() []error {
 			application.BoardType = (board.Type)(application.Config["BOARD"].(string))
 		}
 
-		if err := application.GetDevices(); err != nil {
-			return []error{err}
+		if errs := application.GetDevices(); errs != nil {
+			return errs
 		}
 	}
 
@@ -363,25 +365,30 @@ func (a *Application) PutDevices() error {
 	return database.PutDevices(a.ResinUUID, buffer)
 }
 
-func (a *Application) GetDevices() error {
+func (a *Application) GetDevices() []error {
 	if a.Devices == nil {
 		a.Devices = make(map[string]*device.Device)
 	}
 
 	buffer, err := database.GetDevices(a.ResinUUID)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
 	for _, bytes := range buffer {
 		d, err := device.Unmarshall(bytes)
 		if err != nil {
-			return err
+			return []error{err}
 		}
 
 		// Only add the device from the DB if it does not already exist
 		if _, exists := a.Devices[d.LocalUUID]; !exists {
 			a.Devices[d.LocalUUID] = d
+		}
+
+		// Sync device with resin
+		if errs := a.Devices[d.LocalUUID].Sync(); err != nil {
+			return errs
 		}
 	}
 

@@ -92,13 +92,26 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 	return d, d.putDevice()
 }
 
-func (d *Device) putDevice() error {
-	bytes, err := d.Marshall()
-	if err != nil {
-		return err
+// Only set the is_online field if the device is_online state has changed
+func (d *Device) SetStatus(newStatus status.Status) []error {
+	oldOnline := true
+	if d.Status == status.OFFLINE {
+		oldOnline = false
 	}
 
-	return database.PutDevice(d.ApplicationUUID, d.LocalUUID, d.ResinUUID, bytes)
+	d.Status = newStatus
+
+	newOnline := true
+	if d.Status == status.OFFLINE {
+		newOnline = false
+	}
+
+	// Send is_online if the status has changed or its the first time after a restart
+	if oldOnline != newOnline || !d.statusFlag {
+		d.statusFlag = true
+		return supervisor.DependantDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
+	}
+	return supervisor.DependantDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
 }
 
 func (d *Device) Marshall() ([]byte, error) {
@@ -124,24 +137,34 @@ func Unmarshall(bytes []byte) (*Device, error) {
 	return d, nil
 }
 
-// Only set the is_online field if the device is_online state has changed
-func (d *Device) SetStatus(newStatus status.Status) []error {
-	oldOnline := true
-	if d.Status == status.OFFLINE {
-		oldOnline = false
+// Sync device with resin to ensure we have the latest values for:
+// - Device name
+// - Device application name
+// - Device target config
+func (d *Device) Sync() []error {
+	bytes, errs := supervisor.DependantDeviceInfo(d.ResinUUID)
+	if errs != nil {
+		return errs
 	}
 
-	d.Status = newStatus
-
-	newOnline := true
-	if d.Status == status.OFFLINE {
-		newOnline = false
+	buffer, err := Unmarshall(bytes)
+	if err != nil {
+		return []error{err}
 	}
 
-	// Send is_online if the status has changed or its the first time after a restart
-	if oldOnline != newOnline || !d.statusFlag {
-		d.statusFlag = true
-		return supervisor.DependantDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
+	d.Name = buffer.Name
+	d.ApplicationName = buffer.ApplicationName
+	d.TargetConfig = buffer.TargetConfig
+	d.TargetEnvironment = buffer.TargetEnvironment
+
+	return nil
+}
+
+func (d *Device) putDevice() error {
+	bytes, err := d.Marshall()
+	if err != nil {
+		return err
 	}
-	return supervisor.DependantDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
+
+	return database.PutDevice(d.ApplicationUUID, d.LocalUUID, d.ResinUUID, bytes)
 }
