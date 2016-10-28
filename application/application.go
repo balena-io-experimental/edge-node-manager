@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"reflect"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
@@ -66,32 +67,35 @@ func Load() []error {
 		application.deleteFlag = true
 	}
 
-	for key := range buffer {
-		ResinUUID := buffer[key].ResinUUID
+	for key, value := range buffer {
+		ResinUUID := value.ResinUUID
 
-		if application, exists := List[ResinUUID]; exists {
+		application, exists := List[ResinUUID]
+
+		if exists {
 			application.deleteFlag = false
-			continue
+			application.Config = value.Config
+		} else {
+			List[ResinUUID] = &buffer[key]
+			application := List[ResinUUID]
+
+			// Start temporary
+			if ResinUUID == 14539 {
+				application.Config["BOARD"] = "micro:bit"
+			}
+			if ResinUUID == 14495 {
+				application.Config["BOARD"] = "nRF51822-DK"
+			}
+			// End temporary
+
+			if _, exists := application.Config["BOARD"]; exists {
+				application.BoardType = (board.Type)(application.Config["BOARD"].(string))
+			}
 		}
 
-		List[ResinUUID] = &buffer[key]
-		application := List[ResinUUID]
-
-		// Start temporary
-		if ResinUUID == 14539 {
-			application.Config["BOARD"] = "micro:bit"
-		}
-		if ResinUUID == 14495 {
-			application.Config["BOARD"] = "nRF51822-DK"
-		}
-		// End temporary
-
-		if _, exists := application.Config["BOARD"]; exists {
-			application.BoardType = (board.Type)(application.Config["BOARD"].(string))
-		}
-
-		if err := application.GetDevices(); err != nil {
-			return []error{err}
+		application = List[ResinUUID]
+		if errs := application.GetDevices(); errs != nil {
+			return errs
 		}
 	}
 
@@ -243,13 +247,10 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 		}
 
 		if !online {
-			d.SetStatus(status.OFFLINE)
 			return nil
 		}
 
-		d.SetStatus(status.IDLE)
-
-		if d.Config == d.TargetConfig {
+		if reflect.DeepEqual(d.Config, d.TargetConfig) {
 			log.WithFields(log.Fields{
 				"Device": d,
 			}).Debug("Device config up to date")
@@ -264,18 +265,16 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting config update")
 
-		d.SetStatus(status.INSTALLING)
-
 		if err := d.Board.UpdateConfig(d.TargetConfig); err != nil {
-			log.WithFields(log.Fields{
-				"Name": d.Name,
-			}).Error("Update config failed")
-			d.SetStatus(status.IDLE)
-			return []error{err}
+			if err.Error() != "Update config not implemented" {
+				log.WithFields(log.Fields{
+					"Name": d.Name,
+				}).Error("Update config failed")
+				return []error{err}
+			}
 		}
 
 		d.Config = d.TargetConfig
-		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,
@@ -295,13 +294,10 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 		}
 
 		if !online {
-			d.SetStatus(status.OFFLINE)
 			return nil
 		}
 
-		d.SetStatus(status.IDLE)
-
-		if d.Environment == d.TargetEnvironment {
+		if reflect.DeepEqual(d.Environment, d.TargetEnvironment) {
 			log.WithFields(log.Fields{
 				"Device": d,
 			}).Debug("Device environment up to date")
@@ -316,18 +312,16 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 			"Name": d.Name,
 		}).Info("Starting environment update")
 
-		d.SetStatus(status.INSTALLING)
-
 		if err := d.Board.UpdateEnvironment(d.TargetEnvironment); err != nil {
-			log.WithFields(log.Fields{
-				"Name": d.Name,
-			}).Error("Update environment failed")
-			d.SetStatus(status.IDLE)
-			return []error{err}
+			if err.Error() != "Update environment not implemented" {
+				log.WithFields(log.Fields{
+					"Name": d.Name,
+				}).Error("Update environment failed")
+				return []error{err}
+			}
 		}
 
 		d.Environment = d.TargetEnvironment
-		d.SetStatus(status.IDLE)
 
 		log.WithFields(log.Fields{
 			"Name": d.Name,
@@ -363,25 +357,30 @@ func (a *Application) PutDevices() error {
 	return database.PutDevices(a.ResinUUID, buffer)
 }
 
-func (a *Application) GetDevices() error {
+func (a *Application) GetDevices() []error {
 	if a.Devices == nil {
 		a.Devices = make(map[string]*device.Device)
 	}
 
 	buffer, err := database.GetDevices(a.ResinUUID)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
 	for _, bytes := range buffer {
 		d, err := device.Unmarshall(bytes)
 		if err != nil {
-			return err
+			return []error{err}
 		}
 
 		// Only add the device from the DB if it does not already exist
 		if _, exists := a.Devices[d.LocalUUID]; !exists {
 			a.Devices[d.LocalUUID] = d
+		}
+
+		// Sync device with resin
+		if errs := a.Devices[d.LocalUUID].Sync(); errs != nil {
+			return errs
 		}
 	}
 
