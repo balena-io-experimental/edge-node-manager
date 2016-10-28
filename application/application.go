@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"reflect"
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
@@ -251,6 +252,16 @@ func (a *Application) UpdateConfigOnlineDevices() []error {
 		}
 
 		d.SetStatus(status.IDLE)
+
+		fmt.Println("YO")
+
+		fmt.Println(d.Config)
+		fmt.Println(d.TargetConfig)
+
+		fmt.Println(reflect.TypeOf(d.Config))
+		fmt.Println(reflect.TypeOf(d.TargetConfig))
+
+		fmt.Println("here")
 
 		if d.Config == d.TargetConfig {
 			log.WithFields(log.Fields{
