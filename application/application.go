@@ -358,6 +358,7 @@ func (a *Application) PutDevices() error {
 }
 
 func (a *Application) GetDevices() []error {
+
 	if a.Devices == nil {
 		a.Devices = make(map[string]*device.Device)
 	}
