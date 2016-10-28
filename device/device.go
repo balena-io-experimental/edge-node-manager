@@ -147,14 +147,26 @@ func (d *Device) Sync() []error {
 		return errs
 	}
 
+	fmt.Println("YO")
+
 	buffer, err := Unmarshall(bytes)
 	if err != nil {
 		return []error{err}
 	}
 
+	fmt.Println("YO1")
+
+	fmt.Println(buffer)
+
+	fmt.Println("YO2")
+
 	d.Name = buffer.Name
 	d.TargetConfig = buffer.TargetConfig
 	d.TargetEnvironment = buffer.TargetEnvironment
+
+	fmt.Println(d)
+
+	fmt.Println("YO4")
 
 	return nil
 }

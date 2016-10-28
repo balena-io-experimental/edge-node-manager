@@ -394,6 +394,10 @@ func (a *Application) GetDevices() []error {
 		if errs := a.Devices[d.LocalUUID].Sync(); err != nil {
 			return errs
 		}
+
+		fmt.Println("byeheyeye")
+
+		fmt.Println(a.Devices[d.LocalUUID])
 	}
 
 	return nil
