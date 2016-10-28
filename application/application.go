@@ -92,7 +92,8 @@ func Load() []error {
 			}
 		}
 
-		if errs := List[ResinUUID].GetDevices(); errs != nil {
+		application = List[ResinUUID]
+		if errs := application.GetDevices(); errs != nil {
 			return errs
 		}
 	}
