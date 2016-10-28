@@ -364,8 +364,6 @@ func (a *Application) PutDevices() error {
 }
 
 func (a *Application) GetDevices() error {
-	//Sync with cloud
-
 	if a.Devices == nil {
 		a.Devices = make(map[string]*device.Device)
 	}
