@@ -52,8 +52,18 @@ func Run(a *application.Application) []error {
 		return errs
 	}
 
-	// Update all online devices associated with this application
+	// Update firmware for all online devices associated with this application
 	if errs := a.UpdateOnlineDevices(); errs != nil {
+		return errs
+	}
+
+	// Update config for all online devices associated with this application
+	if errs := a.UpdateConfigOnlineDevices(); errs != nil {
+		return errs
+	}
+
+	// Update environment for all online devices associated with this application
+	if errs := a.UpdateEnvironmentOnlineDevices(); errs != nil {
 		return errs
 	}
 

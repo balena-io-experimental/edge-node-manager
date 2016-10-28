@@ -13,23 +13,25 @@ import (
 )
 
 type Device struct {
-	Log             *logrus.Logger  `json:"-"`
-	Board           board.Interface `json:"-"`
-	Name            string          `json:"name"`
-	BoardType       board.Type      `json:"boardType"`
-	LocalUUID       string          `json:"localUUID"`
-	ResinUUID       string          `json:"resinUUID"`
-	ApplicationUUID int             `json:"applicationUUID"`
-	ApplicationName string          `json:"applicationName"`
-	Commit          string          `json:"commit"`
-	TargetCommit    string          `json:"targetCommit"`
-	Status          status.Status   `json:"status"`
-	Progress        float32         `json:"progress"`
-	Config          interface{}     `json:"config"`
-	Environment     interface{}     `json:"environment"`
-	RestartFlag     bool            `json:"restartFlag"`
-	DeleteFlag      bool            `json:"deleteFlag"`
-	statusFlag      bool            // Used to ensure the is_online is always sent first time after a restart
+	Log               *logrus.Logger  `json:"-"`
+	Board             board.Interface `json:"-"`
+	Name              string          `json:"name"`
+	BoardType         board.Type      `json:"boardType"`
+	LocalUUID         string          `json:"localUUID"`
+	ResinUUID         string          `json:"resinUUID"`
+	ApplicationUUID   int             `json:"applicationUUID"`
+	ApplicationName   string          `json:"applicationName"`
+	Commit            string          `json:"commit"`
+	TargetCommit      string          `json:"targetCommit"`
+	Status            status.Status   `json:"status"`
+	Progress          float32         `json:"progress"`
+	Config            interface{}     `json:"config"`
+	TargetConfig      interface{}     `json:"targetConfig"`
+	Environment       interface{}     `json:"environment"`
+	TargetEnvironment interface{}     `json:"targetEnvironment"`
+	RestartFlag       bool            `json:"restartFlag"`
+	DeleteFlag        bool            `json:"deleteFlag"`
+	statusFlag        bool            // Used to ensure the is_online is always sent first time after a restart
 }
 
 func (d Device) String() string {
@@ -45,7 +47,9 @@ func (d Device) String() string {
 			"Status: %s, "+
 			"Progress: %2.2f, "+
 			"Config: %v, "+
-			"Environment: %v",
+			"Target config: %v, "+
+			"Environment: %v, "+
+			"Target environment: %v",
 		d.Name,
 		d.BoardType,
 		d.LocalUUID,
@@ -57,10 +61,12 @@ func (d Device) String() string {
 		d.Status,
 		d.Progress,
 		d.Config,
-		d.Environment)
+		d.TargetConfig,
+		d.Environment,
+		d.TargetEnvironment)
 }
 
-func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string, config, environment interface{}) (*Device, error) {
+func Create(boardType board.Type, name, localUUID, resinUUID string, applicationUUID int, applicationName, targetCommit string) (*Device, error) {
 	log := hook.Create(resinUUID)
 
 	board, err := board.Create(boardType, localUUID, log)
@@ -81,8 +87,6 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 		TargetCommit:    targetCommit,
 		Status:          status.OFFLINE,
 		Progress:        0.0,
-		Config:          config,
-		Environment:     environment,
 	}
 
 	return d, d.putDevice()
