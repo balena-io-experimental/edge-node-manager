@@ -22,6 +22,8 @@ type Interface interface {
 	Online() (bool, error)
 	Restart() error
 	Identify() error
+	UpdateConfig(interface{}) error
+	UpdateEnvironment(interface{}) error
 }
 
 func Create(boardType Type, localUUID string, log *logrus.Logger) (Interface, error) {

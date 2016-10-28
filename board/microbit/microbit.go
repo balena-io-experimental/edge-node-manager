@@ -111,6 +111,14 @@ func (b Microbit) Identify() error {
 	return b.Micro.ProcessRequest(b.identifyOnPeriphConnected)
 }
 
+func (b Microbit) UpdateConfig(config interface{}) error {
+	return fmt.Errorf("Update config not implemented")
+}
+
+func (b Microbit) UpdateEnvironment(config interface{}) error {
+	return fmt.Errorf("Update envionment not implemented")
+}
+
 func (b Microbit) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 

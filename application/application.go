@@ -30,7 +30,7 @@ type Application struct {
 	FilePath      string                    `json:"-"`
 	Devices       map[string]*device.Device `json:"-"` // Key is the device's localUUID
 	OnlineDevices map[string]bool           `json:"-"` // Key is the device's localUUID
-	deleteFlag    bool
+	deleteFlag    bool                      //Mark an application for deletion
 }
 
 func (a Application) String() string {
@@ -144,12 +144,12 @@ func (a *Application) ProvisionDevices() []error {
 			"Local UUID": localUUID,
 		}).Info("Provisioning device")
 
-		resinUUID, name, config, env, errs := supervisor.DependantDeviceProvision(a.ResinUUID)
+		resinUUID, name, errs := supervisor.DependantDeviceProvision(a.ResinUUID)
 		if errs != nil {
 			return errs
 		}
 
-		d, err := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit, config, env)
+		d, err := device.Create(a.BoardType, name, localUUID, resinUUID, a.ResinUUID, a.Name, a.Commit)
 		if err != nil {
 			return []error{err}
 		}
@@ -233,6 +233,110 @@ func (a *Application) UpdateOnlineDevices() []error {
 	return nil
 }
 
+func (a *Application) UpdateConfigOnlineDevices() []error {
+	for localUUID := range a.OnlineDevices {
+		d := a.Devices[localUUID]
+
+		online, err := d.Board.Online()
+		if err != nil {
+			return []error{err}
+		}
+
+		if !online {
+			d.SetStatus(status.OFFLINE)
+			return nil
+		}
+
+		d.SetStatus(status.IDLE)
+
+		if d.Config == d.TargetConfig {
+			log.WithFields(log.Fields{
+				"Device": d,
+			}).Debug("Device config up to date")
+			continue
+		}
+
+		log.WithFields(log.Fields{
+			"Device": d,
+		}).Debug("Device config not up to date")
+
+		log.WithFields(log.Fields{
+			"Name": d.Name,
+		}).Info("Starting config update")
+
+		d.SetStatus(status.INSTALLING)
+
+		if err := d.Board.UpdateConfig(d.TargetConfig); err != nil {
+			log.WithFields(log.Fields{
+				"Name": d.Name,
+			}).Error("Update config failed")
+			d.SetStatus(status.IDLE)
+			return []error{err}
+		}
+
+		d.Config = d.TargetConfig
+		d.SetStatus(status.IDLE)
+
+		log.WithFields(log.Fields{
+			"Name": d.Name,
+		}).Info("Finished config update")
+	}
+
+	return nil
+}
+
+func (a *Application) UpdateEnvironmentOnlineDevices() []error {
+	for localUUID := range a.OnlineDevices {
+		d := a.Devices[localUUID]
+
+		online, err := d.Board.Online()
+		if err != nil {
+			return []error{err}
+		}
+
+		if !online {
+			d.SetStatus(status.OFFLINE)
+			return nil
+		}
+
+		d.SetStatus(status.IDLE)
+
+		if d.Environment == d.TargetEnvironment {
+			log.WithFields(log.Fields{
+				"Device": d,
+			}).Debug("Device environment up to date")
+			continue
+		}
+
+		log.WithFields(log.Fields{
+			"Device": d,
+		}).Debug("Device environment not up to date")
+
+		log.WithFields(log.Fields{
+			"Name": d.Name,
+		}).Info("Starting environment update")
+
+		d.SetStatus(status.INSTALLING)
+
+		if err := d.Board.UpdateEnvironment(d.TargetEnvironment); err != nil {
+			log.WithFields(log.Fields{
+				"Name": d.Name,
+			}).Error("Update environment failed")
+			d.SetStatus(status.IDLE)
+			return []error{err}
+		}
+
+		d.Environment = d.TargetEnvironment
+		d.SetStatus(status.IDLE)
+
+		log.WithFields(log.Fields{
+			"Name": d.Name,
+		}).Info("Finished environment update")
+	}
+
+	return nil
+}
+
 func (a *Application) HandleFlags() error {
 	if err := a.handleRestartFlag(); err != nil {
 		return err
@@ -260,7 +364,11 @@ func (a *Application) PutDevices() error {
 }
 
 func (a *Application) GetDevices() error {
-	a.Devices = make(map[string]*device.Device)
+	//Sync with cloud
+
+	if a.Devices == nil {
+		a.Devices = make(map[string]*device.Device)
+	}
 
 	buffer, err := database.GetDevices(a.ResinUUID)
 	if err != nil {
@@ -273,7 +381,10 @@ func (a *Application) GetDevices() error {
 			return err
 		}
 
-		a.Devices[d.LocalUUID] = d
+		// Only add the device from the DB if it does not already exist
+		if _, exists := a.Devices[d.LocalUUID]; !exists {
+			a.Devices[d.LocalUUID] = d
+		}
 	}
 
 	return nil

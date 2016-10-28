@@ -235,7 +235,7 @@ func DependantDeviceInfo(UUID string) ([]byte, []error) {
 	return body, nil
 }
 
-func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, config, env interface{}, errs []error) {
+func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, errs []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
 		errs = []error{err}
@@ -282,14 +282,6 @@ func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, conf
 
 	resinUUID = buffer["uuid"].(string)
 	name = buffer["name"].(string)
-
-	if _, ok := buffer["config"].(interface{}); ok {
-		config = buffer["config"]
-	}
-
-	if _, ok := buffer["environment"].(interface{}); ok {
-		env = buffer["environment"]
-	}
 
 	return
 }

@@ -110,6 +110,14 @@ func (b Nrf51822dk) Identify() error {
 	return b.Micro.ProcessRequest(b.identifyOnPeriphConnected)
 }
 
+func (b Nrf51822dk) UpdateConfig(config interface{}) error {
+	return fmt.Errorf("Update config not implemented")
+}
+
+func (b Nrf51822dk) UpdateEnvironment(config interface{}) error {
+	return fmt.Errorf("Update environment not implemented")
+}
+
 func (b Nrf51822dk) bootloadOnPeriphConnected(periph gatt.Peripheral, err error) {
 	defer periph.Device().CancelConnection(periph)
 
