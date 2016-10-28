@@ -139,8 +139,8 @@ func Unmarshall(bytes []byte) (*Device, error) {
 
 // Sync device with resin to ensure we have the latest values for:
 // - Device name
-// - Device application name
 // - Device target config
+// - Device target environment
 func (d *Device) Sync() []error {
 	bytes, errs := supervisor.DependantDeviceInfo(d.ResinUUID)
 	if errs != nil {
@@ -153,7 +153,6 @@ func (d *Device) Sync() []error {
 	}
 
 	d.Name = buffer.Name
-	d.ApplicationName = buffer.ApplicationName
 	d.TargetConfig = buffer.TargetConfig
 	d.TargetEnvironment = buffer.TargetEnvironment
 

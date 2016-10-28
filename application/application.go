@@ -71,8 +71,12 @@ func Load() []error {
 
 		if application, exists := List[ResinUUID]; exists {
 			application.deleteFlag = false
-			application.Name = value.Name
 			application.Config = value.Config
+
+			if errs := application.GetDevices(); errs != nil {
+				return errs
+			}
+
 			continue
 		}
 
