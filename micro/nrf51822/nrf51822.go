@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"strconv"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/mholt/archiver"
 	"github.com/paypal/gatt"
 	"github.com/resin-io/edge-node-manager/radio/bluetooth"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // Firmware-over-the-air update info
@@ -36,6 +36,7 @@ const (
 // Nrf51822 is a BLE SoC from Nordic
 // https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822
 type Nrf51822 struct {
+	Log              *logrus.Logger
 	LocalUUID        string
 	Fota             FOTA
 	ConnectedChannel chan bool
@@ -44,7 +45,6 @@ type Nrf51822 struct {
 }
 
 type FOTA struct {
-	progress     float32
 	currentBlock int
 	binary       []byte
 	data         []byte
@@ -52,6 +52,12 @@ type FOTA struct {
 }
 
 func (m *Nrf51822) ExtractFirmware(filePath, bin, dat string) error {
+	m.Log.WithFields(logrus.Fields{
+		"Firmware path": filePath,
+		"Bin":           bin,
+		"Dat":           dat,
+	}).Debug("Extracting firmware")
+
 	if err := archiver.Unzip(path.Join(filePath, "application.zip"), filePath); err != nil {
 		return err
 	}
@@ -69,6 +75,10 @@ func (m *Nrf51822) ExtractFirmware(filePath, bin, dat string) error {
 	}
 
 	m.Fota.size = len(m.Fota.binary)
+
+	m.Log.WithFields(logrus.Fields{
+		"Size": m.Fota.size,
+	}).Info("Extracted firmware")
 
 	return nil
 }
@@ -89,9 +99,9 @@ func (m *Nrf51822) ProcessRequest(f func(gatt.Peripheral, error)) error {
 		case savedErr = <-m.ErrChannel:
 		case connected := <-m.ConnectedChannel:
 			if connected {
-				log.Debug("Connected")
+				m.Log.Debug("Connected")
 			} else {
-				log.Debug("Disconnected")
+				m.Log.Debug("Disconnected")
 				return savedErr
 			}
 		}
@@ -168,7 +178,7 @@ func (m *Nrf51822) WriteDFUControlPoint(periph gatt.Peripheral, value []byte, no
 }
 
 func (m *Nrf51822) checkFOTA(periph gatt.Peripheral) error {
-	log.Debug("Checking FOTA")
+	m.Log.Debug("Checking FOTA")
 
 	if err := m.EnableCCCD(periph); err != nil {
 		return err
@@ -188,7 +198,7 @@ func (m *Nrf51822) checkFOTA(periph gatt.Peripheral) error {
 		return err
 	}
 
-	log.WithFields(log.Fields{
+	m.Log.WithFields(logrus.Fields{
 		"Start block": m.Fota.currentBlock,
 	}).Debug("Checked FOTA")
 
@@ -196,7 +206,7 @@ func (m *Nrf51822) checkFOTA(periph gatt.Peripheral) error {
 }
 
 func (m *Nrf51822) initFOTA(periph gatt.Peripheral) error {
-	log.Debug("Initialising FOTA")
+	m.Log.Debug("Initialising FOTA")
 
 	if err := m.EnableCCCD(periph); err != nil {
 		return err
@@ -245,7 +255,7 @@ func (m *Nrf51822) initFOTA(periph gatt.Peripheral) error {
 		return err
 	}
 
-	log.Debug("Initialised FOTA")
+	m.Log.Debug("Initialised FOTA")
 
 	return nil
 }
@@ -259,12 +269,9 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 		blockCounter += (m.Fota.currentBlock / blockSize)
 	}
 
-	m.Fota.progress = ((float32)(m.Fota.currentBlock) / (float32)(m.Fota.size)) * 100.0
-
-	log.WithFields(log.Fields{
-		"Block counter": blockCounter,
-		"Progress %":    m.Fota.progress,
-	}).Debug("Transferring FOTA")
+	m.Log.WithFields(logrus.Fields{
+		"Progress": m.getProgress(),
+	}).Info("Transferring FOTA")
 
 	notifyChannel, err := m.initNotify(periph)
 	if err != nil {
@@ -293,27 +300,21 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 				return fmt.Errorf("Incorrect notification received")
 			}
 
-			currentBlock, err := m.unpack(resp[1:])
-			if err != nil {
+			if m.Fota.currentBlock, err = m.unpack(resp[1:]); err != nil {
 				return err
 			}
 
-			if (i + blockSize) != currentBlock {
+			if (i + blockSize) != m.Fota.currentBlock {
 				return fmt.Errorf("FOTA transer out of sync")
 			}
 
-			m.Fota.progress = ((float32)(currentBlock) / (float32)(m.Fota.size)) * 100.0
-
-			log.WithFields(log.Fields{
-				"Block counter": blockCounter,
-				"Progress %":    m.Fota.progress,
-			}).Debug("Transferring FOTA")
+			m.Log.WithFields(logrus.Fields{
+				"Progress": m.getProgress(),
+			}).Info("Transferring FOTA")
 		}
 
 		blockCounter++
 	}
-
-	m.Fota.progress = 100
 
 	resp, err := m.timeoutNotify(notifyChannel)
 	if err != nil {
@@ -324,16 +325,15 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	log.WithFields(log.Fields{
-		"Block counter": blockCounter,
-		"Progress %":    m.Fota.progress,
-	}).Debug("Transferred FOTA")
+	m.Log.WithFields(logrus.Fields{
+		"Progress": "100%",
+	}).Info("Transferring FOTA")
 
 	return nil
 }
 
 func (m *Nrf51822) validateFOTA(periph gatt.Peripheral) error {
-	log.Debug("Validating FOTA")
+	m.Log.Debug("Validating FOTA")
 
 	if err := m.checkFOTA(periph); err != nil {
 		return err
@@ -352,19 +352,19 @@ func (m *Nrf51822) validateFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	log.Debug("Validated FOTA")
+	m.Log.Debug("Validated FOTA")
 
 	return nil
 }
 
 func (m Nrf51822) finaliseFOTA(periph gatt.Peripheral) error {
-	log.Debug("Finalising FOTA")
+	m.Log.Debug("Finalising FOTA")
 
 	if err := m.WriteDFUControlPoint(periph, []byte{Activate}, false); err != nil {
 		return err
 	}
 
-	log.Debug("Finalised FOTA")
+	m.Log.Debug("Finalised FOTA")
 
 	return nil
 }
@@ -428,7 +428,7 @@ func (m *Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
 		case <-time.After(10 * time.Second):
 			return nil, fmt.Errorf("Timed out waiting for notification")
 		case resp := <-notifyChannel:
-			log.WithFields(log.Fields{
+			m.Log.WithFields(logrus.Fields{
 				"[0]": resp[0],
 				"[1]": resp[1],
 				"[2]": resp[2],
@@ -460,4 +460,8 @@ func (m *Nrf51822) pack() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (m *Nrf51822) getProgress() string {
+	return strconv.Itoa((int)(((float32)(m.Fota.currentBlock)/(float32)(m.Fota.size))*100.0)) + "%"
 }

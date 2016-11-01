@@ -70,14 +70,6 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 
 	application.List[applicationUUID].Devices[localUUID].DeleteFlag = true
 
-	if err := database.DeleteDevice(applicationUUID, deviceUUID); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to delete device")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	w.WriteHeader(http.StatusOK)
 
 	log.WithFields(log.Fields{
