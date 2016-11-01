@@ -111,10 +111,16 @@ func (b Nrf51822dk) Identify() error {
 }
 
 func (b Nrf51822dk) UpdateConfig(config interface{}) error {
+	b.Log.WithFields(logrus.Fields{
+		"Config": config,
+	}).Info("Updating config...")
 	return fmt.Errorf("Update config not implemented")
 }
 
 func (b Nrf51822dk) UpdateEnvironment(config interface{}) error {
+	b.Log.WithFields(logrus.Fields{
+		"Config": config,
+	}).Info("Updating environment...")
 	return fmt.Errorf("Update environment not implemented")
 }
 
