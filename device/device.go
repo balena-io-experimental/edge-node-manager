@@ -24,14 +24,14 @@ type Device struct {
 	Commit            string                 `json:"commit"`
 	TargetCommit      string                 `json:"targetCommit"`
 	Status            status.Status          `json:"status"`
-	Progress          float32                `json:"progress"`
+	Progress          float32                `json:"-"`
 	Config            map[string]interface{} `json:"config"`
 	TargetConfig      map[string]interface{} `json:"targetConfig"`
 	Environment       map[string]interface{} `json:"environment"`
 	TargetEnvironment map[string]interface{} `json:"targetEnvironment"`
 	RestartFlag       bool                   `json:"restartFlag"`
 	DeleteFlag        bool                   `json:"deleteFlag"`
-	statusFlag        bool                   // Used to ensure the is_online is always sent first time after a restart
+	StatusFlag        bool                   `json:"-"` // Used to ensure the is_online is always sent first time after a restart
 }
 
 func (d Device) String() string {

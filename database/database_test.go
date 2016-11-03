@@ -48,33 +48,6 @@ func TestWritesReads(t *testing.T) {
 	tearDown()
 }
 
-func TestWriteReads(t *testing.T) {
-	setUp()
-
-	err := Write("parent", "child", M)
-	ok(t, err)
-
-	m, err := Reads("parent")
-	ok(t, err)
-	equals(t, M, m[0])
-	equals(t, len(m), 1)
-
-	tearDown()
-}
-
-func TestWritesRead(t *testing.T) {
-	setUp()
-
-	err := Writes("parent", "key", A)
-	ok(t, err)
-
-	m, err := Read("parent", "0")
-	ok(t, err)
-	equals(t, A[0], m)
-
-	tearDown()
-}
-
 func TestWriteFieldReadField(t *testing.T) {
 	setUp()
 
@@ -104,16 +77,75 @@ func TestWritesFieldReadsField(t *testing.T) {
 
 	f, err := ReadsField("parent", "key")
 	ok(t, err)
-	equals(t, f["child1"], []byte("changed"))
-	equals(t, f["child2"], []byte("changed"))
+	equals(t, []byte("changed"), f["child1"])
+	equals(t, []byte("changed"), f["child2"])
 
 	tearDown()
 }
 
-//WriteFieldReadsField
-//WritesFieldReadField
-//Delete
-//Deletes
+func TestWriteMappingReadMapping(t *testing.T) {
+	setUp()
+
+	err := WriteMapping("parent", M)
+	ok(t, err)
+
+	m, err := ReadMapping("parent")
+	ok(t, err)
+	equals(t, M, m)
+
+	tearDown()
+}
+
+func TestDelete(t *testing.T) {
+	setUp()
+
+	err := Write("parent", "child", M)
+	ok(t, err)
+
+	err = Delete("parent", "child")
+	ok(t, err)
+
+	m, err := Read("parent", "child")
+	equals(t, "Bucket child not found", err.Error())
+	equals(t, 0, len(m))
+
+	tearDown()
+}
+
+func TestDeletes(t *testing.T) {
+	setUp()
+
+	err := Write("parent", "child1", M)
+	ok(t, err)
+
+	err = Write("parent", "child2", M)
+	ok(t, err)
+
+	err = Deletes("parent")
+	ok(t, err)
+
+	m, err := Read("parent", "child")
+	equals(t, "Bucket parent not found", err.Error())
+	equals(t, 0, len(m))
+
+	tearDown()
+}
+
+func TestDeleteMapping(t *testing.T) {
+	setUp()
+
+	err := WriteMapping("parent", M)
+	ok(t, err)
+
+	err = DeleteMapping("parent")
+	ok(t, err)
+
+	m, err := ReadMapping("parent")
+	equals(t, "Bucket parent not found", err.Error())
+	equals(t, 0, len(m))
+
+	tearDown()
+}
 
 func createMap(key int) map[string][]byte {
 	type enum string
@@ -164,14 +196,6 @@ func equals(tb testing.TB, exp, act interface{}) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
-		tb.FailNow()
-	}
-}
-
-func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
-	if !condition {
-		_, file, line, _ := runtime.Caller(1)
-		fmt.Printf("\033[31m%s:%d: "+msg+"\033[39m\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
 		tb.FailNow()
 	}
 }
