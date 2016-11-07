@@ -90,6 +90,9 @@ func init() {
 		}).Fatal("Unable to load pause delay")
 	}
 
+	CurrentStatus = status.RUNNING
+	TargetStatus = status.RUNNING
+
 	log.WithFields(log.Fields{
 		"Pause delay": delay,
 	}).Debug("Initialise process")

@@ -102,9 +102,14 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func SetStatus(w http.ResponseWriter, r *http.Request) {
-	var buffer map[string]interface{}
+	type s struct {
+		CurrentStatus status.Status `json:"current"`
+		TargetStatus  status.Status `json:"target"`
+	}
+
+	var content *s
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&buffer); err != nil {
+	if err := decoder.Decode(&content); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to decode status hook")
@@ -112,7 +117,7 @@ func SetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	process.TargetStatus = buffer["target"].(status.Status)
+	process.TargetStatus = content.TargetStatus
 
 	w.WriteHeader(http.StatusOK)
 
