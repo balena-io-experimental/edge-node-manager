@@ -148,7 +148,6 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytes)
-	w.WriteHeader(http.StatusOK)
 
 	log.WithFields(log.Fields{
 		"Target status": process.TargetStatus,
