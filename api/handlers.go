@@ -154,3 +154,31 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 		"Curent status": process.CurrentStatus,
 	}).Debug("Get status")
 }
+
+func Pending(w http.ResponseWriter, r *http.Request) {
+	type p struct {
+		Pending bool `json:"pending"`
+	}
+
+	pending := process.Pending()
+
+	content := &p{
+		Pending: pending,
+	}
+
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to encode pending hook")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(bytes)
+
+	log.WithFields(log.Fields{
+		"Pending": pending,
+	}).Debug("Get status")
+}

@@ -80,6 +80,18 @@ func Run(a *application.Application) []error {
 	return nil
 }
 
+func Pending() bool {
+	for _, a := range application.List {
+		for _, d := range a.Devices {
+			if d.Commit != d.TargetCommit {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func init() {
 	log.SetLevel(config.GetLogLevel())
 
