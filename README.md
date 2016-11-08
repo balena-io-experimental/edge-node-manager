@@ -108,13 +108,9 @@ ENM_API_VERSION | `v1` | `v1` | The supervisor API version.
  - Follow the readme for the supported board you would like to use
 
 ## API
-The edge-node-manager provides an API that allows the user to set the target status of the main process. This can be useful for a couple of reasons:
+The edge-node-manager provides an API that allows the user to set the target status of the main process and to check whether there are updates pending. This can be useful for a couple of reasons:
  - Ensure the edge-node-manager process is not running during an update of the user container
  - Free up the on-board radios to allow user code to interact directly with the dependent devices e.g. to collect sensor data
-
-### States
- - `Running`
- - `Paused`
 
 ### SET /v1/enm/status
 Set the edge-node-manager process status.
@@ -145,6 +141,23 @@ HTTP/1.1 200 OK
     "target":"Paused"
 }
 ```
+
+### Get /v1/enm/pending
+Get the edge-node-manager updates pending status.
+
+#### Example
+```
+curl -X GET http://127.0.0.1:1337/v1/enm/pending
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+{
+    "pending":true
+}
+```
+
 
 ## Dependent devices
 ### Supported dependant devices
