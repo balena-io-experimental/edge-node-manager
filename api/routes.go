@@ -44,4 +44,10 @@ var routes = Routes{
 		"/v1/enm/status",
 		GetStatus,
 	},
+	Route{
+		"Pending",
+		"GET",
+		"/v1/enm/pending",
+		Pending,
+	},
 }

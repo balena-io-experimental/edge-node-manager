@@ -6,13 +6,14 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/resin-io/edge-node-manager/application"
 	"github.com/resin-io/edge-node-manager/config"
-	"github.com/resin-io/edge-node-manager/process/status"
+	deviceStatus "github.com/resin-io/edge-node-manager/device/status"
+	processStatus "github.com/resin-io/edge-node-manager/process/status"
 )
 
 var (
 	delay         time.Duration
-	CurrentStatus status.Status
-	TargetStatus  status.Status
+	CurrentStatus processStatus.Status
+	TargetStatus  processStatus.Status
 )
 
 // Run processes the application, checking for new commits, provisioning and updating devices
@@ -80,6 +81,18 @@ func Run(a *application.Application) []error {
 	return nil
 }
 
+func Pending() bool {
+	for _, a := range application.List {
+		for _, d := range a.Devices {
+			if d.Commit != d.TargetCommit && d.Status != deviceStatus.OFFLINE {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func init() {
 	log.SetLevel(config.GetLogLevel())
 
@@ -90,26 +103,29 @@ func init() {
 		}).Fatal("Unable to load pause delay")
 	}
 
+	CurrentStatus = processStatus.RUNNING
+	TargetStatus = processStatus.RUNNING
+
 	log.WithFields(log.Fields{
 		"Pause delay": delay,
 	}).Debug("Initialise process")
 }
 
 func pause() {
-	if TargetStatus != status.PAUSED {
+	if TargetStatus != processStatus.PAUSED {
 		return
 	}
 
-	CurrentStatus = status.PAUSED
+	CurrentStatus = processStatus.PAUSED
 	log.WithFields(log.Fields{
 		"Status": CurrentStatus,
 	}).Info("Process status")
 
-	for TargetStatus == status.PAUSED {
+	for TargetStatus == processStatus.PAUSED {
 		time.Sleep(delay * time.Second)
 	}
 
-	CurrentStatus = status.RUNNING
+	CurrentStatus = processStatus.RUNNING
 	log.WithFields(log.Fields{
 		"Status": CurrentStatus,
 	}).Info("Process status")
