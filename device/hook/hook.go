@@ -14,7 +14,7 @@ type Hook struct {
 
 func (h *Hook) Fire(entry *logrus.Entry) error {
 	serialised, _ := entry.Logger.Formatter.Format(entry)
-	supervisor.DependantDeviceLog(h.ResinUUID, (string)(serialised))
+	supervisor.DependentDeviceLog(h.ResinUUID, (string)(serialised))
 
 	return nil
 }
