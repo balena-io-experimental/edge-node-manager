@@ -13,21 +13,21 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
+func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
-	type dependantDeviceUpdate struct {
+	type dependentDeviceUpdate struct {
 		Commit      string      `json:"commit"`
 		Environment interface{} `json:"environment"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	var content dependantDeviceUpdate
+	var content dependentDeviceUpdate
 	if err := decoder.Decode(&content); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to decode Dependant device update hook")
+		}).Error("Unable to decode Dependent device update hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -51,10 +51,10 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		"DeviceUUID":      deviceUUID,
 		"LocalUUID":       localUUID,
 		"Target commit":   content.Commit,
-	}).Debug("Dependant device update hook")
+	}).Debug("Dependent device update hook")
 }
 
-func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
+func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
@@ -76,10 +76,10 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 		"ApplicationUUID": applicationUUID,
 		"DeviceUUID":      deviceUUID,
 		"LocalUUID":       localUUID,
-	}).Debug("Dependant device delete hook")
+	}).Debug("Dependent device delete hook")
 }
 
-func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
+func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
@@ -98,7 +98,7 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 
 	log.WithFields(log.Fields{
 		"UUID": deviceUUID,
-	}).Debug("Dependant device restart hook")
+	}).Debug("Dependent device restart hook")
 }
 
 func SetStatus(w http.ResponseWriter, r *http.Request) {

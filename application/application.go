@@ -53,7 +53,7 @@ func (a Application) String() string {
 }
 
 func Load() []error {
-	bytes, errs := supervisor.DependantApplicationsList()
+	bytes, errs := supervisor.DependentApplicationsList()
 	if errs != nil {
 		return errs
 	}
@@ -148,7 +148,7 @@ func (a *Application) ProvisionDevices() []error {
 			"Local UUID": localUUID,
 		}).Info("Provisioning device")
 
-		resinUUID, name, errs := supervisor.DependantDeviceProvision(a.ResinUUID)
+		resinUUID, name, errs := supervisor.DependentDeviceProvision(a.ResinUUID)
 		if errs != nil {
 			return errs
 		}
@@ -400,7 +400,7 @@ func (a *Application) checkCommit() error {
 		return nil
 	}
 
-	if err := supervisor.DependantApplicationUpdate(a.ResinUUID, a.TargetCommit); err != nil {
+	if err := supervisor.DependentApplicationUpdate(a.ResinUUID, a.TargetCommit); err != nil {
 		return err
 	}
 

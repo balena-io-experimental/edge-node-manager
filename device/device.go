@@ -109,9 +109,9 @@ func (d *Device) SetStatus(newStatus status.Status) []error {
 	// Send is_online if the status has changed or its the first time after a restart
 	if oldOnline != newOnline || !d.statusFlag {
 		d.statusFlag = true
-		return supervisor.DependantDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
+		return supervisor.DependentDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
 	}
-	return supervisor.DependantDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
+	return supervisor.DependentDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
 }
 
 func (d *Device) Marshall() ([]byte, error) {
@@ -142,7 +142,7 @@ func Unmarshall(bytes []byte) (*Device, error) {
 // - Device target config
 // - Device target environment
 func (d *Device) Sync() []error {
-	bytes, errs := supervisor.DependantDeviceInfo(d.ResinUUID)
+	bytes, errs := supervisor.DependentDeviceInfo(d.ResinUUID)
 	if errs != nil {
 		return errs
 	}
