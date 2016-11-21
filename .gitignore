@@ -24,6 +24,7 @@ _testmain.go
 *.prof
 
 # Extras
+vendor
 debug
 .vscode
 npm-debug.log

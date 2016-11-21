@@ -1,7 +1,7 @@
 uuid: c482e266141684e878d6e606a2baa08ddd6cdc25a0ebd21960ad1d9cd1ffed
 destination: /go/src/github.com/resin-io/edge-node-manager
 port: 22
-before: env GOOS=linux GOARCH=arm godep go build
+before: env GOOS=linux GOARCH=arm glide install && go build
 ignore:
   - .git
   - node_modules/
