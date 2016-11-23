@@ -38,7 +38,7 @@ func GetLoopDelay() (time.Duration, error) {
 
 // GetPauseDelay returns the time delay in seconds between each pause check
 func GetPauseDelay() (time.Duration, error) {
-	value, err := strconv.Atoi(getEnv("ENM_CONFIG_PAUSE_DELAY", "60"))
+	value, err := strconv.Atoi(getEnv("ENM_CONFIG_PAUSE_DELAY", "10"))
 	return time.Duration(value), err
 }
 
@@ -57,7 +57,7 @@ func GetDbName() string {
 	return getEnv("ENM_DB_NAME", "my.db")
 }
 
-// GetVersion returns the API key used to communicate with the supervisor
+// GetVersion returns the API version used to communicate with the supervisor
 func GetVersion() string {
 	return getEnv("ENM_API_VERSION", "v1")
 }

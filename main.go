@@ -10,9 +10,14 @@ import (
 	"github.com/resin-io/edge-node-manager/application"
 	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/process"
+	"github.com/resin-io/edge-node-manager/supervisor"
 )
 
 func main() {
+	log.Info("Starting edge-node-manager")
+
+	supervisor.WaitUntilReady()
+
 	delay, err := config.GetLoopDelay()
 	if err != nil {
 		log.WithFields(log.Fields{
