@@ -22,6 +22,21 @@ var (
 	rawKey  string
 )
 
+func WaitUntilReady() {
+	log.Info("Waiting until supervisor is ready")
+
+	for {
+		resp, _, errs := gorequest.New().Timeout(1 * time.Second).Get(address).End()
+		if errs == nil && resp.StatusCode == 401 {
+			// The supervisor is up once a 401 status code is returned
+			log.Info("Supervisor is ready")
+			return
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func DependentApplicationsList() ([]byte, []error) {
 	url, err := buildPath(address, []string{version, "dependent-apps"})
 	if err != nil {
@@ -46,7 +61,7 @@ func DependentApplicationsList() ([]byte, []error) {
 	return body, nil
 }
 
-// Downloads the binary.tar for a specific application and target commit
+// DependentApplicationUpdate downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
 func DependentApplicationUpdate(applicationUUID int, targetCommit string) error {
 	url, err := buildPath(address, []string{version, "dependent-apps", strconv.Itoa(applicationUUID), "assets", targetCommit})
