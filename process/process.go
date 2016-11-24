@@ -32,6 +32,11 @@ func Run(a *application.Application) []error {
 		return nil
 	}
 
+	// Handle delete flag
+	if err := a.HandleDeleteFlag(); err != nil {
+		return []error{err}
+	}
+
 	// Print application info
 	log.WithFields(log.Fields{
 		"Application":       a.Name,

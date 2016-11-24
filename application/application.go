@@ -68,22 +68,22 @@ func Load() []error {
 	}
 
 	for key, value := range buffer {
-		ResinUUID := value.ResinUUID
+		resinUUID := value.ResinUUID
 
-		application, exists := List[ResinUUID]
+		application, exists := List[resinUUID]
 
 		if exists {
 			application.deleteFlag = false
 			application.Config = value.Config
 		} else {
-			List[ResinUUID] = &buffer[key]
-			application := List[ResinUUID]
+			List[resinUUID] = &buffer[key]
+			application := List[resinUUID]
 
 			// Start temporary
-			if ResinUUID == 14539 {
+			if resinUUID == 14539 {
 				application.Config["BOARD"] = "micro:bit"
 			}
-			if ResinUUID == 14495 {
+			if resinUUID == 15390 {
 				application.Config["BOARD"] = "nRF51822-DK"
 			}
 			// End temporary
@@ -93,7 +93,7 @@ func Load() []error {
 			}
 		}
 
-		application = List[ResinUUID]
+		application = List[resinUUID]
 		if errs := application.GetDevices(); errs != nil {
 			return errs
 		}
@@ -331,13 +331,31 @@ func (a *Application) UpdateEnvironmentOnlineDevices() []error {
 	return nil
 }
 
-func (a *Application) HandleFlags() error {
-	if err := a.handleRestartFlag(); err != nil {
-		return err
+func (a *Application) HandleDeleteFlag() error {
+	for key, d := range a.Devices {
+		if !d.DeleteFlag {
+			continue
+		}
+
+		delete(a.Devices, key)
+
+		if err := database.DeleteDevice(a.ResinUUID, d.ResinUUID); err != nil {
+			log.WithFields(log.Fields{
+				"Error": err,
+			}).Error("Unable to delete device")
+			return err
+		}
+
+		log.WithFields(log.Fields{
+			"name": d.Name,
+		}).Info("Device deleted")
 	}
 
-	// Delete flag must be handled last
-	if err := a.handleDeleteFlag(); err != nil {
+	return nil
+}
+
+func (a *Application) HandleFlags() error {
+	if err := a.handleRestartFlag(); err != nil {
 		return err
 	}
 
@@ -416,29 +434,6 @@ func (a *Application) checkCommit() error {
 	a.Commit = a.TargetCommit
 
 	log.Info("Application firmware extracted")
-
-	return nil
-}
-
-func (a *Application) handleDeleteFlag() error {
-	for key, d := range a.Devices {
-		if !d.DeleteFlag {
-			continue
-		}
-
-		delete(a.Devices, key)
-
-		if err := database.DeleteDevice(a.ResinUUID, d.ResinUUID); err != nil {
-			log.WithFields(log.Fields{
-				"Error": err,
-			}).Error("Unable to delete device")
-			return err
-		}
-
-		log.WithFields(log.Fields{
-			"name": d.Name,
-		}).Info("Device deleted")
-	}
 
 	return nil
 }
