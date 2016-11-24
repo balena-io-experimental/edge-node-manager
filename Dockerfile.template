@@ -3,7 +3,7 @@
 # See more about resin base images here: http://docs.resin.io/runtime/resin-base-images/
 FROM resin/%%RESIN_MACHINE_NAME%%-golang
 
-## Set the maintainer
+# Set the maintainer
 MAINTAINER Joe Roberts <joe@resin.io>
 
 # Disable systemd init system
