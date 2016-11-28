@@ -103,8 +103,7 @@ func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
 
 func SetStatus(w http.ResponseWriter, r *http.Request) {
 	type s struct {
-		CurrentStatus status.Status `json:"current"`
-		TargetStatus  status.Status `json:"target"`
+		TargetStatus status.Status `json:"targetStatus"`
 	}
 
 	var content *s
@@ -127,14 +126,18 @@ func SetStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetStatus(w http.ResponseWriter, r *http.Request) {
+	process.Pending()
+
 	type s struct {
-		CurrentStatus status.Status `json:"current"`
-		TargetStatus  status.Status `json:"target"`
+		CurrentStatus  status.Status `json:"currentStatus"`
+		TargetStatus   status.Status `json:"targetStatus"`
+		UpdatesPending bool          `json:"updatesPending"`
 	}
 
 	content := &s{
-		CurrentStatus: process.CurrentStatus,
-		TargetStatus:  process.TargetStatus,
+		CurrentStatus:  process.CurrentStatus,
+		TargetStatus:   process.TargetStatus,
+		UpdatesPending: process.UpdatesPending,
 	}
 
 	bytes, err := json.Marshal(content)
@@ -150,35 +153,8 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	w.Write(bytes)
 
 	log.WithFields(log.Fields{
-		"Target status": process.TargetStatus,
-		"Curent status": process.CurrentStatus,
-	}).Debug("Get status")
-}
-
-func Pending(w http.ResponseWriter, r *http.Request) {
-	type p struct {
-		Pending bool `json:"pending"`
-	}
-
-	pending := process.Pending()
-
-	content := &p{
-		Pending: pending,
-	}
-
-	bytes, err := json.Marshal(content)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to encode pending hook")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(bytes)
-
-	log.WithFields(log.Fields{
-		"Pending": pending,
+		"Target status":   process.TargetStatus,
+		"Curent status":   process.CurrentStatus,
+		"Updates pending": process.UpdatesPending,
 	}).Debug("Get status")
 }

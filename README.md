@@ -117,7 +117,7 @@ Set the edge-node-manager process status.
 
 #### Example
 ```
-curl -H "Content-Type: application/json" -X PUT --data '{"target":"Paused"}' http://127.0.0.1:1337/v1/enm/status
+curl -H "Content-Type: application/json" -X PUT --data '{"targetStatus":"Paused"}' http://127.0.0.1:1337/v1/enm/status
 ```
 
 #### Response
@@ -137,27 +137,11 @@ curl -X GET http://127.0.0.1:1337/v1/enm/status
 ```
 HTTP/1.1 200 OK
 {
-    "current":"Running",
-    "target":"Paused"
+    "currentStatus":"Running",
+    "targetStatus":"Paused",
+    "updatesPending": true
 }
 ```
-
-### Get /v1/enm/pending
-Get the edge-node-manager updates pending status.
-
-#### Example
-```
-curl -X GET http://127.0.0.1:1337/v1/enm/pending
-```
-
-#### Response
-```
-HTTP/1.1 200 OK
-{
-    "pending":true
-}
-```
-
 
 ## Dependent devices
 ### Supported dependent devices

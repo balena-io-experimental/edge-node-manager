@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	delay         time.Duration
-	CurrentStatus processStatus.Status
-	TargetStatus  processStatus.Status
+	delay          time.Duration
+	CurrentStatus  processStatus.Status
+	TargetStatus   processStatus.Status
+	UpdatesPending bool
 )
 
 // Run processes the application, checking for new commits, provisioning and updating devices
@@ -86,16 +87,18 @@ func Run(a *application.Application) []error {
 	return nil
 }
 
-func Pending() bool {
+func Pending() {
 	for _, a := range application.List {
 		for _, d := range a.Devices {
 			if d.Commit != d.TargetCommit && d.Status != deviceStatus.OFFLINE {
-				return true
+				UpdatesPending = true
+				return
 			}
 		}
 	}
 
-	return false
+	UpdatesPending = false
+	return
 }
 
 func init() {
@@ -110,6 +113,7 @@ func init() {
 
 	CurrentStatus = processStatus.RUNNING
 	TargetStatus = processStatus.RUNNING
+	UpdatesPending = false
 
 	log.WithFields(log.Fields{
 		"Pause delay": delay,
