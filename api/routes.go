@@ -15,22 +15,22 @@ type Routes []Route
 
 var routes = Routes{
 	Route{
-		"DependantDeviceUpdate",
+		"DependentDeviceUpdate",
 		"PUT",
 		"/v1/devices/{uuid}",
-		DependantDeviceUpdate,
+		DependentDeviceUpdate,
 	},
 	Route{
-		"DependantDeviceDelete",
+		"DependentDeviceDelete",
 		"DELETE",
 		"/v1/devices/{uuid}",
-		DependantDeviceDelete,
+		DependentDeviceDelete,
 	},
 	Route{
-		"DependantDeviceRestart",
+		"DependentDeviceRestart",
 		"PUT",
 		"/v1/devices/{uuid}/restart",
-		DependantDeviceRestart,
+		DependentDeviceRestart,
 	},
 	Route{
 		"SetStatus",
@@ -43,11 +43,5 @@ var routes = Routes{
 		"GET",
 		"/v1/enm/status",
 		GetStatus,
-	},
-	Route{
-		"Pending",
-		"GET",
-		"/v1/enm/pending",
-		Pending,
 	},
 }

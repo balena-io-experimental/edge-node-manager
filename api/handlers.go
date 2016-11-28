@@ -13,21 +13,21 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
+func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
-	type dependantDeviceUpdate struct {
+	type dependentDeviceUpdate struct {
 		Commit      string      `json:"commit"`
 		Environment interface{} `json:"environment"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	var content dependantDeviceUpdate
+	var content dependentDeviceUpdate
 	if err := decoder.Decode(&content); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Error("Unable to decode Dependant device update hook")
+		}).Error("Unable to decode Dependent device update hook")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -51,10 +51,10 @@ func DependantDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		"DeviceUUID":      deviceUUID,
 		"LocalUUID":       localUUID,
 		"Target commit":   content.Commit,
-	}).Debug("Dependant device update hook")
+	}).Debug("Dependent device update hook")
 }
 
-func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
+func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
@@ -76,10 +76,10 @@ func DependantDeviceDelete(w http.ResponseWriter, r *http.Request) {
 		"ApplicationUUID": applicationUUID,
 		"DeviceUUID":      deviceUUID,
 		"LocalUUID":       localUUID,
-	}).Debug("Dependant device delete hook")
+	}).Debug("Dependent device delete hook")
 }
 
-func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
+func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
@@ -98,13 +98,12 @@ func DependantDeviceRestart(w http.ResponseWriter, r *http.Request) {
 
 	log.WithFields(log.Fields{
 		"UUID": deviceUUID,
-	}).Debug("Dependant device restart hook")
+	}).Debug("Dependent device restart hook")
 }
 
 func SetStatus(w http.ResponseWriter, r *http.Request) {
 	type s struct {
-		CurrentStatus status.Status `json:"current"`
-		TargetStatus  status.Status `json:"target"`
+		TargetStatus status.Status `json:"targetStatus"`
 	}
 
 	var content *s
@@ -127,14 +126,18 @@ func SetStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetStatus(w http.ResponseWriter, r *http.Request) {
+	process.Pending()
+
 	type s struct {
-		CurrentStatus status.Status `json:"current"`
-		TargetStatus  status.Status `json:"target"`
+		CurrentStatus  status.Status `json:"currentStatus"`
+		TargetStatus   status.Status `json:"targetStatus"`
+		UpdatesPending bool          `json:"updatesPending"`
 	}
 
 	content := &s{
-		CurrentStatus: process.CurrentStatus,
-		TargetStatus:  process.TargetStatus,
+		CurrentStatus:  process.CurrentStatus,
+		TargetStatus:   process.TargetStatus,
+		UpdatesPending: process.UpdatesPending,
 	}
 
 	bytes, err := json.Marshal(content)
@@ -150,35 +153,8 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	w.Write(bytes)
 
 	log.WithFields(log.Fields{
-		"Target status": process.TargetStatus,
-		"Curent status": process.CurrentStatus,
-	}).Debug("Get status")
-}
-
-func Pending(w http.ResponseWriter, r *http.Request) {
-	type p struct {
-		Pending bool `json:"pending"`
-	}
-
-	pending := process.Pending()
-
-	content := &p{
-		Pending: pending,
-	}
-
-	bytes, err := json.Marshal(content)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to encode pending hook")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(bytes)
-
-	log.WithFields(log.Fields{
-		"Pending": pending,
+		"Target status":   process.TargetStatus,
+		"Curent status":   process.CurrentStatus,
+		"Updates pending": process.UpdatesPending,
 	}).Debug("Get status")
 }

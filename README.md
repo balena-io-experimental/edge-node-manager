@@ -7,15 +7,15 @@ computers (e.g. the Raspberry Pi) and non Resin OS capable devices (e.g. micro-c
 easy as possible to add new supported dependent device types and to run alongside your user application.
 
 The following functionality is implemented:
- - Dependant device detection
- - Dependant device provisioning
- - Dependant device restart
+ - Dependent device detection
+ - Dependent device provisioning
+ - Dependent device restart
  - Dependent device over-the-air (OTA) updating
  - Dependent device logging and information updating
  - API
 
 ## Notes
- - Dependant device support is still in a very early stage of development, there will be bugs!
+ - Dependent device support is still in a very early stage of development, there will be bugs!
  - Please file an issue if you encounter any bugs or think of any enhancments you would like to have
  - Currently only supported on our [staging](https://dashboard.resinstaging.io) site
  - Only supported in the Resin Supervisor from `v2.5.0` onwards
@@ -25,7 +25,7 @@ The following functionality is implemented:
 ![Alt text](documentation/images/setup.jpg?raw=true "Hardware setup")
 
 ## Definitions
-### Dependant application
+### Dependent application
 A dependent application is a Resin application that targets devices not capable of interacting directly with the Resin API.
 
 The dependent application is scoped under a Resin application, which gets the definition of gateway application.
@@ -41,7 +41,7 @@ There are some key differences:
  - The actual firmware must be stored in the `/assets` folder within the built docker image
 
 ### Dependent device
-A dependant device is a device not capable of interacting directly with the Resin API - the reasons can be several, the most common are:
+A dependent device is a device not capable of interacting directly with the Resin API - the reasons can be several, the most common are:
  - No direct Internet capabilities
  - Not able to run the Resin OS (being a microcontroller, for example)
 
@@ -52,7 +52,7 @@ applications. This is possible leveraging a new set of endpoints exposed by the 
 The edge-node-manager (this repository) is an example of a gateway application.
 
 ### Gateway device
-The gateway device runs the gateway application and has the needed on-board radios to communicate with the managed dependant devices, for example:
+The gateway device runs the gateway application and has the needed on-board radios to communicate with the managed dependent devices, for example:
  - Bluetooth
  - WiFi
  - LoRa
@@ -99,7 +99,7 @@ Variable Name | Default value | Set value | Description
 ------------ | ------------- | ------------- | -------------
 ENM_LOG_LEVEL | `Debug` | `Info` | Set the [logging level](https://github.com/Sirupsen/logrus#level-logging).
 ENM_CONFIG_LOOP_DELAY | `10` | `10` | Set the time inbetween application processing loops.
-ENM_ASSETS_DIRECTORY | `/data/assets` | `/data/assets` | The directory used to store the dependant device firmware.
+ENM_ASSETS_DIRECTORY | `/data/assets` | `/data/assets` | The directory used to store the dependent device firmware.
 ENM_DB_DIRECTORY | `/data/database` | `/data/database` | The directory used to store the database.
 ENM_DB_NAME| `my.db` | `my.db` | Set the database name.
 ENM_API_VERSION | `v1` | `v1` | The supervisor API version.
@@ -117,7 +117,7 @@ Set the edge-node-manager process status.
 
 #### Example
 ```
-curl -H "Content-Type: application/json" -X PUT --data '{"target":"Paused"}' http://127.0.0.1:1337/v1/enm/status
+curl -H "Content-Type: application/json" -X PUT --data '{"targetStatus":"Paused"}' http://127.0.0.1:1337/v1/enm/status
 ```
 
 #### Response
@@ -137,37 +137,21 @@ curl -X GET http://127.0.0.1:1337/v1/enm/status
 ```
 HTTP/1.1 200 OK
 {
-    "current":"Running",
-    "target":"Paused"
+    "currentStatus":"Running",
+    "targetStatus":"Paused",
+    "updatesPending": true
 }
 ```
-
-### Get /v1/enm/pending
-Get the edge-node-manager updates pending status.
-
-#### Example
-```
-curl -X GET http://127.0.0.1:1337/v1/enm/pending
-```
-
-#### Response
-```
-HTTP/1.1 200 OK
-{
-    "pending":true
-}
-```
-
 
 ## Dependent devices
-### Supported dependant devices
- - nRF51822-DK - you can find an example dependant application and instructions [here](https://github.com/resin-io-projects/nRF51822-DK)
- - micro:bit - you can find an example dependant application and instructions [here](https://github.com/resin-io-projects/micro-bit)
+### Supported dependent devices
+ - nRF51822-DK - you can find an example dependent application and instructions [here](https://github.com/resin-io-projects/nRF51822-DK)
+ - micro:bit - you can find an example dependent application and instructions [here](https://github.com/resin-io-projects/micro-bit)
 
-### Future supported dependant devices
+### Future supported dependent devices
 We aim to support the complete [Adafruit Feather](https://www.adafruit.com/categories/835) family.
 
-### Adding support for a dependant device
+### Adding support for a dependent device
 Coming soon
 
 ## Further reading

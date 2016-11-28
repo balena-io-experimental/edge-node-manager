@@ -22,7 +22,22 @@ var (
 	rawKey  string
 )
 
-func DependantApplicationsList() ([]byte, []error) {
+func WaitUntilReady() {
+	log.Info("Waiting until supervisor is ready")
+
+	for {
+		resp, _, errs := gorequest.New().Timeout(1 * time.Second).Get(address).End()
+		if errs == nil && resp.StatusCode == 401 {
+			// The supervisor is up once a 401 status code is returned
+			log.Info("Supervisor is ready")
+			return
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func DependentApplicationsList() ([]byte, []error) {
 	url, err := buildPath(address, []string{version, "dependent-apps"})
 	if err != nil {
 		return nil, []error{err}
@@ -36,7 +51,7 @@ func DependantApplicationsList() ([]byte, []error) {
 		"URL":    req.Url,
 		"Method": req.Method,
 		"Query":  req.QueryData,
-	}).Debug("Requesting dependant applications list")
+	}).Debug("Requesting dependent applications list")
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 200); errs != nil {
@@ -46,9 +61,9 @@ func DependantApplicationsList() ([]byte, []error) {
 	return body, nil
 }
 
-// Downloads the binary.tar for a specific application and target commit
+// DependentApplicationUpdate downloads the binary.tar for a specific application and target commit
 // Saving it to {ENM_ASSETS_DIRECTORY}/{applicationUUID}/{targetCommit}/binary.tar
-func DependantApplicationUpdate(applicationUUID int, targetCommit string) error {
+func DependentApplicationUpdate(applicationUUID int, targetCommit string) error {
 	url, err := buildPath(address, []string{version, "dependent-apps", strconv.Itoa(applicationUUID), "assets", targetCommit})
 	if err != nil {
 		return err
@@ -77,7 +92,7 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 		"Method":      req.HTTPRequest.Method,
 		"Query":       req.HTTPRequest.URL.RawQuery,
 		"Destination": req.Filename,
-	}).Debug("Requesting dependant application update")
+	}).Debug("Requesting dependent application update")
 
 	client := grab.NewClient()
 	resp, err := client.Do(req)
@@ -87,26 +102,26 @@ func DependantApplicationUpdate(applicationUUID int, targetCommit string) error 
 	}
 
 	if resp.HTTPResponse.StatusCode != 200 {
-		return fmt.Errorf("Dependant application update failed")
+		return fmt.Errorf("Dependent application update failed")
 	}
 
-	log.Debug("Dependant application update succeeded")
+	log.Debug("Dependent application update succeeded")
 
 	return nil
 }
 
-func DependantDeviceLog(UUID, message string) []error {
+func DependentDeviceLog(UUID, message string) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID, "logs"})
 	if err != nil {
 		return []error{err}
 	}
 
-	type dependantDeviceLog struct {
+	type dependentDeviceLog struct {
 		Message   string `json:"message"`
 		TimeStamp int64  `json:"timestamp"`
 	}
 
-	content := &dependantDeviceLog{
+	content := &dependentDeviceLog{
 		Message:   message,
 		TimeStamp: time.Now().UTC().Unix(),
 	}
@@ -127,25 +142,25 @@ func DependantDeviceLog(UUID, message string) []error {
 		"Method": req.Method,
 		"Query":  req.QueryData,
 		"Body":   (string)(bytes),
-	}).Debug("Transmitting dependant device log")
+	}).Debug("Transmitting dependent device log")
 
 	resp, _, errs := req.End()
 	return handleResp(resp, errs, 202)
 }
 
-func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, online bool) []error {
+func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
 	}
 
-	type dependantDeviceInfo struct {
+	type dependentDeviceInfo struct {
 		Status string `json:"status"`
 		Online bool   `json:"is_online"`
 		Commit string `json:"commit,omitempty"`
 	}
 
-	content := &dependantDeviceInfo{
+	content := &dependentDeviceInfo{
 		Status: status,
 		Online: online,
 		Commit: commit,
@@ -167,24 +182,24 @@ func DependantDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 		"Method": req.Method,
 		"Query":  req.QueryData,
 		"Body":   (string)(bytes),
-	}).Debug("Transmitting dependant device info")
+	}).Debug("Transmitting dependent device info")
 
 	resp, _, errs := req.End()
 	return handleResp(resp, errs, 200)
 }
 
-func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []error {
+func DependentDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
 	}
 
-	type dependantDeviceInfo struct {
+	type dependentDeviceInfo struct {
 		Status string `json:"status"`
 		Commit string `json:"commit,omitempty"`
 	}
 
-	content := &dependantDeviceInfo{
+	content := &dependentDeviceInfo{
 		Status: status,
 		Commit: commit,
 	}
@@ -205,13 +220,13 @@ func DependantDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []
 		"Method": req.Method,
 		"Query":  req.QueryData,
 		"Body":   (string)(bytes),
-	}).Debug("Transmitting dependant device info")
+	}).Debug("Transmitting dependent device info")
 
 	resp, _, errs := req.End()
 	return handleResp(resp, errs, 200)
 }
 
-func DependantDeviceInfo(UUID string) ([]byte, []error) {
+func DependentDeviceInfo(UUID string) ([]byte, []error) {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return nil, []error{err}
@@ -225,7 +240,7 @@ func DependantDeviceInfo(UUID string) ([]byte, []error) {
 		"URL":    req.Url,
 		"Method": req.Method,
 		"Query":  req.QueryData,
-	}).Debug("Requesting dependant device info")
+	}).Debug("Requesting dependent device info")
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 200); errs != nil {
@@ -235,18 +250,18 @@ func DependantDeviceInfo(UUID string) ([]byte, []error) {
 	return body, nil
 }
 
-func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, errs []error) {
+func DependentDeviceProvision(applicationUUID int) (resinUUID, name string, errs []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
 		errs = []error{err}
 		return
 	}
 
-	type dependantDeviceProvision struct {
+	type dependentDeviceProvision struct {
 		ApplicationUUID int `json:"appId"`
 	}
 
-	content := &dependantDeviceProvision{
+	content := &dependentDeviceProvision{
 		ApplicationUUID: applicationUUID,
 	}
 
@@ -267,7 +282,7 @@ func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, errs
 		"Method": req.Method,
 		"Query":  req.QueryData,
 		"Body":   (string)(bytes),
-	}).Debug("Requesting dependant device provision")
+	}).Debug("Requesting dependent device provision")
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 201); errs != nil {
@@ -286,7 +301,7 @@ func DependantDeviceProvision(applicationUUID int) (resinUUID, name string, errs
 	return
 }
 
-func DependantDevicesList() ([]byte, []error) {
+func DependentDevicesList() ([]byte, []error) {
 	url, err := buildPath(address, []string{version, "devices"})
 	if err != nil {
 		return nil, []error{err}
@@ -300,7 +315,7 @@ func DependantDevicesList() ([]byte, []error) {
 		"URL":    req.Url,
 		"Method": req.Method,
 		"Query":  req.QueryData,
-	}).Debug("Requesting dependant devices list")
+	}).Debug("Requesting dependent devices list")
 
 	resp, body, errs := req.EndBytes()
 	if errs = handleResp(resp, errs, 200); errs != nil {
@@ -360,7 +375,8 @@ func handleResp(resp gorequest.Response, errs []error, statusCode int) []error {
 		return errs
 	}
 
-	if resp.StatusCode != statusCode {
+	// Allow 404 here as it means the dep. app or dep. device has just been deleted
+	if resp.StatusCode != statusCode && resp.StatusCode != 404 {
 		return []error{fmt.Errorf("Invalid response received: %s", resp.Status)}
 	}
 

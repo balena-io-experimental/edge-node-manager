@@ -1,0 +1,50 @@
+hash: ea2394ab5060918e0abbb77da6c9556142d22008bafe889e2932f3069d6dc378
+updated: 2016-11-21T10:45:39.603292852Z
+imports:
+- name: github.com/boltdb/bolt
+  version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
+- name: github.com/cavaliercoder/grab
+  version: 2e3d93bfd60c32b49139f0f4175d457d726d0ea8
+- name: github.com/dsnet/compress
+  version: b9aab3c6a04eef14c56384b4ad065e7b73438862
+  subpackages:
+  - bzip2
+  - bzip2/internal/sais
+  - internal
+  - internal/prefix
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
+- name: github.com/mholt/archiver
+  version: 90b90704c26bff1f6f584c26cd680992d904b9b2
+- name: github.com/moul/http2curl
+  version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
+- name: github.com/nwaples/rardecode
+  version: f94841372ddc36be531a5c3e1206238e32e93d74
+- name: github.com/parnurzeal/gorequest
+  version: 2aea80ce763523ecc6452e61c3727ae9595a5809
+- name: github.com/paypal/gatt
+  version: 4ae819d591cfc94c496c45deb55928469542beec
+  subpackages:
+  - examples/option
+  - linux
+  - linux/cmd
+  - linux/evt
+  - linux/gioctl
+  - linux/socket
+  - linux/util
+  - xpc
+- name: github.com/Sirupsen/logrus
+  version: d26492970760ca5d33129d2d799e34be5c4782eb
+- name: github.com/verybluebot/tarinator-go
+  version: f75724675c91d0c731b69c81e0985de07663f007
+- name: golang.org/x/net
+  version: 4971afdc2f162e82d185353533d3cf16188a9f4e
+  subpackages:
+  - publicsuffix
+- name: golang.org/x/sys
+  version: b699b7032584f0953262cb2788a0ca19bb494703
+  subpackages:
+  - unix
+testImports: []
