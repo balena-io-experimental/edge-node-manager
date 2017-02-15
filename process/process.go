@@ -8,6 +8,7 @@ import (
 	"github.com/resin-io/edge-node-manager/config"
 	deviceStatus "github.com/resin-io/edge-node-manager/device/status"
 	processStatus "github.com/resin-io/edge-node-manager/process/status"
+	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 )
 
 var (
@@ -22,7 +23,9 @@ func Run(a *application.Application) []error {
 	log.Info("----------------------------------------------------------------------------------------------------")
 
 	// Pause the process if necessary
-	pause()
+	if err := pause(); err != nil {
+		return []error{err}
+	}
 
 	// Validate application to ensure the board type has been set
 	if a.BoardType == "" {
@@ -120,9 +123,13 @@ func init() {
 	}).Debug("Initialise process")
 }
 
-func pause() {
+func pause() error {
 	if TargetStatus != processStatus.PAUSED {
-		return
+		return nil
+	}
+
+	if err := bluetooth.CloseDevice(); err != nil {
+		return err
 	}
 
 	CurrentStatus = processStatus.PAUSED
@@ -134,8 +141,14 @@ func pause() {
 		time.Sleep(delay * time.Second)
 	}
 
+	if err := bluetooth.OpenDevice(); err != nil {
+		return err
+	}
+
 	CurrentStatus = processStatus.RUNNING
 	log.WithFields(log.Fields{
 		"Status": CurrentStatus,
 	}).Info("Process status")
+
+	return nil
 }

@@ -34,6 +34,7 @@ func Create(resinUUID string) *logrus.Logger {
 	log := logrus.New()
 	log.Out = ioutil.Discard
 	log.Level = config.GetLogLevel()
+	log.Formatter = &logrus.TextFormatter{ForceColors: true, DisableTimestamp: true}
 	log.Hooks.Add(&Hook{
 		ResinUUID: resinUUID,
 	})

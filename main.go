@@ -52,6 +52,7 @@ func main() {
 
 func init() {
 	log.SetLevel(config.GetLogLevel())
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, DisableTimestamp: true})
 
 	go func() {
 		router := api.NewRouter()

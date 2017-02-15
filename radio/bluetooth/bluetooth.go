@@ -1,197 +1,172 @@
 package bluetooth
 
 import (
-	"fmt"
+	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
+
 	log "github.com/Sirupsen/logrus"
-	"github.com/paypal/gatt"
-	"github.com/paypal/gatt/examples/option"
+	"github.com/currantlabs/ble"
+	"github.com/currantlabs/ble/linux"
+	"github.com/currantlabs/ble/linux/hci"
 	"github.com/resin-io/edge-node-manager/config"
 )
 
 var (
-	Radio         gatt.Device
-	periphChannel = make(chan gatt.Peripheral)
+	done chan struct{}
+	name *ble.Characteristic
 )
 
-func Scan(id string, timeout time.Duration) (map[string]bool, error) {
-	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
-	if err := Radio.Init(OnStateChanged); err != nil {
-		return nil, err
-	}
-
-	devices := make(map[string]bool)
-
-	for {
-		select {
-		case <-time.After(timeout * time.Second):
-			Radio.StopScanning()
-			return devices, nil
-		case onlineDevice := <-periphChannel:
-			if onlineDevice.Name() == id {
-				devices[onlineDevice.ID()] = true
-			}
-		}
-	}
-}
-
-func Online(id string, timeout time.Duration) (bool, error) {
-	Radio.Handle(gatt.PeripheralDiscovered(onPeriphDiscovered))
-	if err := Radio.Init(OnStateChanged); err != nil {
-		return false, err
-	}
-
-	for {
-		select {
-		case <-time.After(timeout * time.Second):
-			Radio.StopScanning()
-			return false, nil
-		case onlineDevice := <-periphChannel:
-			if onlineDevice.ID() == id {
-				Radio.StopScanning()
-				return true, nil
-			}
-		}
-	}
-}
-
-func Print(periph gatt.Peripheral) error {
-	ss, err := periph.DiscoverServices(nil)
+func OpenDevice() error {
+	device, err := linux.NewDevice()
 	if err != nil {
-		fmt.Printf("Failed to discover services, err: %s\n", err)
 		return err
 	}
-
-	for _, s := range ss {
-		msg := "Service: " + s.UUID().String()
-		if len(s.Name()) > 0 {
-			msg += " (" + s.Name() + ")"
-		}
-		fmt.Println(msg)
-
-		cs, err := periph.DiscoverCharacteristics(nil, s)
-		if err != nil {
-			fmt.Printf("Failed to discover characteristics, err: %s\n", err)
-			continue
-		}
-
-		for _, c := range cs {
-			msg := "  Characteristic  " + c.UUID().String()
-			if len(c.Name()) > 0 {
-				msg += " (" + c.Name() + ")"
-			}
-			msg += "\n    properties    " + c.Properties().String()
-			fmt.Println(msg)
-
-			fmt.Println("H: ", c.Handle(), " VH: ", c.VHandle())
-
-			if (c.Properties() & gatt.CharRead) != 0 {
-				b, err := periph.ReadCharacteristic(c)
-				if err != nil {
-					fmt.Printf("Failed to read characteristic, err: %s\n", err)
-					continue
-				}
-				fmt.Printf("    value         %x | %q\n", b, b)
-			}
-
-			ds, err := periph.DiscoverDescriptors(nil, c)
-			if err != nil {
-				fmt.Printf("Failed to discover descriptors, err: %s\n", err)
-				continue
-			}
-
-			for _, d := range ds {
-				msg := "  Descriptor      " + d.UUID().String()
-				if len(d.Name()) > 0 {
-					msg += " (" + d.Name() + ")"
-				}
-				fmt.Println(msg)
-
-				fmt.Println("H: ", c.Handle())
-
-				b, err := periph.ReadDescriptor(d)
-				if err != nil {
-					fmt.Printf("Failed to read descriptor, err: %s\n", err)
-					continue
-				}
-				fmt.Printf("    value         %x | %q\n", b, b)
-			}
-		}
-		fmt.Println()
-	}
-
+	ble.SetDefaultDevice(device)
 	return nil
 }
 
-func GetChar(serUUID, charUUID, descUUID string, props gatt.Property, h, vh uint16) (*gatt.Characteristic, error) {
-	serviceUUID, err := gatt.ParseUUID(serUUID)
+func CloseDevice() error {
+	return ble.Stop()
+}
+
+func Connect(id string, timeout time.Duration) (ble.Client, error) {
+	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), timeout*time.Second)), hci.RandomAddress{ble.NewAddr(id)})
 	if err != nil {
-		return &gatt.Characteristic{}, err
+		return nil, err
 	}
 
-	characteristicUUID, err := gatt.ParseUUID(charUUID)
+	done = make(chan struct{})
+	go func() {
+		<-client.Disconnected()
+		close(done)
+	}()
+
+	return client, nil
+}
+
+func Disconnect(client ble.Client) error {
+	if err := client.CancelConnection(); err != nil {
+		return err
+	}
+	<-done
+	return nil
+}
+
+func Scan(id string, timeout time.Duration) (map[string]bool, error) {
+	devices := make(map[string]bool)
+	advChannel := make(chan ble.Advertisement)
+	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), timeout*time.Second))
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case adv := <-advChannel:
+				if strings.EqualFold(adv.LocalName(), id) {
+					devices[adv.Address().String()] = true
+				}
+			}
+		}
+	}()
+
+	err := ble.Scan(ctx, false, func(adv ble.Advertisement) { advChannel <- adv }, nil)
+	if errors.Cause(err) != context.DeadlineExceeded && errors.Cause(err) != context.Canceled {
+		return devices, err
+	}
+
+	return devices, nil
+}
+
+func Online(id string, timeout time.Duration) (bool, error) {
+	online := false
+	advChannel := make(chan ble.Advertisement)
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = ble.WithSigHandler(context.WithTimeout(ctx, timeout*time.Second))
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case adv := <-advChannel:
+				if strings.EqualFold(adv.Address().String(), id) {
+					online = true
+					cancel()
+				}
+			}
+		}
+	}()
+
+	err := ble.Scan(ctx, false, func(adv ble.Advertisement) { advChannel <- adv }, nil)
+	if errors.Cause(err) != context.DeadlineExceeded && errors.Cause(err) != context.Canceled {
+		return online, err
+	}
+
+	return online, nil
+}
+
+func GetName(id string, timeout time.Duration) (string, error) {
+	client, err := Connect(id, timeout)
 	if err != nil {
-		return &gatt.Characteristic{}, err
+		return "", err
 	}
 
-	service := gatt.NewService(serviceUUID)
-	characteristic := gatt.NewCharacteristic(characteristicUUID, service, props, h, vh)
-
-	if descUUID == "" {
-		return characteristic, nil
-	}
-
-	descriptorUUID, err := gatt.ParseUUID(descUUID)
+	resp, err := client.ReadCharacteristic(name)
 	if err != nil {
-		return &gatt.Characteristic{}, err
+		return "", err
 	}
 
-	descriptor := gatt.NewDescriptor(descriptorUUID, 17, characteristic)
-	characteristic.SetDescriptor(descriptor)
+	if err := Disconnect(client); err != nil {
+		return "", err
+	}
+
+	return string(resp), nil
+}
+
+func GetCharacteristic(uuid string, property ble.Property, handle, vhandle uint16) (*ble.Characteristic, error) {
+	parsedUUID, err := ble.Parse(uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	characteristic := ble.NewCharacteristic(parsedUUID)
+	characteristic.Property = property
+	characteristic.Handle = handle
+	characteristic.ValueHandle = vhandle
 
 	return characteristic, nil
 }
 
-func GetName(periph gatt.Peripheral) (string, error) {
-	characteristic, err := GetChar("1800", "2a00", "", gatt.CharRead+gatt.CharWrite, 2, 3)
+func GetDescriptor(uuid string, handle uint16) (*ble.Descriptor, error) {
+	parsedUUID, err := ble.Parse(uuid)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	byte, err := periph.ReadCharacteristic(characteristic)
-	if err != nil {
-		return "", err
-	}
+	descriptor := ble.NewDescriptor(parsedUUID)
+	descriptor.Handle = handle
 
-	return string(byte), nil
-}
-
-func OnStateChanged(device gatt.Device, state gatt.State) {
-	switch state {
-	case gatt.StatePoweredOn:
-		device.Scan([]gatt.UUID{}, false)
-	default:
-		device.StopScanning()
-	}
-}
-
-func onPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
-	periphChannel <- periph
+	return descriptor, nil
 }
 
 func init() {
 	log.SetLevel(config.GetLogLevel())
 
-	var err error
-	if Radio, err = gatt.NewDevice(option.DefaultClientOptions...); err != nil {
+	if err := OpenDevice(); err != nil {
 		log.WithFields(log.Fields{
-			"Options": option.DefaultClientOptions,
-			"Error":   err,
-		}).Fatal("Unable to create a new gatt device")
+			"Error": err,
+		}).Fatal("Unable to create a new ble device")
 	}
 
-	log.WithFields(log.Fields{
-		"Options": option.DefaultClientOptions,
-	}).Debug("Created new gatt device")
+	var err error
+	name, err = GetCharacteristic("2a00", ble.CharRead+ble.CharWrite, 0x02, 0x03)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debug("Created a new ble device")
 }

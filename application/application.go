@@ -79,17 +79,8 @@ func Load() []error {
 			List[resinUUID] = &buffer[key]
 			application := List[resinUUID]
 
-			// Start temporary
-			if resinUUID == 14539 {
-				application.Config["BOARD"] = "micro:bit"
-			}
-			if resinUUID == 15390 {
-				application.Config["BOARD"] = "nRF51822-DK"
-			}
-			// End temporary
-
-			if _, exists := application.Config["BOARD"]; exists {
-				application.BoardType = (board.Type)(application.Config["BOARD"].(string))
+			if _, exists := application.Config["RESIN_HOST_TYPE"]; exists {
+				application.BoardType = (board.Type)(application.Config["RESIN_HOST_TYPE"].(string))
 			}
 		}
 
