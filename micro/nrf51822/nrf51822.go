@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"strconv"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
+	"github.com/currantlabs/ble"
 	"github.com/mholt/archiver"
-	"github.com/paypal/gatt"
+	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 )
 
@@ -36,155 +36,124 @@ const (
 // Nrf51822 is a BLE SoC from Nordic
 // https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822
 type Nrf51822 struct {
-	Log              *logrus.Logger
-	LocalUUID        string
-	Fota             FOTA
-	ConnectedChannel chan bool
-	RestartChannel   chan bool
-	ErrChannel       chan error
+	Log                 *log.Logger
+	LocalUUID           string
+	Firmware            FIRMWARE
+	NotificationChannel chan []byte
 }
 
-type FOTA struct {
+type FIRMWARE struct {
 	currentBlock int
+	size         int
 	binary       []byte
 	data         []byte
-	size         int
 }
 
-func (m *Nrf51822) ExtractFirmware(filePath, bin, dat string) error {
-	m.Log.WithFields(logrus.Fields{
+var (
+	dfuPkt  *ble.Characteristic
+	dfuCtrl *ble.Characteristic
+)
+
+func (m *Nrf51822) ExtractFirmware(filePath, bin, data string) error {
+	m.Log.WithFields(log.Fields{
 		"Firmware path": filePath,
 		"Bin":           bin,
-		"Dat":           dat,
+		"Data":          data,
 	}).Debug("Extracting firmware")
-
-	if err := archiver.Unzip(path.Join(filePath, "application.zip"), filePath); err != nil {
-		return err
-	}
 
 	var err error
 
-	m.Fota.binary, err = ioutil.ReadFile(path.Join(filePath, bin))
+	if err = archiver.Zip.Open(path.Join(filePath, "application.zip"), filePath); err != nil {
+		return err
+	}
+
+	m.Firmware.binary, err = ioutil.ReadFile(path.Join(filePath, bin))
 	if err != nil {
 		return err
 	}
 
-	m.Fota.data, err = ioutil.ReadFile(path.Join(filePath, dat))
+	m.Firmware.data, err = ioutil.ReadFile(path.Join(filePath, data))
 	if err != nil {
 		return err
 	}
 
-	m.Fota.size = len(m.Fota.binary)
+	m.Firmware.size = len(m.Firmware.binary)
 
-	m.Log.WithFields(logrus.Fields{
-		"Size": m.Fota.size,
-	}).Info("Extracted firmware")
+	m.Log.WithFields(log.Fields{
+		"Size": m.Firmware.size,
+	}).Debug("Extracted firmware")
 
 	return nil
 }
 
-func (m *Nrf51822) ProcessRequest(f func(gatt.Peripheral, error)) error {
-	bluetooth.Radio.Handle(
-		gatt.PeripheralDiscovered(m.OnPeriphDiscovered),
-		gatt.PeripheralConnected(f),
-		gatt.PeripheralDisconnected(m.OnPeriphDisconnected),
-	)
-	if err := bluetooth.Radio.Init(bluetooth.OnStateChanged); err != nil {
+func (m *Nrf51822) Update(client ble.Client) error {
+	if err := m.subscribe(client); err != nil {
+		return err
+	}
+	defer client.ClearSubscriptions()
+
+	if err := m.checkFOTA(client); err != nil {
 		return err
 	}
 
-	var savedErr error
-	for {
-		select {
-		case savedErr = <-m.ErrChannel:
-		case connected := <-m.ConnectedChannel:
-			if connected {
-				m.Log.Debug("Connected")
-			} else {
-				m.Log.Debug("Disconnected")
-				return savedErr
-			}
-		}
-	}
-}
-
-func (m *Nrf51822) OnPeriphDiscovered(periph gatt.Peripheral, adv *gatt.Advertisement, rssi int) {
-	if periph.ID() != m.LocalUUID {
-		return
-	}
-
-	periph.Device().StopScanning()
-	periph.Device().Connect(periph)
-}
-
-func (m *Nrf51822) OnPeriphDisconnected(periph gatt.Peripheral, err error) {
-	m.ConnectedChannel <- false
-}
-
-func (m *Nrf51822) UpdateOnPeriphConnected(periph gatt.Peripheral, err error) {
-	defer periph.Device().CancelConnection(periph)
-
-	m.ConnectedChannel <- true
-
-	if err := periph.SetMTU(500); err != nil {
-		m.ErrChannel <- err
-		return
-	}
-
-	if err := m.checkFOTA(periph); err != nil {
-		m.ErrChannel <- err
-		return
-	}
-
-	if m.Fota.currentBlock == 0 {
-		if err := m.initFOTA(periph); err != nil {
-			m.ErrChannel <- err
-			return
+	if m.Firmware.currentBlock == 0 {
+		if err := m.initFOTA(client); err != nil {
+			return err
 		}
 	}
 
-	if err := m.transferFOTA(periph); err != nil {
-		m.ErrChannel <- err
-		return
-	}
-
-	if err := m.validateFOTA(periph); err != nil {
-		m.ErrChannel <- err
-		return
-	}
-
-	if err := m.finaliseFOTA(periph); err != nil {
-		m.ErrChannel <- err
-		return
-	}
-}
-
-func (m *Nrf51822) EnableCCCD(periph gatt.Peripheral) error {
-	characteristic, err := bluetooth.GetChar("000015301212efde1523785feabcd123", "000015311212efde1523785feabcd123", "2902", gatt.CharWrite+gatt.CharNotify, 15, 16)
-	if err != nil {
+	if err := m.transferFOTA(client); err != nil {
 		return err
 	}
 
-	return periph.WriteDescriptor(characteristic.Descriptor(), []byte{Start, 0x00})
-}
-
-func (m *Nrf51822) WriteDFUControlPoint(periph gatt.Peripheral, value []byte, noRsp bool) error {
-	characteristic, err := bluetooth.GetChar("000015301212efde1523785feabcd123", "000015311212efde1523785feabcd123", "2902", gatt.CharWrite+gatt.CharNotify, 15, 16)
-	if err != nil {
+	if err := m.validateFOTA(client); err != nil {
 		return err
 	}
 
-	return periph.WriteCharacteristic(characteristic, value, noRsp)
+	return m.finaliseFOTA(client)
 }
 
-func (m *Nrf51822) checkFOTA(periph gatt.Peripheral) error {
+func init() {
+	log.SetLevel(config.GetLogLevel())
+
+	var err error
+	dfuCtrl, err = bluetooth.GetCharacteristic("000015311212efde1523785feabcd123", ble.CharWrite+ble.CharNotify, 0x0F, 0x10)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	descriptor, err := bluetooth.GetDescriptor("2902", 0x11)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dfuCtrl.CCCD = descriptor
+
+	dfuPkt, err = bluetooth.GetCharacteristic("000015321212efde1523785feabcd123", ble.CharWriteNR, 0x0D, 0x0E)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debug("Initialised nRF51822 characteristics")
+}
+
+func (m *Nrf51822) subscribe(client ble.Client) error {
+	if err := client.WriteDescriptor(dfuCtrl.CCCD, []byte{0x0001}); err != nil {
+		return err
+	}
+
+	return client.Subscribe(dfuCtrl, false, func(b []byte) {
+		m.NotificationChannel <- b
+	})
+}
+
+func (m *Nrf51822) checkFOTA(client ble.Client) error {
 	m.Log.Debug("Checking FOTA")
 
-	if err := m.EnableCCCD(periph); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{ReceivedSize}, false); err != nil {
 		return err
 	}
 
-	resp, err := m.notifyDFUControlPoint(periph, []byte{ReceivedSize})
+	resp, err := m.getNotification()
 	if err != nil {
 		return err
 	}
@@ -193,35 +162,39 @@ func (m *Nrf51822) checkFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	m.Fota.currentBlock, err = m.unpack(resp[3:])
+	m.Firmware.currentBlock, err = unpack(resp[3:])
 	if err != nil {
 		return err
 	}
 
-	m.Log.WithFields(logrus.Fields{
-		"Start block": m.Fota.currentBlock,
+	m.Log.WithFields(log.Fields{
+		"Start block": m.Firmware.currentBlock,
 	}).Debug("Checked FOTA")
 
-	return err
+	return nil
 }
 
-func (m *Nrf51822) initFOTA(periph gatt.Peripheral) error {
+func (m *Nrf51822) initFOTA(client ble.Client) error {
 	m.Log.Debug("Initialising FOTA")
 
-	if err := m.EnableCCCD(periph); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{Start, 0x04}, false); err != nil {
 		return err
 	}
 
-	if err := m.WriteDFUControlPoint(periph, []byte{Start, 0x04}, false); err != nil {
+	buf := new(bytes.Buffer)
+	if _, err := buf.Write(make([]byte, 8)); err != nil {
 		return err
 	}
 
-	size, err := m.pack()
-	if err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, (int32)(m.Firmware.size)); err != nil {
 		return err
 	}
 
-	resp, err := m.notifyDFUPacket(periph, size)
+	if err := client.WriteCharacteristic(dfuPkt, buf.Bytes(), false); err != nil {
+		return err
+	}
+
+	resp, err := m.getNotification()
 	if err != nil {
 		return err
 	}
@@ -230,15 +203,19 @@ func (m *Nrf51822) initFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	if err = m.WriteDFUControlPoint(periph, []byte{Initialise, 0x00}, false); err != nil {
+	if err = client.WriteCharacteristic(dfuCtrl, []byte{Initialise, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err = m.writeDFUPacket(periph, m.Fota.data, false); err != nil {
+	if err = client.WriteCharacteristic(dfuPkt, m.Firmware.data, false); err != nil {
 		return err
 	}
 
-	resp, err = m.notifyDFUControlPoint(periph, []byte{Initialise, 0x01})
+	if err = client.WriteCharacteristic(dfuCtrl, []byte{Initialise, 0x01}, false); err != nil {
+		return err
+	}
+
+	resp, err = m.getNotification()
 	if err != nil {
 		return err
 	}
@@ -247,11 +224,11 @@ func (m *Nrf51822) initFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	if err = m.WriteDFUControlPoint(periph, []byte{RequestBlockRecipt, 0x64, 0x00}, false); err != nil {
+	if err = client.WriteCharacteristic(dfuCtrl, []byte{RequestBlockRecipt, 0x64, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err = m.WriteDFUControlPoint(periph, []byte{Receive}, false); err != nil {
+	if err = client.WriteCharacteristic(dfuCtrl, []byte{Receive}, false); err != nil {
 		return err
 	}
 
@@ -260,38 +237,31 @@ func (m *Nrf51822) initFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
+func (m *Nrf51822) transferFOTA(client ble.Client) error {
 	blockCounter := 1
 	blockSize := 20
-	if m.Fota.currentBlock != 0 {
-		// Set block counter to the current block, this is used to resume FOTA if
-		// the previous FOTA was cancelled/failed mid way though
-		blockCounter += (m.Fota.currentBlock / blockSize)
+
+	if m.Firmware.currentBlock != 0 {
+		blockCounter += (m.Firmware.currentBlock / blockSize)
 	}
 
-	m.Log.WithFields(logrus.Fields{
-		"Progress": m.getProgress(),
+	m.Log.WithFields(log.Fields{
+		"Progress %": m.getProgress(),
 	}).Info("Transferring FOTA")
 
-	notifyChannel, err := m.initNotify(periph)
-	if err != nil {
-		return err
-	}
-
-	for i := m.Fota.currentBlock; i < m.Fota.size; i += blockSize {
+	for i := m.Firmware.currentBlock; i < m.Firmware.size; i += blockSize {
 		sliceIndex := i + blockSize
-		if sliceIndex > m.Fota.size {
-			// Limit the slice to Fota.Size to avoid extra zeros being tagged on the end of the block
-			sliceIndex = m.Fota.size
+		if sliceIndex > m.Firmware.size {
+			sliceIndex = m.Firmware.size
 		}
-		block := m.Fota.binary[i:sliceIndex]
+		block := m.Firmware.binary[i:sliceIndex]
 
-		if err = m.writeDFUPacket(periph, block, false); err != nil {
+		if err := client.WriteCharacteristic(dfuPkt, block, true); err != nil {
 			return err
 		}
 
 		if (blockCounter % 100) == 0 {
-			resp, err := m.timeoutNotify(notifyChannel)
+			resp, err := m.getNotification()
 			if err != nil {
 				return err
 			}
@@ -300,23 +270,23 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 				return fmt.Errorf("Incorrect notification received")
 			}
 
-			if m.Fota.currentBlock, err = m.unpack(resp[1:]); err != nil {
+			if m.Firmware.currentBlock, err = unpack(resp[1:]); err != nil {
 				return err
 			}
 
-			if (i + blockSize) != m.Fota.currentBlock {
+			if (i + blockSize) != m.Firmware.currentBlock {
 				return fmt.Errorf("FOTA transer out of sync")
 			}
 
-			m.Log.WithFields(logrus.Fields{
-				"Progress": m.getProgress(),
+			m.Log.WithFields(log.Fields{
+				"Progress %": m.getProgress(),
 			}).Info("Transferring FOTA")
 		}
 
 		blockCounter++
 	}
 
-	resp, err := m.timeoutNotify(notifyChannel)
+	resp, err := m.getNotification()
 	if err != nil {
 		return err
 	}
@@ -325,25 +295,29 @@ func (m *Nrf51822) transferFOTA(periph gatt.Peripheral) error {
 		return fmt.Errorf("Incorrect notification received")
 	}
 
-	m.Log.WithFields(logrus.Fields{
-		"Progress": "100%",
+	m.Log.WithFields(log.Fields{
+		"Progress %": 100,
 	}).Info("Transferring FOTA")
 
 	return nil
 }
 
-func (m *Nrf51822) validateFOTA(periph gatt.Peripheral) error {
+func (m *Nrf51822) validateFOTA(client ble.Client) error {
 	m.Log.Debug("Validating FOTA")
 
-	if err := m.checkFOTA(periph); err != nil {
+	if err := m.checkFOTA(client); err != nil {
 		return err
 	}
 
-	if m.Fota.currentBlock != m.Fota.size {
+	if m.Firmware.currentBlock != m.Firmware.size {
 		return fmt.Errorf("Bytes received does not match binary size")
 	}
 
-	resp, err := m.notifyDFUControlPoint(periph, []byte{Validate})
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{Validate}, false); err != nil {
+		return err
+	}
+
+	resp, err := m.getNotification()
 	if err != nil {
 		return err
 	}
@@ -357,10 +331,10 @@ func (m *Nrf51822) validateFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (m Nrf51822) finaliseFOTA(periph gatt.Peripheral) error {
+func (m Nrf51822) finaliseFOTA(client ble.Client) error {
 	m.Log.Debug("Finalising FOTA")
 
-	if err := m.WriteDFUControlPoint(periph, []byte{Activate}, false); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{Activate}, true); err != nil {
 		return err
 	}
 
@@ -369,66 +343,13 @@ func (m Nrf51822) finaliseFOTA(periph gatt.Peripheral) error {
 	return nil
 }
 
-func (m *Nrf51822) writeDFUPacket(periph gatt.Peripheral, value []byte, noRsp bool) error {
-	characteristic, err := bluetooth.GetChar("000015301212efde1523785feabcd123", "000015321212efde1523785feabcd123", "2902", gatt.CharWriteNR, 13, 14)
-	if err != nil {
-		return err
-	}
-
-	return periph.WriteCharacteristic(characteristic, value, noRsp)
-}
-
-func (m *Nrf51822) notifyDFUControlPoint(periph gatt.Peripheral, value []byte) ([]byte, error) {
-	notifyChannel, err := m.initNotify(periph)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = m.WriteDFUControlPoint(periph, value, false); err != nil {
-		return nil, err
-	}
-
-	return m.timeoutNotify(notifyChannel)
-
-}
-
-func (m *Nrf51822) notifyDFUPacket(periph gatt.Peripheral, value []byte) ([]byte, error) {
-	notifyChannel, err := m.initNotify(periph)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = m.writeDFUPacket(periph, value, false); err != nil {
-		return nil, err
-	}
-
-	return m.timeoutNotify(notifyChannel)
-}
-
-func (m *Nrf51822) initNotify(periph gatt.Peripheral) (chan []byte, error) {
-	notifyChannel := make(chan []byte)
-
-	characteristic, err := bluetooth.GetChar("000015301212efde1523785feabcd123", "000015311212efde1523785feabcd123", "2902", gatt.CharWrite+gatt.CharNotify, 15, 16)
-	if err != nil {
-		return notifyChannel, err
-	}
-
-	callback := func(c *gatt.Characteristic, b []byte, err error) {
-		notifyChannel <- b
-	}
-
-	err = periph.SetNotifyValue(characteristic, callback)
-
-	return notifyChannel, err
-}
-
-func (m *Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
+func (m *Nrf51822) getNotification() ([]byte, error) {
 	for {
 		select {
 		case <-time.After(10 * time.Second):
 			return nil, fmt.Errorf("Timed out waiting for notification")
-		case resp := <-notifyChannel:
-			m.Log.WithFields(logrus.Fields{
+		case resp := <-m.NotificationChannel:
+			m.Log.WithFields(log.Fields{
 				"[0]": resp[0],
 				"[1]": resp[1],
 				"[2]": resp[2],
@@ -438,30 +359,15 @@ func (m *Nrf51822) timeoutNotify(notifyChannel chan []byte) ([]byte, error) {
 	}
 }
 
-func (m *Nrf51822) unpack(resp []byte) (int, error) {
+func (m *Nrf51822) getProgress() float32 {
+	return ((float32)(m.Firmware.currentBlock) / (float32)(m.Firmware.size)) * 100.0
+}
+
+func unpack(resp []byte) (int, error) {
 	var result int32
 	buf := bytes.NewReader(resp)
 	if err := binary.Read(buf, binary.LittleEndian, &result); err != nil {
 		return 0, err
 	}
 	return (int)(result), nil
-}
-
-func (m *Nrf51822) pack() ([]byte, error) {
-	buf := new(bytes.Buffer)
-
-	// Pad the buffer with 8 zeroed bytes
-	if _, err := buf.Write(make([]byte, 8)); err != nil {
-		return nil, err
-	}
-
-	if err := binary.Write(buf, binary.LittleEndian, (int32)(m.Fota.size)); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
-func (m *Nrf51822) getProgress() string {
-	return strconv.Itoa((int)(((float32)(m.Fota.currentBlock)/(float32)(m.Fota.size))*100.0)) + "%"
 }

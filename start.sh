@@ -1,7 +1,15 @@
 #!/bin/bash
 
-# Enable on-board bluetooth
-./enableBle.sh
+echo "Enabling bluetooth..."
+if ! /usr/bin/hciattach /dev/ttyAMA0 bcm43xx 921600 noflow -; then
+    /usr/bin/hciattach /dev/ttyAMA0 bcm43xx 921600 noflow -
+fi
 
-# Run the edge-node-manager
-./edge-node-manager
+hciconfig hci0 up
+
+if [ `hcitool dev | wc -l` -gt 1 ]; then
+    echo "...passed"
+    ./edge-node-manager
+else
+    echo "...failed"
+fi

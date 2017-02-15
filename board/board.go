@@ -12,8 +12,8 @@ import (
 type Type string
 
 const (
-	MICROBIT   Type = "micro:bit"
-	NRF51822DK      = "nRF51822-DK"
+	MICROBIT   Type = "microbit"
+	NRF51822DK      = "nrf51822dk"
 )
 
 type Interface interface {
@@ -32,24 +32,20 @@ func Create(boardType Type, localUUID string, log *logrus.Logger) (Interface, er
 		return microbit.Microbit{
 			Log: log,
 			Micro: nrf51822.Nrf51822{
-				Log:              log,
-				LocalUUID:        localUUID,
-				Fota:             nrf51822.FOTA{},
-				ConnectedChannel: make(chan bool),
-				RestartChannel:   make(chan bool),
-				ErrChannel:       make(chan error),
+				Log:                 log,
+				LocalUUID:           localUUID,
+				Firmware:            nrf51822.FIRMWARE{},
+				NotificationChannel: make(chan []byte),
 			},
 		}, nil
 	case NRF51822DK:
 		return nrf51822dk.Nrf51822dk{
 			Log: log,
 			Micro: nrf51822.Nrf51822{
-				Log:              log,
-				LocalUUID:        localUUID,
-				Fota:             nrf51822.FOTA{},
-				ConnectedChannel: make(chan bool),
-				RestartChannel:   make(chan bool),
-				ErrChannel:       make(chan error),
+				Log:                 log,
+				LocalUUID:           localUUID,
+				Firmware:            nrf51822.FIRMWARE{},
+				NotificationChannel: make(chan []byte),
 			},
 		}, nil
 	}
