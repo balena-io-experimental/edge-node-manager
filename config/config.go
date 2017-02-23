@@ -27,7 +27,7 @@ func GetLogLevel() log.Level {
 		return log.PanicLevel
 	}
 
-	return log.DebugLevel
+	return log.InfoLevel
 }
 
 // GetLoopDelay returns the time delay in seconds between each application process loop
