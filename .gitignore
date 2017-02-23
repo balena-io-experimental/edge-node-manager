@@ -26,7 +26,3 @@ _testmain.go
 # Extras
 vendor
 debug
-.vscode
-npm-debug.log
-edge-node-manager
-.resin-sync.yml
