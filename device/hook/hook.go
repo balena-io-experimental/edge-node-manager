@@ -2,6 +2,7 @@ package hook
 
 import (
 	"io/ioutil"
+	"regexp"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/resin-io/edge-node-manager/config"
@@ -14,7 +15,8 @@ type Hook struct {
 
 func (h *Hook) Fire(entry *logrus.Entry) error {
 	serialised, _ := entry.Logger.Formatter.Format(entry)
-	supervisor.DependentDeviceLog(h.ResinUUID, (string)(serialised))
+	message := regexp.MustCompile(`\r?\n`).ReplaceAllString((string)(serialised), "")
+	supervisor.DependentDeviceLog(h.ResinUUID, message)
 
 	return nil
 }
