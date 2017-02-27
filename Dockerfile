@@ -8,23 +8,12 @@ ENV INITSYSTEM off
 # Set our working directory
 WORKDIR /usr/src/app
 
-# Add apt source of the foundation repository and install bluez
-# We need this source because bluez needs to be patched in order to work with Raspberry Pi 3
-RUN apt-get update && apt-get install -yq --no-install-recommends \
-    wget && \
-    wget http://archive.raspberrypi.org/debian/raspberrypi.gpg.key -O - | apt-key add - && \
-    sed -i '1s#^#deb http://archive.raspberrypi.org/debian jessie main\n#' /etc/apt/sources.list && \
-    apt-get install -yq --no-install-recommends \
-    bluez \
-    bluez-firmware && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
 # Use apt-get if you need to install dependencies,
-# for instance if you need ALSA sound utils, just uncomment the lines below.
-# RUN apt-get update && apt-get install -yq --no-install-recommends \
-#    alsa-utils \
-#    libasound2-dev && \
-#    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -yq --no-install-recommends \
+    bluez \
+    bluez-firmware \
+    wget && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy start script into the working directory
 COPY start.sh ./
