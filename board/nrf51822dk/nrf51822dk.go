@@ -38,6 +38,10 @@ func (b Nrf51822dk) Update(path string) error {
 			return err
 		}
 
+		if err = client.WriteDescriptor(dfu.CCCD, []byte{0x001}); err != nil {
+			return err
+		}
+
 		if err = client.WriteCharacteristic(dfu, []byte{nrf51822.Start, 0x04}, false); err != nil {
 			return err
 		}
@@ -109,6 +113,12 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	descriptor, err := bluetooth.GetDescriptor("2902", 0x11)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dfu.CCCD = descriptor
 
 	log.Debug("Initialised nRF51822-DK characteristics")
 }

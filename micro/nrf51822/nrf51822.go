@@ -153,13 +153,9 @@ func (m *Nrf51822) checkFOTA(client ble.Client) error {
 		return err
 	}
 
-	resp, err := m.getNotification()
+	resp, err := m.getNotification([]byte{Response, ReceivedSize, Success}, true)
 	if err != nil {
 		return err
-	}
-
-	if resp[0] != Response || resp[1] != ReceivedSize || resp[2] != Success {
-		return fmt.Errorf("Incorrect notification received")
 	}
 
 	m.Firmware.currentBlock, err = unpack(resp[3:])
@@ -194,41 +190,31 @@ func (m *Nrf51822) initFOTA(client ble.Client) error {
 		return err
 	}
 
-	resp, err := m.getNotification()
-	if err != nil {
+	if _, err := m.getNotification([]byte{Response, Start, Success}, true); err != nil {
 		return err
 	}
 
-	if resp[0] != Response || resp[1] != Start || resp[2] != Success {
-		return fmt.Errorf("Incorrect notification received")
-	}
-
-	if err = client.WriteCharacteristic(dfuCtrl, []byte{Initialise, 0x00}, false); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{Initialise, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err = client.WriteCharacteristic(dfuPkt, m.Firmware.data, false); err != nil {
+	if err := client.WriteCharacteristic(dfuPkt, m.Firmware.data, false); err != nil {
 		return err
 	}
 
-	if err = client.WriteCharacteristic(dfuCtrl, []byte{Initialise, 0x01}, false); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{Initialise, 0x01}, false); err != nil {
 		return err
 	}
 
-	resp, err = m.getNotification()
-	if err != nil {
+	if _, err := m.getNotification([]byte{Response, Initialise, Success}, true); err != nil {
 		return err
 	}
 
-	if resp[0] != Response || resp[1] != Initialise || resp[2] != Success {
-		return fmt.Errorf("Incorrect notification received")
-	}
-
-	if err = client.WriteCharacteristic(dfuCtrl, []byte{RequestBlockRecipt, 0x64, 0x00}, false); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{RequestBlockRecipt, 0x64, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err = client.WriteCharacteristic(dfuCtrl, []byte{Receive}, false); err != nil {
+	if err := client.WriteCharacteristic(dfuCtrl, []byte{Receive}, false); err != nil {
 		return err
 	}
 
@@ -261,7 +247,7 @@ func (m *Nrf51822) transferFOTA(client ble.Client) error {
 		}
 
 		if (blockCounter % 100) == 0 {
-			resp, err := m.getNotification()
+			resp, err := m.getNotification(nil, false)
 			if err != nil {
 				return err
 			}
@@ -286,13 +272,8 @@ func (m *Nrf51822) transferFOTA(client ble.Client) error {
 		blockCounter++
 	}
 
-	resp, err := m.getNotification()
-	if err != nil {
+	if _, err := m.getNotification([]byte{Response, Receive, Success}, true); err != nil {
 		return err
-	}
-
-	if resp[0] != Response || resp[1] != Receive || resp[2] != Success {
-		return fmt.Errorf("Incorrect notification received")
 	}
 
 	m.Log.WithFields(log.Fields{
@@ -317,13 +298,8 @@ func (m *Nrf51822) validateFOTA(client ble.Client) error {
 		return err
 	}
 
-	resp, err := m.getNotification()
-	if err != nil {
+	if _, err := m.getNotification([]byte{Response, Validate, Success}, true); err != nil {
 		return err
-	}
-
-	if resp[0] != Response || resp[1] != Validate || resp[2] != Success {
-		return fmt.Errorf("Incorrect notification received")
 	}
 
 	m.Log.Debug("Validated FOTA")
@@ -342,18 +318,29 @@ func (m Nrf51822) finaliseFOTA(client ble.Client) error {
 	return nil
 }
 
-func (m *Nrf51822) getNotification() ([]byte, error) {
+func (m *Nrf51822) getNotification(exp []byte, compare bool) ([]byte, error) {
 	for {
 		select {
 		case <-time.After(10 * time.Second):
 			return nil, fmt.Errorf("Timed out waiting for notification")
 		case resp := <-m.NotificationChannel:
+			if !compare || bytes.Equal(resp[:3], exp) {
+				return resp, nil
+			}
+
 			m.Log.WithFields(log.Fields{
-				"[0]": resp[0],
-				"[1]": resp[1],
-				"[2]": resp[2],
-			}).Debug("Notification")
-			return resp, nil
+				"[0]": fmt.Sprintf("0x%X", resp[0]),
+				"[1]": fmt.Sprintf("0x%X", resp[1]),
+				"[2]": fmt.Sprintf("0x%X", resp[2]),
+			}).Debug("Received")
+
+			m.Log.WithFields(log.Fields{
+				"[0]": fmt.Sprintf("0x%X", exp[0]),
+				"[1]": fmt.Sprintf("0x%X", exp[1]),
+				"[2]": fmt.Sprintf("0x%X", exp[2]),
+			}).Debug("Expected")
+
+			return nil, fmt.Errorf("Incorrect notification received")
 		}
 	}
 }

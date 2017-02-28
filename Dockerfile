@@ -20,8 +20,8 @@ COPY start.sh ./
 
 # Get the edge-node-manager binary, rename and make executable. Ensure you have the correct release
 # and architecture by checking https://github.com/resin-io/edge-node-manager/releases/latest
-RUN wget https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/v0.1.8/edge-node-manager-v0.1.8-linux-arm && \
-    mv edge-node-manager-v0.1.8-linux-arm edge-node-manager && \
+RUN wget https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/v0.1.9/edge-node-manager-v0.1.9-linux-arm && \
+    mv edge-node-manager-v0.1.9-linux-arm edge-node-manager && \
     chmod +x edge-node-manager
 
 # Alternatively cross-compile the binary locally (env GOOS=linux GOARCH=arm go build)
