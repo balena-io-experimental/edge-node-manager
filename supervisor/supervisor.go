@@ -375,8 +375,8 @@ func handleResp(resp gorequest.Response, errs []error, statusCode int) []error {
 		return errs
 	}
 
-	// Allow 404 here as it means the dep. app or dep. device has just been deleted
-	if resp.StatusCode != statusCode && resp.StatusCode != 404 {
+	// Allow 404 and 410 here as it means the dep. app or dep. device has just been deleted
+	if resp.StatusCode != statusCode && resp.StatusCode != 404 && resp.StatusCode != 410 {
 		return []error{fmt.Errorf("Invalid response received: %s", resp.Status)}
 	}
 
