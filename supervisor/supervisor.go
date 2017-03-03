@@ -118,12 +118,10 @@ func DependentDeviceLog(UUID, message string) []error {
 
 	type dependentDeviceLog struct {
 		Message   string `json:"message"`
-		TimeStamp int64  `json:"timestamp"`
 	}
 
 	content := &dependentDeviceLog{
 		Message:   message,
-		TimeStamp: time.Now().UTC().Unix(),
 	}
 
 	bytes, err := json.Marshal(content)
