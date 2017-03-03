@@ -6,6 +6,7 @@ import (
 	"path"
 	"reflect"
 	"strconv"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/resin-io/edge-node-manager/board"
@@ -203,18 +204,39 @@ func (a *Application) UpdateOnlineDevices() []error {
 			return []error{err}
 		}
 
-		log.WithFields(log.Fields{
-			"Name": d.Name,
-		}).Info("Starting update")
-
 		d.SetStatus(status.INSTALLING)
 
-		if err := d.Board.Update(a.FilePath); err != nil {
+	Loop:
+		for i := 1; i <= 3; i++ {
 			log.WithFields(log.Fields{
-				"Name": d.Name,
-			}).Error("Update failed")
-			d.SetStatus(status.IDLE)
-			return []error{err}
+				"Name":    d.Name,
+				"Attempt": i,
+			}).Info("Starting update")
+
+			done := make(chan error)
+			go func() {
+				done <- d.Board.Update(a.FilePath)
+			}()
+
+			for {
+				select {
+				case <-time.After(1 * time.Minute):
+					log.WithFields(log.Fields{
+						"Name": d.Name,
+					}).Error("Update timed out")
+					continue Loop
+				case err := <-done:
+					if err != nil {
+						log.WithFields(log.Fields{
+							"Name":  d.Name,
+							"Error": err,
+						}).Error("Update failed")
+						continue Loop
+					}
+
+					break Loop
+				}
+			}
 		}
 
 		d.Commit = d.TargetCommit
