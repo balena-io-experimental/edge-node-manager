@@ -27,7 +27,7 @@ func GetLogLevel() log.Level {
 		return log.PanicLevel
 	}
 
-	return log.DebugLevel
+	return log.InfoLevel
 }
 
 // GetDependentLogLevel returns the log level for dependent devices
