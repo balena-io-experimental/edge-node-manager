@@ -234,17 +234,16 @@ func (a *Application) UpdateOnlineDevices() []error {
 						continue Loop
 					}
 
+					d.Commit = d.TargetCommit
+
+					log.WithFields(log.Fields{
+						"Name": d.Name,
+					}).Info("Finished update")
 					break Loop
 				}
 			}
 		}
-
-		d.Commit = d.TargetCommit
 		d.SetStatus(status.IDLE)
-
-		log.WithFields(log.Fields{
-			"Name": d.Name,
-		}).Info("Finished update")
 	}
 
 	return nil
