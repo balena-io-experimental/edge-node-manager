@@ -9,6 +9,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 	"github.com/resin-io/edge-node-manager/board"
 	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/database"
@@ -231,6 +232,7 @@ func (a *Application) UpdateOnlineDevices() []error {
 							"Name":  d.Name,
 							"Error": err,
 						}).Error("Update failed")
+						bluetooth.ResetDevice()
 						continue Loop
 					}
 

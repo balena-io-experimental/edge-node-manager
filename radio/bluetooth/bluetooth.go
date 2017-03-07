@@ -32,6 +32,13 @@ func CloseDevice() error {
 	return ble.Stop()
 }
 
+func ResetDevice() error {
+	if err := ble.Stop(); err != nil {
+		return err
+	}
+	return OpenDevice()
+}
+
 func Connect(id string, timeout time.Duration) (ble.Client, error) {
 	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), timeout*time.Second)), hci.RandomAddress{ble.NewAddr(id)})
 	if err != nil {
