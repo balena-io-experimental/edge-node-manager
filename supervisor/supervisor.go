@@ -180,7 +180,7 @@ func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 		"Method": req.Method,
 		"Query":  req.QueryData,
 		"Body":   (string)(bytes),
-	}).Warn("Transmitting dependent device info")
+	}).Debug("Transmitting dependent device info")
 
 	resp, _, errs := req.End()
 	return handleResp(resp, errs, 200)
