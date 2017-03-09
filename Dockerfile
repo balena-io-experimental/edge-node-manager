@@ -12,7 +12,7 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -yq --no-install-recommends \
     bluez \
     bluez-firmware \
-    wget && \
+    curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy start script into the working directory
@@ -20,7 +20,7 @@ COPY start.sh ./
 
 # Get the edge-node-manager binary, rename and make executable. Ensure you have the correct release
 # and architecture by checking https://github.com/resin-io/edge-node-manager/releases/latest
-RUN wget https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/v0.1.9/edge-node-manager-v0.1.9-linux-arm && \
+RUN curl -k -O https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/v0.1.9/edge-node-manager-v0.1.9-linux-arm && \
     mv edge-node-manager-v0.1.9-linux-arm edge-node-manager && \
     chmod +x edge-node-manager
 
