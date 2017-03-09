@@ -3,6 +3,7 @@ package nrf51822dk
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/currantlabs/ble"
@@ -46,9 +47,7 @@ func (b Nrf51822dk) Update(path string) error {
 			return err
 		}
 
-		if err = bluetooth.Disconnect(client); err != nil {
-			return err
-		}
+		time.Sleep(time.Duration(100) * time.Millisecond)
 
 		b.Log.Debug("Started bootloader")
 	} else {
@@ -63,6 +62,8 @@ func (b Nrf51822dk) Update(path string) error {
 	if err := b.Micro.Update(client); err != nil {
 		return err
 	}
+
+	time.Sleep(time.Duration(100) * time.Millisecond)
 
 	b.Log.Info("Finished update")
 
