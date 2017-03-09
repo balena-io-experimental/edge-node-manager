@@ -56,8 +56,10 @@ func Connect(id string, timeout time.Duration) (ble.Client, error) {
 	go func() {
 		<-client.Disconnected()
 		close(done)
+		log.Info("Closed connection")
 	}()
 
+	log.Info("Opened connection")
 	return client, nil
 }
 
@@ -69,6 +71,7 @@ func Disconnect(client ble.Client) error {
 	if err := client.CancelConnection(); err != nil {
 		return err
 	}
+	log.Info("Closing connection")
 	<-done
 	return nil
 }
