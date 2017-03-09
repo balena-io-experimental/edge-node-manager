@@ -13,6 +13,7 @@ import (
 	"github.com/resin-io/edge-node-manager/database"
 	"github.com/resin-io/edge-node-manager/device"
 	"github.com/resin-io/edge-node-manager/device/status"
+	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 	"github.com/resin-io/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
@@ -203,26 +204,31 @@ func (a *Application) UpdateOnlineDevices() []error {
 			return []error{err}
 		}
 
-		log.WithFields(log.Fields{
-			"Name": d.Name,
-		}).Info("Starting update")
-
 		d.SetStatus(status.INSTALLING)
 
-		if err := d.Board.Update(a.FilePath); err != nil {
+		for i := 1; i <= 3; i++ {
 			log.WithFields(log.Fields{
-				"Name": d.Name,
-			}).Error("Update failed")
-			d.SetStatus(status.IDLE)
-			return []error{err}
+				"Name":    d.Name,
+				"Attempt": i,
+			}).Info("Starting update")
+
+			if err := d.Board.Update(a.FilePath); err != nil {
+				log.WithFields(log.Fields{
+					"Name":  d.Name,
+					"Error": err,
+				}).Error("Update failed")
+				bluetooth.ResetDevice()
+				continue
+			} else {
+				d.Commit = d.TargetCommit
+
+				log.WithFields(log.Fields{
+					"Name": d.Name,
+				}).Info("Finished update")
+				break
+			}
 		}
-
-		d.Commit = d.TargetCommit
 		d.SetStatus(status.IDLE)
-
-		log.WithFields(log.Fields{
-			"Name": d.Name,
-		}).Info("Finished update")
 	}
 
 	return nil
