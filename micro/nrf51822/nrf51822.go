@@ -319,6 +319,8 @@ func (m Nrf51822) finaliseFOTA(client ble.Client) error {
 }
 
 func (m *Nrf51822) getNotification(exp []byte, compare bool) ([]byte, error) {
+	m.Log.Debug("Waiting for notification")
+
 	for {
 		select {
 		case <-time.After(10 * time.Second):
