@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	done chan struct{}
-	name *ble.Characteristic
+	doneChannel chan struct{}
+	name        *ble.Characteristic
 )
 
 func OpenDevice() error {
@@ -25,8 +25,10 @@ func OpenDevice() error {
 	if err != nil {
 		return err
 	}
+
 	updateLinuxParam(device)
 	ble.SetDefaultDevice(device)
+
 	return nil
 }
 
@@ -38,6 +40,7 @@ func ResetDevice() error {
 	if err := ble.Stop(); err != nil {
 		return err
 	}
+
 	return OpenDevice()
 }
 
@@ -52,14 +55,12 @@ func Connect(id string, timeout time.Duration) (ble.Client, error) {
 		return nil, err
 	}
 
-	done = make(chan struct{})
+	doneChannel = make(chan struct{})
 	go func() {
 		<-client.Disconnected()
-		close(done)
-		log.Info("Closed connection")
+		close(doneChannel)
 	}()
 
-	log.Info("Opened connection")
 	return client, nil
 }
 
@@ -71,8 +72,8 @@ func Disconnect(client ble.Client) error {
 	if err := client.CancelConnection(); err != nil {
 		return err
 	}
-	log.Info("Closing connection")
-	<-done
+	<-doneChannel
+
 	return nil
 }
 
@@ -193,15 +194,15 @@ func init() {
 }
 
 func updateLinuxParam(device *linux.Device) error {
-	// if err := device.HCI.Send(&cmd.LESetScanParameters{
-	//     LEScanType:           0x00,   // 0x00: passive, 0x01: active
-	//     LEScanInterval:       0x0062, // 0x0004 - 0x4000; N * 0.625msec
-	//     LEScanWindow:         0x0030, // 0x0004 - 0x4000; N * 0.625msec
-	//     OwnAddressType:       0x00,   // 0x00: public, 0x01: random
-	//     ScanningFilterPolicy: 0x01,   // 0x00: accept all, 0x01: ignore non-white-listed.
-	// }, nil); err != nil {
-	//     return errors.Wrap(err, "can't set scan param")
-	// }
+	if err := device.HCI.Send(&cmd.LESetScanParameters{
+		LEScanType:           0x00,   // 0x00: passive, 0x01: active
+		LEScanInterval:       0x0060, // 0x0004 - 0x4000; N * 0.625msec
+		LEScanWindow:         0x0060, // 0x0004 - 0x4000; N * 0.625msec
+		OwnAddressType:       0x01,   // 0x00: public, 0x01: random
+		ScanningFilterPolicy: 0x00,   // 0x00: accept all, 0x01: ignore non-white-listed.
+	}, nil); err != nil {
+		return errors.Wrap(err, "can't set scan param")
+	}
 
 	if err := device.HCI.Option(hci.OptConnParams(
 		cmd.LECreateConnection{

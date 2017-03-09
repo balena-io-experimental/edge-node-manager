@@ -6,15 +6,14 @@ import (
 	"path"
 	"reflect"
 	"strconv"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 	"github.com/resin-io/edge-node-manager/board"
 	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/database"
 	"github.com/resin-io/edge-node-manager/device"
 	"github.com/resin-io/edge-node-manager/device/status"
+	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 	"github.com/resin-io/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
@@ -207,42 +206,26 @@ func (a *Application) UpdateOnlineDevices() []error {
 
 		d.SetStatus(status.INSTALLING)
 
-	Loop:
 		for i := 1; i <= 3; i++ {
 			log.WithFields(log.Fields{
 				"Name":    d.Name,
 				"Attempt": i,
 			}).Info("Starting update")
 
-			done := make(chan error)
-			go func() {
-				done <- d.Board.Update(a.FilePath)
-			}()
+			if err := d.Board.Update(a.FilePath); err != nil {
+				log.WithFields(log.Fields{
+					"Name":  d.Name,
+					"Error": err,
+				}).Error("Update failed")
+				bluetooth.ResetDevice()
+				continue
+			} else {
+				d.Commit = d.TargetCommit
 
-			for {
-				select {
-				case <-time.After(1 * time.Minute):
-					log.WithFields(log.Fields{
-						"Name": d.Name,
-					}).Error("Update timed out")
-					continue Loop
-				case err := <-done:
-					if err != nil {
-						log.WithFields(log.Fields{
-							"Name":  d.Name,
-							"Error": err,
-						}).Error("Update failed")
-						bluetooth.ResetDevice()
-						continue Loop
-					}
-
-					d.Commit = d.TargetCommit
-
-					log.WithFields(log.Fields{
-						"Name": d.Name,
-					}).Info("Finished update")
-					break Loop
-				}
+				log.WithFields(log.Fields{
+					"Name": d.Name,
+				}).Info("Finished update")
+				break
 			}
 		}
 		d.SetStatus(status.IDLE)

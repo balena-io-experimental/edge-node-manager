@@ -248,12 +248,10 @@ func (m *Nrf51822) transferFOTA(client ble.Client) error {
 		// time.Sleep(time.Duration(10) * time.Millisecond)
 
 		if (blockCounter % 100) == 0 {
-			m.Log.Info("before")
 			resp, err := m.getNotification(nil, false)
 			if err != nil {
 				return err
 			}
-			m.Log.Info("after")
 
 			if resp[0] != BlockRecipt {
 				return fmt.Errorf("Incorrect notification received")
