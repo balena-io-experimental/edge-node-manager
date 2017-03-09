@@ -64,10 +64,6 @@ func (b Nrf51822dk) Update(path string) error {
 		return err
 	}
 
-	if err := bluetooth.Disconnect(client); err != nil {
-		return err
-	}
-
 	b.Log.Info("Finished update")
 
 	return nil
