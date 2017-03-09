@@ -47,6 +47,11 @@ func Run(a *application.Application) []error {
 		"Number of devices": len(a.Devices),
 	}).Info("Processing application")
 
+	// Reset the bluetooth device to clean up any left over go routines etc. Quick fix
+	if err := bluetooth.ResetDevice(); err != nil {
+		return []error{err}
+	}
+
 	// Get all online devices associated with this application
 	if err := a.GetOnlineDevices(); err != nil {
 		return []error{err}
