@@ -30,6 +30,28 @@ func GetLogLevel() log.Level {
 	return log.InfoLevel
 }
 
+// GetDependentLogLevel returns the log level for dependent devices
+func GetDependentLogLevel() log.Level {
+	level := getEnv("DEPENDENT_LOG_LEVEL", "")
+
+	switch level {
+	case "Debug":
+		return log.DebugLevel
+	case "Info":
+		return log.InfoLevel
+	case "Warn":
+		return log.WarnLevel
+	case "Error":
+		return log.ErrorLevel
+	case "Fatal":
+		return log.FatalLevel
+	case "Panic":
+		return log.PanicLevel
+	}
+
+	return log.InfoLevel
+}
+
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {
 	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "10"))

@@ -35,7 +35,7 @@ func (h *Hook) Levels() []logrus.Level {
 func Create(resinUUID string) *logrus.Logger {
 	log := logrus.New()
 	log.Out = ioutil.Discard
-	log.Level = config.GetLogLevel()
+	log.Level = config.GetDependentLogLevel()
 	log.Formatter = &logrus.TextFormatter{ForceColors: true, DisableTimestamp: true}
 	log.Hooks.Add(&Hook{
 		ResinUUID: resinUUID,
