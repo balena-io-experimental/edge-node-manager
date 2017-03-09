@@ -43,11 +43,11 @@ func (b Nrf51822dk) Update(path string) error {
 			return err
 		}
 
-		if err = client.WriteCharacteristic(dfu, []byte{nrf51822.Start, 0x04}, false); err != nil {
-			return err
-		}
+		// Ignore the error because this command causes the device to disconnect
+		client.WriteCharacteristic(dfu, []byte{nrf51822.Start, 0x04}, false)
 
-		time.Sleep(time.Duration(100) * time.Millisecond)
+		// Give the device time to disconnect
+		time.Sleep(time.Duration(1) * time.Second)
 
 		b.Log.Debug("Started bootloader")
 	} else {
