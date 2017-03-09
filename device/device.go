@@ -94,10 +94,10 @@ func Create(boardType board.Type, name, localUUID, resinUUID string, application
 
 // Only set the is_online field if the device is_online state has changed
 func (d *Device) SetStatus(newStatus status.Status) []error {
-	oldOnline := true
-	if d.Status == status.OFFLINE {
-		oldOnline = false
-	}
+	// oldOnline := true
+	// if d.Status == status.OFFLINE {
+	//     oldOnline = false
+	// }
 
 	d.Status = newStatus
 
@@ -107,11 +107,11 @@ func (d *Device) SetStatus(newStatus status.Status) []error {
 	}
 
 	// Send is_online if the status has changed or its the first time after a restart
-	if oldOnline != newOnline || !d.statusFlag {
-		d.statusFlag = true
-		return supervisor.DependentDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
-	}
-	return supervisor.DependentDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
+	// if oldOnline != newOnline || !d.statusFlag {
+	//     d.statusFlag = true
+	return supervisor.DependentDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, newOnline)
+	// }
+	// return supervisor.DependentDeviceInfoUpdateWithoutOnlineState(d.ResinUUID, (string)(d.Status), d.Commit)
 }
 
 func (d *Device) Marshall() ([]byte, error) {
