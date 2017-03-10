@@ -313,6 +313,9 @@ func (m Nrf51822) finaliseFOTA(client ble.Client) error {
 	// Ignore the error because this command causes the device to disconnect
 	client.WriteCharacteristic(dfuCtrl, []byte{Activate}, false)
 
+	// Give the device time to disconnect
+	time.Sleep(time.Duration(1) * time.Second)
+
 	m.Log.Debug("Finalised FOTA")
 
 	return nil
