@@ -12,16 +12,18 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -yq --no-install-recommends \
     bluez \
     bluez-firmware \
-    curl && \
+    curl \
+    jq && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy start script into the working directory
 COPY start.sh ./
 
-# Get the edge-node-manager binary, rename and make executable. Ensure you have the correct release
-# and architecture by checking https://github.com/resin-io/edge-node-manager/releases/latest
-RUN curl -k -O https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/v0.1.9/edge-node-manager-v0.1.9-linux-arm && \
-    mv edge-node-manager-v0.1.9-linux-arm edge-node-manager && \
+# Get the edge-node-manager binary, rename and make executable
+RUN TAG=$(curl https://api.github.com/repos/resin-io/edge-node-manager/releases/latest -s | jq .tag_name -r) && \
+    echo "Pulling $TAG of the edge-node-manager binary" && \
+    curl -k -O https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TAG/edge-node-manager-$TAG-linux-arm && \
+    mv edge-node-manager-$TAG-linux-arm edge-node-manager && \
     chmod +x edge-node-manager
 
 # Alternatively cross-compile the binary locally (env GOOS=linux GOARCH=arm go build)
