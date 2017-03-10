@@ -23,7 +23,9 @@ The edge-node-manager provides an API that allows the user to set the target sta
  - Ensure the edge-node-manager process is not running during an update of the user container
  - Free up the on-board radios to allow user code to interact directly with the dependent devices e.g. to collect sensor data
 
-**Warning** - Do not try and interact with the on-board radios whilst the edge-node-manager is running (this leads to inconsistent, unexpected behaviour)
+**Note** - [Update locks](https://github.com/resin-io/resin-supervisor/blob/master/docs/update-locking.md) *are* enabled whilst the process is running. This means that you will need to pause the edge-node-manager to update the user container.
+
+**Warning** - Do not try and interact with the on-board radios whilst the edge-node-manager is running (this leads to inconsistent, unexpected behaviour).
 
 ### SET /v1/enm/status
 Set the edge-node-manager process status.
