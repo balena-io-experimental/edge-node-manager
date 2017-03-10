@@ -94,6 +94,11 @@ func GetSuperAPIKey() string {
 	return getEnv("RESIN_SUPERVISOR_API_KEY", "")
 }
 
+// GetLockFileLocation returns the location of the lock file
+func GetLockFileLocation() string {
+	return getEnv("ENM_LOCK_FILE_LOCATION", "/data/resin-updates.lock")
+}
+
 func getEnv(key, fallback string) string {
 	result := os.Getenv(key)
 	if result == "" {
