@@ -63,8 +63,6 @@ func (b Nrf51822dk) Update(path string) error {
 		return err
 	}
 
-	time.Sleep(time.Duration(100) * time.Millisecond)
-
 	b.Log.Info("Finished update")
 
 	return nil

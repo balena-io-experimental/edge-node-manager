@@ -59,8 +59,6 @@ func (b Microbit) Update(path string) error {
 		return err
 	}
 
-	time.Sleep(time.Duration(100) * time.Millisecond)
-
 	b.Log.Info("Finished update")
 
 	return nil
