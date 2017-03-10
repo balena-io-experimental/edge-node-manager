@@ -39,11 +39,11 @@ func (b Microbit) Update(path string) error {
 			return err
 		}
 
-		if err = client.WriteCharacteristic(dfu, []byte{nrf51822.Start}, false); err != nil {
-			return err
-		}
+		// Ignore the error because this command causes the device to disconnect
+		client.WriteCharacteristic(dfu, []byte{nrf51822.Start}, false)
 
-		time.Sleep(time.Duration(100) * time.Millisecond)
+		// Give the device time to disconnect
+		time.Sleep(time.Duration(1) * time.Second)
 
 		b.Log.Debug("Started bootloader")
 	} else {
@@ -58,8 +58,6 @@ func (b Microbit) Update(path string) error {
 	if err := b.Micro.Update(client); err != nil {
 		return err
 	}
-
-	time.Sleep(time.Duration(100) * time.Millisecond)
 
 	b.Log.Info("Finished update")
 

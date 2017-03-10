@@ -44,7 +44,7 @@ func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 	application.List[applicationUUID].TargetCommit = content.Commit
 	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusAccepted)
 
 	log.WithFields(log.Fields{
 		"ApplicationUUID": applicationUUID,
@@ -70,7 +70,11 @@ func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
 
 	application.List[applicationUUID].Devices[localUUID].DeleteFlag = true
 
-	w.WriteHeader(http.StatusOK)
+	if process.CurrentStatus == status.PAUSED {
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 
 	log.WithFields(log.Fields{
 		"ApplicationUUID": applicationUUID,
@@ -94,7 +98,11 @@ func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
 
 	application.List[applicationUUID].Devices[localUUID].RestartFlag = true
 
-	w.WriteHeader(http.StatusOK)
+	if process.CurrentStatus == status.PAUSED {
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 
 	log.WithFields(log.Fields{
 		"UUID": deviceUUID,
