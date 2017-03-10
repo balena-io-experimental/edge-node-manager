@@ -22,6 +22,9 @@ var (
 func Run(a *application.Application) []error {
 	log.Info("----------------------------------------------------------------------------------------------------")
 
+	// Put all provisioned devices associated with this application
+	defer a.PutDevices()
+
 	// Pause the process if necessary
 	if err := pause(); err != nil {
 		return []error{err}
@@ -84,11 +87,6 @@ func Run(a *application.Application) []error {
 
 	// Handle device flags
 	if err := a.HandleFlags(); err != nil {
-		return []error{err}
-	}
-
-	// Put all provisioned devices associated with this application
-	if err := a.PutDevices(); err != nil {
 		return []error{err}
 	}
 
