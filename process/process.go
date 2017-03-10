@@ -4,6 +4,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/fredli74/lockfile"
 	"github.com/resin-io/edge-node-manager/application"
 	"github.com/resin-io/edge-node-manager/config"
 	deviceStatus "github.com/resin-io/edge-node-manager/device/status"
@@ -16,6 +17,7 @@ var (
 	CurrentStatus  processStatus.Status
 	TargetStatus   processStatus.Status
 	UpdatesPending bool
+	Lock           *lockfile.LockFile
 )
 
 // Run processes the application, checking for new commits, provisioning and updating devices
@@ -117,6 +119,12 @@ func init() {
 		}).Fatal("Unable to load pause delay")
 	}
 
+	if err = lockContainerUpdates(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to lock container updates")
+	}
+
 	CurrentStatus = processStatus.RUNNING
 	TargetStatus = processStatus.RUNNING
 	UpdatesPending = false
@@ -124,6 +132,14 @@ func init() {
 	log.WithFields(log.Fields{
 		"Pause delay": delay,
 	}).Debug("Initialise process")
+}
+
+func lockContainerUpdates() error {
+	lockFileLocation := config.GetLockFileLocation()
+
+	var err error
+	Lock, err = lockfile.Lock(lockFileLocation)
+	return err
 }
 
 func pause() error {
@@ -135,6 +151,8 @@ func pause() error {
 		return err
 	}
 
+	Lock.Unlock()
+
 	CurrentStatus = processStatus.PAUSED
 	log.WithFields(log.Fields{
 		"Status": CurrentStatus,
@@ -145,6 +163,10 @@ func pause() error {
 	}
 
 	if err := bluetooth.OpenDevice(); err != nil {
+		return err
+	}
+
+	if err := lockContainerUpdates(); err != nil {
 		return err
 	}
 
