@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/resin-io/edge-node-manager/board/cloudjam"
 	"github.com/resin-io/edge-node-manager/board/microbit"
 	"github.com/resin-io/edge-node-manager/board/nrf51822dk"
 	"github.com/resin-io/edge-node-manager/micro/nrf51822"
+	"github.com/resin-io/edge-node-manager/micro/stmf401re"
 )
 
 type Type string
@@ -14,6 +16,7 @@ type Type string
 const (
 	MICROBIT   Type = "microbit"
 	NRF51822DK      = "nrf51822dk"
+	CLOUDJAM        = "cloudjam"
 )
 
 type Interface interface {
@@ -46,6 +49,15 @@ func Create(boardType Type, localUUID string, log *logrus.Logger) (Interface, er
 				LocalUUID:           localUUID,
 				Firmware:            nrf51822.FIRMWARE{},
 				NotificationChannel: make(chan []byte),
+			},
+		}, nil
+	case CLOUDJAM:
+		return cloudjam.Cloudjam{
+			Log: log,
+			Micro: stmf401re.Stmf401re{
+				Log:                 log,
+				LocalUUID:           localUUID,
+				Firmware:            stmf401re.FIRMWARE{},
 			},
 		}, nil
 	}
