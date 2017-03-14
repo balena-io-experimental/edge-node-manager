@@ -1,5 +1,5 @@
-hash: e8c75afe7a88cd481a4b2ae194b5183157d7789555b480810fdab9b356299326
-updated: 2017-03-10T15:17:10.953993467Z
+hash: 071006d9b45514656ec55b1436f0e921c707bd830123137553eaddf6e31b108f
+updated: 2017-03-13T19:01:52.954170935Z
 imports:
 - name: github.com/boltdb/bolt
   version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
@@ -29,10 +29,14 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 392c28fe23e1c45ddba891b0320b3b5df220beea
+- name: github.com/kylelemons/gousb
+  version: b5abadf3f056ca42980f34b0a2ce252152a37385
+  subpackages:
+  - usb
 - name: github.com/mattn/go-colorable
-  version: d228849504861217f796da67fae4f6e347643f15
+  version: a392f450ea64cee2b268dfaacdc2502b50a22b18
 - name: github.com/mattn/go-isatty
-  version: 30a891c33c7cde7b02a981314b4228ec99380cca
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
 - name: github.com/mgutz/logxi
@@ -52,7 +56,7 @@ imports:
 - name: github.com/Sirupsen/logrus
   version: 0208149b40d863d2c1a2f8fe5753096a9cf2cc8b
 - name: github.com/ulikunitz/xz
-  version: 76f94b7c69c6f84be96bcfc2443042b198689565
+  version: 3807218c9f4ed05861fa9eb75b8fb8afd3325a34
   subpackages:
   - internal/hash
   - internal/xlog
@@ -65,7 +69,7 @@ imports:
   - context
   - publicsuffix
 - name: golang.org/x/sys
-  version: 7a6e5648d140666db5d920909e082ca00a87ba2c
+  version: 99f16d856c9836c42d24e7ab64ea72916925fa97
   subpackages:
   - unix
 testImports: []

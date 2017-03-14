@@ -2,9 +2,9 @@ package cloudjam
 
 import (
 	"fmt"
-	"strconv"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/kylelemons/gousb/usb"
 	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/micro/stmf401re"
 	"github.com/resin-io/edge-node-manager/radio/serial"
@@ -15,8 +15,22 @@ type Cloudjam struct {
 	Micro stmf401re.Stmf401re
 }
 
+var (
+	vendorID  usb.ID
+	productID usb.ID
+)
+
 func (b Cloudjam) Update(path string) error {
 	b.Log.Info("Starting update")
+
+	bus, address, err := serial.GetBusAddress(b.Micro.LocalUUID, b.Micro.VendorID, b.Micro.ProductID)
+	if err != nil {
+		return err
+	}
+
+	if err := b.Micro.Update(bus, address, path); err != nil {
+		return err
+	}
 
 	b.Log.Info("Finished update")
 
@@ -24,12 +38,11 @@ func (b Cloudjam) Update(path string) error {
 }
 
 func (b Cloudjam) Scan(applicationUUID int) (map[string]bool, error) {
-	id := "BBC micro:bit [" + strconv.Itoa(applicationUUID) + "]"
-	return serial.Scan(id, 10)
+	return serial.Scan(vendorID, productID)
 }
 
 func (b Cloudjam) Online() (bool, error) {
-	return serial.Online(b.Micro.LocalUUID, 10)
+	return serial.Online(b.Micro.LocalUUID, b.Micro.VendorID, b.Micro.ProductID)
 }
 
 func (b Cloudjam) Restart() error {
@@ -58,4 +71,9 @@ func (b Cloudjam) UpdateEnvironment(config interface{}) error {
 
 func init() {
 	log.SetLevel(config.GetLogLevel())
+
+	vendorID = 0x0483
+	productID = 0x374b
+
+	log.Debug("Initialised Cloud-Jam ID's")
 }

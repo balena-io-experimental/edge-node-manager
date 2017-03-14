@@ -22,3 +22,6 @@ import:
   subpackages:
   - context
 - package: github.com/fredli74/lockfile
+- package: github.com/kylelemons/gousb
+  subpackages:
+  - usb

@@ -55,9 +55,8 @@ func Create(boardType Type, localUUID string, log *logrus.Logger) (Interface, er
 		return cloudjam.Cloudjam{
 			Log: log,
 			Micro: stmf401re.Stmf401re{
-				Log:                 log,
-				LocalUUID:           localUUID,
-				Firmware:            stmf401re.FIRMWARE{},
+				Log:       log,
+				LocalUUID: localUUID,
 			},
 		}, nil
 	}
