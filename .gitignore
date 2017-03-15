@@ -26,3 +26,4 @@ _testmain.go
 # Extras
 vendor
 debug
+edge-node-manager
