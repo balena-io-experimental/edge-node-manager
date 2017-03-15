@@ -15,11 +15,12 @@ import (
 	"github.com/resin-io/edge-node-manager/supervisor"
 )
 
+// This variable will be populated at build time with the current version tag
 var version string
 
 func main() {
 	if err := checkVersion(); err != nil {
-		log.Fatal("Unable to check version")
+		log.Error("Unable to check if edge-node-manager is up to date")
 	}
 
 	log.Info("Starting edge-node-manager")
