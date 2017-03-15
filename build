@@ -1,0 +1,4 @@
+#!/bin/bash
+
+docker build -t build -f Dockerfile.build ./
+docker run -v $(pwd):/out build
