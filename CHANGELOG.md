@@ -6,7 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## v1.0.3 - 2017-03-15
 
-* * Remove edge-node-manager binary * Add edge-node-manager to .gitignore [Joseph Roberts]
+* Remove edge-node-manager binary
+* Add edge-node-manager to .gitignore [Joseph Roberts]
 
 ## v1.0.2 - 2017-03-13
 
