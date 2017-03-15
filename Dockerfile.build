@@ -1,0 +1,53 @@
+FROM golang:1.8.0
+
+WORKDIR /
+
+# Install Raspberry Pi toolchains
+RUN git clone https://github.com/raspberrypi/tools
+ENV PATH /tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin:$PATH
+
+# Install dependencies
+RUN dpkg --add-architecture armhf
+RUN apt-get update && apt-get install -yq --no-install-recommends \
+    file \
+    libudev-dev:armhf \
+    libusb-1.0-0-dev:armhf && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install glide
+RUN go get github.com/Masterminds/glide
+
+WORKDIR /go/src/github.com/resin-io/edge-node-manager
+
+COPY . ./
+
+# RUN ln -s /lib/arm-linux-gnueabihf/libudev.so.1 /usr/lib/arm-linux-gnueabihf/pkgconfig
+# RUN ln -s /lib/arm-linux-gnueabihf/libudev.so.1 /lib/arm-linux-gnueabihf/lib
+# RUN ln -s /lib/arm-linux-gnueabihf/libudev.so.1 /lib/arm-linux-gnueabihf/libc/lib
+# RUN ln -s /lib/arm-linux-gnueabihf/libudev.so.1 /lib/arm-linux-gnueabihf/libc/usr/lib
+# RUN ln -s /lib/arm-linux-gnueabihf/libudev.so.1 /usr/lib/arm-linux-gnueabihf
+
+# Build edge-node-manager
+# CMD glide install && \
+RUN CGO_ENABLED=1 GOARCH=arm GOARM=7 PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++ go build -x -ldflags '-extld=arm-linux-gnueabihf-gcc -Wl,-rpath-link=usr/lib/arm-linux-gnueabihf -Wl,-rpath=/usr/lib/arm-linux-gnueabihf -Wl,-L/usr/lib/arm-linux-gnueabihf -Wl,-ludev'
+#
+# RUN find / -name 'pkgconfig'
+# RUN ls -al /usr/lib/arm-linux-gnueabihf/pkgconfig
+# RUN ls -al /usr/share/pkgconfig
+# RUN ls -al /usr/lib/pkgconfig
+# RUN ls -al /lib/arm-linux-gnueabihf
+
+# /usr/lib/arm-linux-gnueabihf/pkgconfig
+# /usr/lib/pkgconfig
+# /usr/share/pkgconfig
+#
+# RUN find / -name 'libusb-1.0.so'
+# RUN ls -al /usr/lib/arm-linux-gnueabihf
+# RUN file /lib/arm-linux-gnueabihf/libusb-1.0.so.0.1.0
+# RUN find / -name 'libudev.so.1'
+# RUN ls -al /lib/arm-linux-gnueabihf/
+# RUN file /lib/arm-linux-gnueabihf/libudev.so.1.5.0
+# RUN ls -al /usr/lib/arm-linux-gnueabihf
+# RUN ls -al /usr/lib/arm-linux-gnueabihf/pkgconfig
+# RUN file /usr/lib/arm-linux-gnueabihf/pkgconfig/libudev.pc
+# RUN file /usr/lib/arm-linux-gnueabihf/pkgconfig/libusb-1.0.pc
