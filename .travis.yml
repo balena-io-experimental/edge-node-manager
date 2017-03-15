@@ -9,7 +9,7 @@ env:
   - BUILD_ARCH=arm
 before_install: go get github.com/Masterminds/glide
 install: glide install
-script: GOARCH=$BUILD_ARCH GOOS=$BUILD_OS go build
+script: GOARCH=$BUILD_ARCH GOOS=$BUILD_OS go build -ldflags '-X main.version='$TRAVIS_TAG
 before_deploy:
  - chmod +x edge-node-manager
  - mkdir -p $TRAVIS_TAG
