@@ -5,7 +5,6 @@ go: 1.8.x
 env:
   global: BUILD_OS=linux
   matrix:
-  - BUILD_ARCH=386
   - BUILD_ARCH=arm
 before_install: go get github.com/Masterminds/glide
 install: glide install
@@ -13,11 +12,10 @@ install: glide install
 # Note: $TRAVIS_TAG only works correctly outside of the quote marks
 script: GOARCH=$BUILD_ARCH GOOS=$BUILD_OS go build -ldflags '-X main.version='$TRAVIS_TAG
 before_deploy:
- - chmod +x edge-node-manager
- - mkdir -p $TRAVIS_TAG
- - mv edge-node-manager $TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH
+- mkdir -p $TRAVIS_TAG
+- mv edge-node-manager $TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH
 deploy:
-  provider: s3
+- provider: s3
   access_key_id: AKIAI45R4ZZQ7YWCO47A
   secret_access_key:
     secure: fXEP9C2XFZMwTBHENxSRCYRnuKdvAd2XJepzyS81QM5s37AHedq0lZYUb9xzukxbpOhE36Ik97Ux08KDiZnyqkT+C97InNTXxmgUlvmcSZzhSoI+tEhMXPTmU8XbiiXnp5M+QbthEC7QQ/HZ1G0fEuiqmeX6gUeNcog0ZC3HgperPC0Rl1dgD9ntL6VRxvKWl3DLRt619y0NLG47v195uREfAsRlOiqa4CA2rmG0/4l0Vn9gchZlcwqlyBfezDlxgTwSPwAGoX1F2w5gZ8O7IAZGglzENXDx4HataUTVu1MPOsPV7Ki42FmVVajZvwKCcxAReRbnz5IFzkD3O2CUDnqZyn6Q8430G/HSk+jByyDVcvBcPm+VPim60veLeqTqXarVzUtMkHXQBMs8h8jC3iPDv8/NWAQzK9GtIUVmZSbem5g17P9kwwuyhOyrxJ4UVR1LAjJt8T5hwf9yN0Arkmf1wiE0VjHKAQkK6jS4/eiYzL05b8afrDsxcO4W4OIDxF2kWHpWKikfz96zmvyGVbxWCOiDYHvCaaeyN3aFLtDpGtAC8t7rx3DFzTE7hxBbVIg9vTRn6bEy3mX9dYP8SZ2YRR15PP7jWsMfDnsMiHZAwLG7pl7OqP6zxY/uUg+LPNuOP4QW52O+3MZ2ci8I69hqAg/E/ueTg09YgP+JWK8=
@@ -30,6 +28,6 @@ deploy:
   on:
     branch: master
     tags: true
-after_deploy: echo "* [edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH](https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH)"
+after_deploy: ./release.sh "* [edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH](https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH)"
 notifications:
   email: false
