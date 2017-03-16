@@ -26,7 +26,6 @@ deploy:
   upload-dir: edge-node-manager/$TRAVIS_TAG
   acl: public_read
   on:
-    repo: resin-io/edge-node-manager
     branch: master
     tags: true
 after_deploy: ./release.sh "* [edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH](https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH)"
