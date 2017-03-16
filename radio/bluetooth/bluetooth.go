@@ -48,7 +48,7 @@ func ResetDevice() error {
 }
 
 func Connect(id string) (ble.Client, error) {
-	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout*time.Second)), hci.RandomAddress{ble.NewAddr(id)})
+	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout)), hci.RandomAddress{ble.NewAddr(id)})
 	if err != nil {
 		return nil, err
 	}
@@ -79,23 +79,21 @@ func Disconnect(client ble.Client) error {
 	return nil
 }
 
-func WriteChar(client ble.Client, char *ble.Characteristic, value []byte, noRsp bool) error {
+func WriteCharacteristic(client ble.Client, characteristic *ble.Characteristic, value []byte, noRsp bool) error {
 	err := make(chan error)
 	go func() {
-		err <- client.WriteCharacteristic(char, value, noRsp)
+		err <- client.WriteCharacteristic(characteristic, value, noRsp)
 	}()
 
-	for {
-		select {
-		case done := <-err:
-			return done
-		case <-time.After(shortTimeout * time.Second):
-			return fmt.Errorf("Write characteristic timed out")
-		}
+	select {
+	case done := <-err:
+		return done
+	case <-time.After(shortTimeout):
+		return fmt.Errorf("Write characteristic timed out")
 	}
 }
 
-func ReadChar(client ble.Client, char *ble.Characteristic) ([]byte, error) {
+func ReadCharacteristic(client ble.Client, characteristic *ble.Characteristic) ([]byte, error) {
 	type Result struct {
 		Val []byte
 		Err error
@@ -104,41 +102,37 @@ func ReadChar(client ble.Client, char *ble.Characteristic) ([]byte, error) {
 	result := make(chan Result)
 	go func() {
 		result <- func() Result {
-			val, err := client.ReadCharacteristic(char)
+			val, err := client.ReadCharacteristic(characteristic)
 			return Result{val, err}
 		}()
 	}()
 
-	for {
-		select {
-		case done := <-result:
-			return done.Val, done.Err
-		case <-time.After(shortTimeout * time.Second):
-			return nil, fmt.Errorf("Read characteristic timed out")
-		}
+	select {
+	case done := <-result:
+		return done.Val, done.Err
+	case <-time.After(shortTimeout):
+		return nil, fmt.Errorf("Read characteristic timed out")
 	}
 }
 
-func WriteDesc(client ble.Client, desc *ble.Descriptor, value []byte) error {
+func WriteDescriptor(client ble.Client, descriptor *ble.Descriptor, value []byte) error {
 	err := make(chan error)
 	go func() {
-		err <- client.WriteDescriptor(desc, value)
+		err <- client.WriteDescriptor(descriptor, value)
 	}()
 
-	for {
-		select {
-		case done := <-err:
-			return done
-		case <-time.After(shortTimeout * time.Second):
-			return fmt.Errorf("Write descriptor timed out")
-		}
+	select {
+	case done := <-err:
+		return done
+	case <-time.After(shortTimeout):
+		return fmt.Errorf("Write descriptor timed out")
 	}
 }
 
 func Scan(id string) (map[string]bool, error) {
 	devices := make(map[string]bool)
 	advChannel := make(chan ble.Advertisement)
-	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout*time.Second))
+	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout))
 
 	go func() {
 		for {
@@ -165,7 +159,7 @@ func Online(id string) (bool, error) {
 	online := false
 	advChannel := make(chan ble.Advertisement)
 	ctx, cancel := context.WithCancel(context.Background())
-	ctx = ble.WithSigHandler(context.WithTimeout(ctx, longTimeout*time.Second))
+	ctx = ble.WithSigHandler(context.WithTimeout(ctx, longTimeout))
 
 	go func() {
 		for {
@@ -195,7 +189,7 @@ func GetName(id string) (string, error) {
 		return "", err
 	}
 
-	resp, err := ReadChar(client, name)
+	resp, err := ReadCharacteristic(client, name)
 	if err != nil {
 		return "", err
 	}

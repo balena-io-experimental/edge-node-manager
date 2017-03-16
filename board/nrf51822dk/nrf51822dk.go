@@ -41,15 +41,16 @@ func (b Nrf51822dk) Update(path string) error {
 		if err != nil {
 			return err
 		}
-		if err = bluetooth.WriteDesc(client, dfu.CCCD, []byte{0x001}); err != nil {
+
+		if err = bluetooth.WriteDescriptor(client, dfu.CCCD, []byte{0x001}); err != nil {
 			return err
 		}
 
 		// Ignore the error because this command causes the device to disconnect
-		bluetooth.WriteChar(client, dfu, []byte{nrf51822.Start, 0x04}, false)
+		bluetooth.WriteCharacteristic(client, dfu, []byte{nrf51822.Start, 0x04}, false)
 
 		// Give the device time to disconnect
-		time.Sleep(shortTimeout * time.Second)
+		time.Sleep(shortTimeout)
 
 		b.Log.Debug("Started bootloader")
 	} else {

@@ -117,11 +117,11 @@ func DependentDeviceLog(UUID, message string) []error {
 	}
 
 	type dependentDeviceLog struct {
-		Message   string `json:"message"`
+		Message string `json:"message"`
 	}
 
 	content := &dependentDeviceLog{
-		Message:   message,
+		Message: message,
 	}
 
 	bytes, err := json.Marshal(content)

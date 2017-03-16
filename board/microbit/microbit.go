@@ -43,10 +43,10 @@ func (b Microbit) Update(path string) error {
 		}
 
 		// Ignore the error because this command causes the device to disconnect
-		bluetooth.WriteChar(client, dfu, []byte{nrf51822.Start}, false)
+		bluetooth.WriteCharacteristic(client, dfu, []byte{nrf51822.Start}, false)
 
 		// Give the device time to disconnect
-		time.Sleep(shortTimeout * time.Second)
+		time.Sleep(shortTimeout)
 
 		b.Log.Debug("Started bootloader")
 	} else {

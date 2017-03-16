@@ -151,7 +151,7 @@ func init() {
 }
 
 func (m *Nrf51822) subscribe(client ble.Client) error {
-	if err := bluetooth.WriteDesc(client, dfuCtrl.CCCD, []byte{0x0001}); err != nil {
+	if err := bluetooth.WriteDescriptor(client, dfuCtrl.CCCD, []byte{0x0001}); err != nil {
 		return err
 	}
 
@@ -163,7 +163,7 @@ func (m *Nrf51822) subscribe(client ble.Client) error {
 func (m *Nrf51822) checkFOTA(client ble.Client) error {
 	m.Log.Debug("Checking FOTA")
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{ReceivedSize}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{ReceivedSize}, false); err != nil {
 		return err
 	}
 
@@ -187,7 +187,7 @@ func (m *Nrf51822) checkFOTA(client ble.Client) error {
 func (m *Nrf51822) initFOTA(client ble.Client) error {
 	m.Log.Debug("Initialising FOTA")
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{Start, 0x04}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{Start, 0x04}, false); err != nil {
 		return err
 	}
 
@@ -200,7 +200,7 @@ func (m *Nrf51822) initFOTA(client ble.Client) error {
 		return err
 	}
 
-	if err := bluetooth.WriteChar(client, dfuPkt, buf.Bytes(), false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuPkt, buf.Bytes(), false); err != nil {
 		return err
 	}
 
@@ -208,15 +208,15 @@ func (m *Nrf51822) initFOTA(client ble.Client) error {
 		return err
 	}
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{Initialise, 0x00}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{Initialise, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err := bluetooth.WriteChar(client, dfuPkt, m.Firmware.data, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuPkt, m.Firmware.data, false); err != nil {
 		return err
 	}
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{Initialise, 0x01}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{Initialise, 0x01}, false); err != nil {
 		return err
 	}
 
@@ -224,11 +224,11 @@ func (m *Nrf51822) initFOTA(client ble.Client) error {
 		return err
 	}
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{RequestBlockRecipt, 0x64, 0x00}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{RequestBlockRecipt, 0x64, 0x00}, false); err != nil {
 		return err
 	}
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{Receive}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{Receive}, false); err != nil {
 		return err
 	}
 
@@ -256,7 +256,7 @@ func (m *Nrf51822) transferFOTA(client ble.Client) error {
 		}
 		block := m.Firmware.binary[i:sliceIndex]
 
-		if err := bluetooth.WriteChar(client, dfuPkt, block, true); err != nil {
+		if err := bluetooth.WriteCharacteristic(client, dfuPkt, block, true); err != nil {
 			return err
 		}
 
@@ -308,7 +308,7 @@ func (m *Nrf51822) validateFOTA(client ble.Client) error {
 		return fmt.Errorf("Bytes received does not match binary size")
 	}
 
-	if err := bluetooth.WriteChar(client, dfuCtrl, []byte{Validate}, false); err != nil {
+	if err := bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{Validate}, false); err != nil {
 		return err
 	}
 
@@ -325,10 +325,10 @@ func (m Nrf51822) finaliseFOTA(client ble.Client) error {
 	m.Log.Debug("Finalising FOTA")
 
 	// Ignore the error because this command causes the device to disconnect
-	bluetooth.WriteChar(client, dfuCtrl, []byte{Activate}, false)
+	bluetooth.WriteCharacteristic(client, dfuCtrl, []byte{Activate}, false)
 
 	// Give the device time to disconnect
-	time.Sleep(shortTimeout * time.Second)
+	time.Sleep(shortTimeout)
 
 	m.Log.Debug("Finalised FOTA")
 
@@ -336,29 +336,27 @@ func (m Nrf51822) finaliseFOTA(client ble.Client) error {
 }
 
 func (m *Nrf51822) getNotification(exp []byte, compare bool) ([]byte, error) {
-	for {
-		select {
-		case <-time.After(longTimeout * time.Second):
-			return nil, fmt.Errorf("Timed out waiting for notification")
-		case resp := <-m.NotificationChannel:
-			if !compare || bytes.Equal(resp[:3], exp) {
-				return resp, nil
-			}
-
-			m.Log.WithFields(log.Fields{
-				"[0]": fmt.Sprintf("0x%X", resp[0]),
-				"[1]": fmt.Sprintf("0x%X", resp[1]),
-				"[2]": fmt.Sprintf("0x%X", resp[2]),
-			}).Debug("Received")
-
-			m.Log.WithFields(log.Fields{
-				"[0]": fmt.Sprintf("0x%X", exp[0]),
-				"[1]": fmt.Sprintf("0x%X", exp[1]),
-				"[2]": fmt.Sprintf("0x%X", exp[2]),
-			}).Debug("Expected")
-
-			return nil, fmt.Errorf("Incorrect notification received")
+	select {
+	case <-time.After(longTimeout):
+		return nil, fmt.Errorf("Timed out waiting for notification")
+	case resp := <-m.NotificationChannel:
+		if !compare || bytes.Equal(resp[:3], exp) {
+			return resp, nil
 		}
+
+		m.Log.WithFields(log.Fields{
+			"[0]": fmt.Sprintf("0x%X", resp[0]),
+			"[1]": fmt.Sprintf("0x%X", resp[1]),
+			"[2]": fmt.Sprintf("0x%X", resp[2]),
+		}).Debug("Received")
+
+		m.Log.WithFields(log.Fields{
+			"[0]": fmt.Sprintf("0x%X", exp[0]),
+			"[1]": fmt.Sprintf("0x%X", exp[1]),
+			"[2]": fmt.Sprintf("0x%X", exp[2]),
+		}).Debug("Expected")
+
+		return nil, fmt.Errorf("Incorrect notification received")
 	}
 }
 
