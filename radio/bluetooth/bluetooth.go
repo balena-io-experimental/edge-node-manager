@@ -1,6 +1,7 @@
 package bluetooth
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -16,8 +17,10 @@ import (
 )
 
 var (
-	doneChannel chan struct{}
-	name        *ble.Characteristic
+	doneChannel  chan struct{}
+	name         *ble.Characteristic
+	shortTimeout time.Duration
+	longTimeout  time.Duration
 )
 
 func OpenDevice() error {
@@ -44,8 +47,8 @@ func ResetDevice() error {
 	return OpenDevice()
 }
 
-func Connect(id string, timeout time.Duration) (ble.Client, error) {
-	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), timeout*time.Second)), hci.RandomAddress{ble.NewAddr(id)})
+func Connect(id string) (ble.Client, error) {
+	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout*time.Second)), hci.RandomAddress{ble.NewAddr(id)})
 	if err != nil {
 		return nil, err
 	}
@@ -76,10 +79,66 @@ func Disconnect(client ble.Client) error {
 	return nil
 }
 
-func Scan(id string, timeout time.Duration) (map[string]bool, error) {
+func WriteChar(client ble.Client, char *ble.Characteristic, value []byte, noRsp bool) error {
+	err := make(chan error)
+	go func() {
+		err <- client.WriteCharacteristic(char, value, noRsp)
+	}()
+
+	for {
+		select {
+		case done := <-err:
+			return done
+		case <-time.After(shortTimeout * time.Second):
+			return fmt.Errorf("Write characteristic timed out")
+		}
+	}
+}
+
+func ReadChar(client ble.Client, char *ble.Characteristic) ([]byte, error) {
+	type Result struct {
+		Val []byte
+		Err error
+	}
+
+	result := make(chan Result)
+	go func() {
+		result <- func() Result {
+			val, err := client.ReadCharacteristic(char)
+			return Result{val, err}
+		}()
+	}()
+
+	for {
+		select {
+		case done := <-result:
+			return done.Val, done.Err
+		case <-time.After(shortTimeout * time.Second):
+			return nil, fmt.Errorf("Read characteristic timed out")
+		}
+	}
+}
+
+func WriteDesc(client ble.Client, desc *ble.Descriptor, value []byte) error {
+	err := make(chan error)
+	go func() {
+		err <- client.WriteDescriptor(desc, value)
+	}()
+
+	for {
+		select {
+		case done := <-err:
+			return done
+		case <-time.After(shortTimeout * time.Second):
+			return fmt.Errorf("Write descriptor timed out")
+		}
+	}
+}
+
+func Scan(id string) (map[string]bool, error) {
 	devices := make(map[string]bool)
 	advChannel := make(chan ble.Advertisement)
-	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), timeout*time.Second))
+	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout*time.Second))
 
 	go func() {
 		for {
@@ -102,11 +161,11 @@ func Scan(id string, timeout time.Duration) (map[string]bool, error) {
 	return devices, nil
 }
 
-func Online(id string, timeout time.Duration) (bool, error) {
+func Online(id string) (bool, error) {
 	online := false
 	advChannel := make(chan ble.Advertisement)
 	ctx, cancel := context.WithCancel(context.Background())
-	ctx = ble.WithSigHandler(context.WithTimeout(ctx, timeout*time.Second))
+	ctx = ble.WithSigHandler(context.WithTimeout(ctx, longTimeout*time.Second))
 
 	go func() {
 		for {
@@ -130,13 +189,13 @@ func Online(id string, timeout time.Duration) (bool, error) {
 	return online, nil
 }
 
-func GetName(id string, timeout time.Duration) (string, error) {
-	client, err := Connect(id, timeout)
+func GetName(id string) (string, error) {
+	client, err := Connect(id)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := client.ReadCharacteristic(name)
+	resp, err := ReadChar(client, name)
 	if err != nil {
 		return "", err
 	}
@@ -177,13 +236,25 @@ func GetDescriptor(uuid string, handle uint16) (*ble.Descriptor, error) {
 func init() {
 	log.SetLevel(config.GetLogLevel())
 
+	var err error
+	if shortTimeout, err = config.GetShortBluetoothTimeout(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load bluetooth timeout")
+	}
+
+	if longTimeout, err = config.GetLongBluetoothTimeout(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load bluetooth timeout")
+	}
+
 	if err := OpenDevice(); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Fatal("Unable to create a new ble device")
 	}
 
-	var err error
 	name, err = GetCharacteristic("2a00", ble.CharRead+ble.CharWrite, 0x02, 0x03)
 	if err != nil {
 		log.Fatal(err)

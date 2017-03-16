@@ -64,6 +64,18 @@ func GetPauseDelay() (time.Duration, error) {
 	return time.Duration(value), err
 }
 
+// GetShortBluetoothTimeout returns the timeout for each instantaneous bluetooth operation
+func GetShortBluetoothTimeout() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_BLUETOOTH_SHORT_TIMEOUT", "1"))
+	return time.Duration(value), err
+}
+
+// GetLongBluetoothTimeout returns the timeout for each running bluetooth operation
+func GetLongBluetoothTimeout() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_BLUETOOTH_LONG_TIMEOUT", "10"))
+	return time.Duration(value), err
+}
+
 // GetAssetsDir returns the root directory used to store the database and application commits
 func GetAssetsDir() string {
 	return getEnv("ENM_ASSETS_DIRECTORY", "/data/assets")
