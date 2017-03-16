@@ -17,7 +17,10 @@ type Microbit struct {
 	Micro nrf51822.Nrf51822
 }
 
-var dfu *ble.Characteristic
+var (
+	dfu          *ble.Characteristic
+	shortTimeout time.Duration
+)
 
 func (b Microbit) Update(path string) error {
 	b.Log.Info("Starting update")
@@ -26,7 +29,7 @@ func (b Microbit) Update(path string) error {
 		return err
 	}
 
-	name, err := bluetooth.GetName(b.Micro.LocalUUID, 10)
+	name, err := bluetooth.GetName(b.Micro.LocalUUID)
 	if err != nil {
 		return err
 	}
@@ -34,23 +37,23 @@ func (b Microbit) Update(path string) error {
 	if name != "DfuTarg" {
 		b.Log.Debug("Starting bootloader")
 
-		client, err := bluetooth.Connect(b.Micro.LocalUUID, 10)
+		client, err := bluetooth.Connect(b.Micro.LocalUUID)
 		if err != nil {
 			return err
 		}
 
 		// Ignore the error because this command causes the device to disconnect
-		client.WriteCharacteristic(dfu, []byte{nrf51822.Start}, false)
+		bluetooth.WriteCharacteristic(client, dfu, []byte{nrf51822.Start}, false)
 
 		// Give the device time to disconnect
-		time.Sleep(time.Duration(1) * time.Second)
+		time.Sleep(shortTimeout)
 
 		b.Log.Debug("Started bootloader")
 	} else {
 		b.Log.Debug("Bootloader already started")
 	}
 
-	client, err := bluetooth.Connect(b.Micro.LocalUUID, 10)
+	client, err := bluetooth.Connect(b.Micro.LocalUUID)
 	if err != nil {
 		return err
 	}
@@ -66,11 +69,11 @@ func (b Microbit) Update(path string) error {
 
 func (b Microbit) Scan(applicationUUID int) (map[string]bool, error) {
 	id := "BBC micro:bit [" + strconv.Itoa(applicationUUID) + "]"
-	return bluetooth.Scan(id, 10)
+	return bluetooth.Scan(id)
 }
 
 func (b Microbit) Online() (bool, error) {
-	return bluetooth.Online(b.Micro.LocalUUID, 10)
+	return bluetooth.Online(b.Micro.LocalUUID)
 }
 
 func (b Microbit) Restart() error {
@@ -101,6 +104,12 @@ func init() {
 	log.SetLevel(config.GetLogLevel())
 
 	var err error
+	if shortTimeout, err = config.GetShortBluetoothTimeout(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load bluetooth timeout")
+	}
+
 	dfu, err = bluetooth.GetCharacteristic("e95d93b1251d470aa062fa1922dfa9a8", ble.CharRead+ble.CharWrite, 0x0D, 0x0E)
 	if err != nil {
 		log.Fatal(err)

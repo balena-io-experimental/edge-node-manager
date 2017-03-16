@@ -17,7 +17,10 @@ type Nrf51822dk struct {
 	Micro nrf51822.Nrf51822
 }
 
-var dfu *ble.Characteristic
+var (
+	dfu          *ble.Characteristic
+	shortTimeout time.Duration
+)
 
 func (b Nrf51822dk) Update(path string) error {
 	b.Log.Info("Starting update")
@@ -26,7 +29,7 @@ func (b Nrf51822dk) Update(path string) error {
 		return err
 	}
 
-	name, err := bluetooth.GetName(b.Micro.LocalUUID, 10)
+	name, err := bluetooth.GetName(b.Micro.LocalUUID)
 	if err != nil {
 		return err
 	}
@@ -34,27 +37,27 @@ func (b Nrf51822dk) Update(path string) error {
 	if name != "DfuTarg" {
 		b.Log.Debug("Starting bootloader")
 
-		client, err := bluetooth.Connect(b.Micro.LocalUUID, 10)
+		client, err := bluetooth.Connect(b.Micro.LocalUUID)
 		if err != nil {
 			return err
 		}
 
-		if err = client.WriteDescriptor(dfu.CCCD, []byte{0x001}); err != nil {
+		if err = bluetooth.WriteDescriptor(client, dfu.CCCD, []byte{0x001}); err != nil {
 			return err
 		}
 
 		// Ignore the error because this command causes the device to disconnect
-		client.WriteCharacteristic(dfu, []byte{nrf51822.Start, 0x04}, false)
+		bluetooth.WriteCharacteristic(client, dfu, []byte{nrf51822.Start, 0x04}, false)
 
 		// Give the device time to disconnect
-		time.Sleep(time.Duration(1) * time.Second)
+		time.Sleep(shortTimeout)
 
 		b.Log.Debug("Started bootloader")
 	} else {
 		b.Log.Debug("Bootloader already started")
 	}
 
-	client, err := bluetooth.Connect(b.Micro.LocalUUID, 10)
+	client, err := bluetooth.Connect(b.Micro.LocalUUID)
 	if err != nil {
 		return err
 	}
@@ -69,11 +72,11 @@ func (b Nrf51822dk) Update(path string) error {
 }
 
 func (b Nrf51822dk) Scan(applicationUUID int) (map[string]bool, error) {
-	return bluetooth.Scan(strconv.Itoa(applicationUUID), 10)
+	return bluetooth.Scan(strconv.Itoa(applicationUUID))
 }
 
 func (b Nrf51822dk) Online() (bool, error) {
-	return bluetooth.Online(b.Micro.LocalUUID, 10)
+	return bluetooth.Online(b.Micro.LocalUUID)
 }
 
 func (b Nrf51822dk) Restart() error {
@@ -104,6 +107,12 @@ func init() {
 	log.SetLevel(config.GetLogLevel())
 
 	var err error
+	if shortTimeout, err = config.GetShortBluetoothTimeout(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load bluetooth timeout")
+	}
+
 	dfu, err = bluetooth.GetCharacteristic("000015311212efde1523785feabcd123", ble.CharWrite+ble.CharNotify, 0x0F, 0x10)
 	if err != nil {
 		log.Fatal(err)

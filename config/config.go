@@ -55,13 +55,25 @@ func GetDependentLogLevel() log.Level {
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {
 	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "10"))
-	return time.Duration(value), err
+	return time.Duration(value) * time.Second, err
 }
 
 // GetPauseDelay returns the time delay in seconds between each pause check
 func GetPauseDelay() (time.Duration, error) {
 	value, err := strconv.Atoi(getEnv("ENM_CONFIG_PAUSE_DELAY", "10"))
-	return time.Duration(value), err
+	return time.Duration(value) * time.Second, err
+}
+
+// GetShortBluetoothTimeout returns the timeout for each instantaneous bluetooth operation
+func GetShortBluetoothTimeout() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_BLUETOOTH_SHORT_TIMEOUT", "1"))
+	return time.Duration(value) * time.Second, err
+}
+
+// GetLongBluetoothTimeout returns the timeout for each long running bluetooth operation
+func GetLongBluetoothTimeout() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_BLUETOOTH_LONG_TIMEOUT", "10"))
+	return time.Duration(value) * time.Second, err
 }
 
 // GetAssetsDir returns the root directory used to store the database and application commits

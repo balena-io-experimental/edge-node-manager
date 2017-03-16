@@ -55,7 +55,7 @@ func main() {
 		}
 
 		// Delay between processing each set of applications to prevent 100% CPU usage
-		time.Sleep(delay * time.Second)
+		time.Sleep(delay)
 	}
 }
 

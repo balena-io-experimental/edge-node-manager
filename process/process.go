@@ -159,7 +159,7 @@ func pause() error {
 	}).Info("Process status")
 
 	for TargetStatus == processStatus.PAUSED {
-		time.Sleep(delay * time.Second)
+		time.Sleep(delay)
 	}
 
 	if err := bluetooth.OpenDevice(); err != nil {
