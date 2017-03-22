@@ -71,7 +71,7 @@ func (b Nrf51822dk) Update(path string) error {
 	return nil
 }
 
-func (b Nrf51822dk) Scan(applicationUUID int) (map[string]bool, error) {
+func (b Nrf51822dk) Scan(applicationUUID int) (map[string]struct{}, error) {
 	return bluetooth.Scan(strconv.Itoa(applicationUUID))
 }
 
