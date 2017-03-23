@@ -43,6 +43,11 @@ func GetLongBluetoothTimeout() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
+// GetUpdateRetries returns the number of times the firmware update process should be attempted
+func GetUpdateRetries() (int, error) {
+	return strconv.Atoi(getEnv("ENM_UPDATE_RETRIES", "1"))
+}
+
 // GetAssetsDir returns the root directory used to store the database and application commits
 func GetAssetsDir() string {
 	return getEnv("ENM_ASSETS_DIRECTORY", "/data/assets")

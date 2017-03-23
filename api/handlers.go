@@ -98,7 +98,7 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write(bytes); err != nil {
+	if written, err := w.Write(bytes); (err != nil) || (written != len(bytes)) {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to write response")
@@ -117,13 +117,13 @@ func setField(w http.ResponseWriter, r *http.Request, key string, value interfac
 	deviceUUID := vars["uuid"]
 
 	db, err := storm.Open(config.GetDbPath())
-	defer db.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to open database")
 		return err
 	}
+	defer db.Close()
 
 	var d device.Device
 	if err := db.One("ResinUUID", deviceUUID, &d); err != nil {

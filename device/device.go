@@ -44,7 +44,7 @@ func (d Device) String() string {
 			"Config: %v, "+
 			"Target config: %v, "+
 			"Environment: %v, "+
-			"Target environment: %v",
+			"Target environment: %v, "+
 			"Restart: %t, "+
 			"Delete: %t",
 		d.ApplicationUUID,
@@ -118,8 +118,10 @@ func (d *Device) Sync() []error {
 	}
 
 	var temp Device
-	if err := json.Unmarshal(bytes, temp); err != nil {
-		return []error{err}
+	if err := json.Unmarshal(bytes, &temp); err != nil {
+		// Ignore the error here as it means the device we are trying
+		// to sync has been deleted
+		return nil
 	}
 
 	d.Name = temp.Name

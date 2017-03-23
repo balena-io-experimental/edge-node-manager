@@ -20,7 +20,9 @@ import (
 )
 
 var (
-	version   string // This variable will be populated at build time with the current version tag
+	// This variable will be populated at build time with the current version tag
+	version string
+	// This variable defines the delay between each processing loop
 	loopDelay time.Duration
 )
 
@@ -34,7 +36,7 @@ func main() {
 	supervisor.WaitUntilReady()
 
 	for {
-		// Run main loop
+		// Run processing loop
 		loop()
 
 		// Delay between processing each set of applications to prevent 100% CPU usage
@@ -63,12 +65,13 @@ func init() {
 	}
 
 	db, err := storm.Open(config.GetDbPath())
-	defer db.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Fatal("Unable to open database")
 	}
+	defer db.Close()
+
 	if err := db.Init(&device.Device{}); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
@@ -83,7 +86,7 @@ func init() {
 			"Port": port,
 		}).Debug("Initialising incoming supervisor API")
 
-		if err = http.ListenAndServe(port, router); err != nil {
+		if err := http.ListenAndServe(port, router); err != nil {
 			log.WithFields(log.Fields{
 				"Error": err,
 			}).Fatal("Unable to initialise incoming supervisor API")

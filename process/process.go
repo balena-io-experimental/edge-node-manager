@@ -22,9 +22,10 @@ import (
 )
 
 var (
-	pauseDelay    time.Duration
 	CurrentStatus processStatus.Status
 	TargetStatus  processStatus.Status
+	updateRetries int
+	pauseDelay    time.Duration
 	lockLocation  string
 	lock          *lockfile.LockFile
 )
@@ -54,6 +55,11 @@ func Run(a application.Application) []error {
 		return []error{err}
 	}
 	defer lock.Unlock()
+
+	// Handle delete flags
+	if err := handleDelete(a); err != nil {
+		return []error{err}
+	}
 
 	// Get all online devices associated with this application
 	onlineDevices, err := getOnlineDevices(a)
@@ -158,11 +164,6 @@ func Run(a application.Application) []error {
 		}
 	}
 
-	// Handle delete flags
-	if err := handleDelete(a); err != nil {
-		return []error{err}
-	}
-
 	return nil
 }
 
@@ -174,6 +175,12 @@ func init() {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Fatal("Unable to load pause delay")
+	}
+
+	if updateRetries, err = config.GetUpdateRetries(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to update retries")
 	}
 
 	lockLocation = config.GetLockFileLocation()
@@ -229,10 +236,10 @@ func getOnlineDevices(a application.Application) (map[string]struct{}, error) {
 
 func getProvisionedDevices(a application.Application) ([]device.Device, error) {
 	db, err := storm.Open(config.GetDbPath())
-	defer db.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer db.Close()
 
 	var provisionedDevices []device.Device
 	if err := db.Find("ApplicationUUID", a.ResinUUID, &provisionedDevices); err != nil && err.Error() != index.ErrNotFound.Error() {
@@ -253,10 +260,10 @@ func provisionDevice(a application.Application, localUUID string) []error {
 	}
 
 	db, err := storm.Open(config.GetDbPath())
-	defer db.Close()
 	if err != nil {
 		return []error{err}
 	}
+	defer db.Close()
 
 	d := device.New(a.ResinUUID, a.BoardType, name, localUUID, resinUUID)
 	if err := db.Save(&d); err != nil {
@@ -273,10 +280,10 @@ func provisionDevice(a application.Application, localUUID string) []error {
 
 func updateDevice(d device.Device) error {
 	db, err := storm.Open(config.GetDbPath())
-	defer db.Close()
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	return db.Update(&d)
 }
@@ -311,7 +318,7 @@ func updateFirmware(d device.Device) []error {
 		return errs
 	}
 
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= updateRetries; i++ {
 		log.WithFields(log.Fields{
 			"Name":    d.Name,
 			"Attempt": i,
@@ -364,10 +371,10 @@ func getFirmware(d device.Device) (string, error) {
 
 func handleDelete(a application.Application) error {
 	db, err := storm.Open(config.GetDbPath())
-	defer db.Close()
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	if err := db.Select(q.Eq("ApplicationUUID", a.ResinUUID), q.Eq("DeleteFlag", true)).Delete(&device.Device{}); err != nil && err.Error() != index.ErrNotFound.Error() {
 		return err
