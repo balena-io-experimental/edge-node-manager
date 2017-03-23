@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/asdine/storm"
 	"github.com/gorilla/mux"
-	"github.com/resin-io/edge-node-manager/application"
-	"github.com/resin-io/edge-node-manager/database"
+	"github.com/resin-io/edge-node-manager/config"
+	"github.com/resin-io/edge-node-manager/device"
 	"github.com/resin-io/edge-node-manager/process"
 	"github.com/resin-io/edge-node-manager/process/status"
 
@@ -14,9 +15,6 @@ import (
 )
 
 func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceUUID := vars["uuid"]
-
 	type dependentDeviceUpdate struct {
 		Commit      string      `json:"commit"`
 		Environment interface{} `json:"environment"`
@@ -32,81 +30,27 @@ func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to get device mapping")
-		w.WriteHeader(http.StatusNotFound)
-		return
+	if err := setField(w, r, "TargetCommit", content.Commit); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	application.List[applicationUUID].TargetCommit = content.Commit
-	application.List[applicationUUID].Devices[localUUID].TargetCommit = content.Commit
-
 	w.WriteHeader(http.StatusAccepted)
-
-	log.WithFields(log.Fields{
-		"ApplicationUUID": applicationUUID,
-		"DeviceUUID":      deviceUUID,
-		"LocalUUID":       localUUID,
-		"Target commit":   content.Commit,
-	}).Debug("Dependent device update hook")
 }
 
 func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceUUID := vars["uuid"]
-
-	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to get device mapping")
-		// Send back 200 as the device must of already been deleted if we can't find it in the DB
-		w.WriteHeader(http.StatusOK)
-		return
+	if err := setField(w, r, "Delete", true); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	application.List[applicationUUID].Devices[localUUID].DeleteFlag = true
-
-	if process.CurrentStatus == status.PAUSED {
-		w.WriteHeader(http.StatusAccepted)
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	log.WithFields(log.Fields{
-		"ApplicationUUID": applicationUUID,
-		"DeviceUUID":      deviceUUID,
-		"LocalUUID":       localUUID,
-	}).Debug("Dependent device delete hook")
+	w.WriteHeader(http.StatusOK)
 }
 
 func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceUUID := vars["uuid"]
-
-	applicationUUID, localUUID, err := database.GetDeviceMapping(deviceUUID)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to get device mapping")
-		w.WriteHeader(http.StatusNotFound)
-		return
+	if err := setField(w, r, "Restart", true); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	application.List[applicationUUID].Devices[localUUID].RestartFlag = true
-
-	if process.CurrentStatus == status.PAUSED {
-		w.WriteHeader(http.StatusAccepted)
-	} else {
-		w.WriteHeader(http.StatusOK)
-	}
-
-	log.WithFields(log.Fields{
-		"UUID": deviceUUID,
-	}).Debug("Dependent device restart hook")
+	w.WriteHeader(http.StatusOK)
 }
 
 func SetStatus(w http.ResponseWriter, r *http.Request) {
@@ -134,18 +78,14 @@ func SetStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetStatus(w http.ResponseWriter, r *http.Request) {
-	process.Pending()
-
 	type s struct {
-		CurrentStatus  status.Status `json:"currentStatus"`
-		TargetStatus   status.Status `json:"targetStatus"`
-		UpdatesPending bool          `json:"updatesPending"`
+		CurrentStatus status.Status `json:"currentStatus"`
+		TargetStatus  status.Status `json:"targetStatus"`
 	}
 
 	content := &s{
-		CurrentStatus:  process.CurrentStatus,
-		TargetStatus:   process.TargetStatus,
-		UpdatesPending: process.UpdatesPending,
+		CurrentStatus: process.CurrentStatus,
+		TargetStatus:  process.TargetStatus,
 	}
 
 	bytes, err := json.Marshal(content)
@@ -158,11 +98,72 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(bytes)
+	if written, err := w.Write(bytes); (err != nil) || (written != len(bytes)) {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to write response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	log.WithFields(log.Fields{
-		"Target status":   process.TargetStatus,
-		"Curent status":   process.CurrentStatus,
-		"Updates pending": process.UpdatesPending,
+		"Target status": process.TargetStatus,
+		"Curent status": process.CurrentStatus,
 	}).Debug("Get status")
+}
+
+func setField(w http.ResponseWriter, r *http.Request, key string, value interface{}) error {
+	vars := mux.Vars(r)
+	deviceUUID := vars["uuid"]
+
+	db, err := storm.Open(config.GetDbPath())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to open database")
+		return err
+	}
+	defer db.Close()
+
+	var d device.Device
+	if err := db.One("ResinUUID", deviceUUID, &d); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+			"UUID":  deviceUUID,
+		}).Error("Unable to find device in database")
+		return err
+	}
+
+	switch key {
+	case "TargetCommit":
+		d.TargetCommit = value.(string)
+	case "Delete":
+		d.DeleteFlag = value.(bool)
+	case "Restart":
+		d.RestartFlag = value.(bool)
+	default:
+		log.WithFields(log.Fields{
+			"Error": err,
+			"UUID":  deviceUUID,
+			"Key":   key,
+			"value": value,
+		}).Error("Unable to set field")
+		return err
+	}
+
+	if err := db.Update(&d); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+			"UUID":  deviceUUID,
+		}).Error("Unable to update device in database")
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"UUID":  deviceUUID,
+		"Key":   key,
+		"value": value,
+	}).Debug("Dependent device field updated")
+
+	return nil
 }

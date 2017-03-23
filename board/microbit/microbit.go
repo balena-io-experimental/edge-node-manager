@@ -67,7 +67,7 @@ func (b Microbit) Update(path string) error {
 	return nil
 }
 
-func (b Microbit) Scan(applicationUUID int) (map[string]bool, error) {
+func (b Microbit) Scan(applicationUUID int) (map[string]struct{}, error) {
 	id := "BBC micro:bit [" + strconv.Itoa(applicationUUID) + "]"
 	return bluetooth.Scan(id)
 }

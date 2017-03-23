@@ -1,12 +1,20 @@
-hash: 815cd4c3d1a3106a30c24832ac6f560675798877a26354fa12126aa2cb3400d0
-updated: 2017-03-15T16:18:43.301530775Z
+hash: dea38211a3e51c75d8ef473f314e6fbb9cce9ca5aff54b1e8e850ff3a6995725
+updated: 2017-03-22T17:48:37.109769594Z
 imports:
+- name: github.com/asdine/storm
+  version: c40e8d95426a80b23797ca9818ff2142a9401ddf
+  subpackages:
+  - codec
+  - codec/json
+  - index
+  - internal
+  - q
 - name: github.com/boltdb/bolt
-  version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
+  version: e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd
 - name: github.com/cavaliercoder/grab
   version: e403b038e10c3c6aaf022ab0f8502bd659604140
 - name: github.com/currantlabs/ble
-  version: 3cb394d795a0144363b6813b88905daf207761e5
+  version: 0ebf31a6e39ffff68e811e0f139689f1ef81addc
   subpackages:
   - linux
   - linux/adv
@@ -23,6 +31,13 @@ imports:
   - bzip2/internal/sais
   - internal
   - internal/prefix
+- name: github.com/emirpasic/gods
+  version: f6c17b524822278a87e3b3bd809fec33b51f5b46
+  subpackages:
+  - containers
+  - trees
+  - trees/redblacktree
+  - utils
 - name: github.com/fredli74/lockfile
   version: ad36330923e05763a7607f623b98c383bed727e2
 - name: github.com/gorilla/context
@@ -62,7 +77,7 @@ imports:
 - name: github.com/verybluebot/tarinator-go
   version: f75724675c91d0c731b69c81e0985de07663f007
 - name: golang.org/x/net
-  version: 236b8f043b920452504e263bc21d354427127473
+  version: a6577fac2d73be281a500b310739095313165611
   subpackages:
   - context
   - publicsuffix

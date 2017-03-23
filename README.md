@@ -19,11 +19,7 @@ resin.io dependent device edge-node-manager written in Go.
  - [nRF51822-DK](https://github.com/resin-io-projects/nRF51822-DK)
 
 ## API
-The edge-node-manager provides an API that allows the user to set the target status of the main process and to check whether there are updates pending. This can be useful for a couple of reasons:
- - Ensure the edge-node-manager process is not running during an update of the user container
- - Free up the on-board radios to allow user code to interact directly with the dependent devices e.g. to collect sensor data
-
-**Note** - [Update locks](https://github.com/resin-io/resin-supervisor/blob/master/docs/update-locking.md) *are* enabled whilst the process is running. This means that you will need to pause the edge-node-manager to update the user container.
+The edge-node-manager provides an API that allows the user to set the target status of the main process. This is useful to free up the on-board radios allowing user code to interact directly with the dependent devices e.g. to collect sensor data
 
 **Warning** - Do not try and interact with the on-board radios whilst the edge-node-manager is running (this leads to inconsistent, unexpected behaviour).
 
@@ -55,7 +51,6 @@ HTTP/1.1 200 OK
 {
     "currentStatus":"Running",
     "targetStatus":"Paused",
-    "updatesPending": true
 }
 ```
 

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -10,46 +11,12 @@ import (
 
 // GetLogLevel returns the log level
 func GetLogLevel() log.Level {
-	level := getEnv("ENM_LOG_LEVEL", "")
-
-	switch level {
-	case "Debug":
-		return log.DebugLevel
-	case "Info":
-		return log.InfoLevel
-	case "Warn":
-		return log.WarnLevel
-	case "Error":
-		return log.ErrorLevel
-	case "Fatal":
-		return log.FatalLevel
-	case "Panic":
-		return log.PanicLevel
-	}
-
-	return log.InfoLevel
+	return switchLogLevel(getEnv("ENM_LOG_LEVEL", ""))
 }
 
 // GetDependentLogLevel returns the log level for dependent devices
 func GetDependentLogLevel() log.Level {
-	level := getEnv("DEPENDENT_LOG_LEVEL", "")
-
-	switch level {
-	case "Debug":
-		return log.DebugLevel
-	case "Info":
-		return log.InfoLevel
-	case "Warn":
-		return log.WarnLevel
-	case "Error":
-		return log.ErrorLevel
-	case "Fatal":
-		return log.FatalLevel
-	case "Panic":
-		return log.PanicLevel
-	}
-
-	return log.InfoLevel
+	return switchLogLevel(getEnv("DEPENDENT_LOG_LEVEL", ""))
 }
 
 // GetLoopDelay returns the time delay in seconds between each application process loop
@@ -76,6 +43,11 @@ func GetLongBluetoothTimeout() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
+// GetUpdateRetries returns the number of times the firmware update process should be attempted
+func GetUpdateRetries() (int, error) {
+	return strconv.Atoi(getEnv("ENM_UPDATE_RETRIES", "1"))
+}
+
 // GetAssetsDir returns the root directory used to store the database and application commits
 func GetAssetsDir() string {
 	return getEnv("ENM_ASSETS_DIRECTORY", "/data/assets")
@@ -86,9 +58,12 @@ func GetDbDir() string {
 	return getEnv("ENM_DB_DIRECTORY", "/data/database")
 }
 
-// GetDbName returns the directory used to store the database
-func GetDbName() string {
-	return getEnv("ENM_DB_NAME", "my.db")
+// GetDbPath returns the path used to store the database
+func GetDbPath() string {
+	directory := GetDbDir()
+	file := getEnv("ENM_DB_FILE", "enm.db")
+
+	return path.Join(directory, file)
 }
 
 // GetVersion returns the API version used to communicate with the supervisor
@@ -108,7 +83,7 @@ func GetSuperAPIKey() string {
 
 // GetLockFileLocation returns the location of the lock file
 func GetLockFileLocation() string {
-	return getEnv("ENM_LOCK_FILE_LOCATION", "/data/resin-updates.lock")
+	return getEnv("ENM_LOCK_FILE_LOCATION", "/tmp/resin/resin-updates.lock")
 }
 
 func getEnv(key, fallback string) string {
@@ -117,4 +92,23 @@ func getEnv(key, fallback string) string {
 		result = fallback
 	}
 	return result
+}
+
+func switchLogLevel(level string) log.Level {
+	switch level {
+	case "Debug":
+		return log.DebugLevel
+	case "Info":
+		return log.InfoLevel
+	case "Warn":
+		return log.WarnLevel
+	case "Error":
+		return log.ErrorLevel
+	case "Fatal":
+		return log.FatalLevel
+	case "Panic":
+		return log.PanicLevel
+	}
+
+	return log.InfoLevel
 }

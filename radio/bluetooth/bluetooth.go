@@ -29,7 +29,10 @@ func OpenDevice() error {
 		return err
 	}
 
-	updateLinuxParam(device)
+	if err := updateLinuxParam(device); err != nil {
+		return err
+	}
+
 	ble.SetDefaultDevice(device)
 
 	return nil
@@ -129,8 +132,8 @@ func WriteDescriptor(client ble.Client, descriptor *ble.Descriptor, value []byte
 	}
 }
 
-func Scan(id string) (map[string]bool, error) {
-	devices := make(map[string]bool)
+func Scan(id string) (map[string]struct{}, error) {
+	devices := make(map[string]struct{})
 	advChannel := make(chan ble.Advertisement)
 	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout))
 
@@ -141,7 +144,8 @@ func Scan(id string) (map[string]bool, error) {
 				return
 			case adv := <-advChannel:
 				if strings.EqualFold(adv.LocalName(), id) {
-					devices[adv.Address().String()] = true
+					var s struct{}
+					devices[adv.Address().String()] = s
 				}
 			}
 		}
