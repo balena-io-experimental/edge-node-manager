@@ -17,6 +17,7 @@ resin.io dependent device edge-node-manager written in Go.
 ## Supported dependent devices
  - [micro:bit](https://github.com/resin-io-projects/micro-bit)
  - [nRF51822-DK](https://github.com/resin-io-projects/nRF51822-DK)
+ - [ESP8266](https://github.com/resin-io-projects/esp8266)
 
 ## API
 The edge-node-manager provides an API that allows the user to set the target status of the main process. This is useful to free up the on-board radios allowing user code to interact directly with the dependent devices e.g. to collect sensor data

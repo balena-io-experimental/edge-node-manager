@@ -1,6 +1,6 @@
-# Debian base-image for the Raspberry Pi 3
+# Python base-image for the Raspberry Pi 3
 # See more about resin base images here: http://docs.resin.io/runtime/resin-base-images/
-FROM resin/raspberrypi3-debian:latest
+FROM resin/raspberrypi3-python
 
 # Disable systemd init system
 ENV INITSYSTEM off
@@ -13,8 +13,17 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     bluez \
     bluez-firmware \
     curl \
-    jq && \
+    jq \
+    libdbus-1-dev \
+    libdbus-glib-1-dev \
+    nmap && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies
+RUN pip install python-networkmanager
+
+# Copy switchConnection script
+COPY switchConnection.py ./
 
 # Copy start script into the working directory
 COPY start.sh ./

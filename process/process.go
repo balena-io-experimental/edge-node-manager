@@ -16,7 +16,6 @@ import (
 	"github.com/resin-io/edge-node-manager/device"
 	deviceStatus "github.com/resin-io/edge-node-manager/device/status"
 	processStatus "github.com/resin-io/edge-node-manager/process/status"
-	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 	"github.com/resin-io/edge-node-manager/supervisor"
 	tarinator "github.com/verybluebot/tarinator-go"
 )
@@ -55,6 +54,12 @@ func Run(a application.Application) []error {
 		return []error{err}
 	}
 	defer lock.Unlock()
+
+	// Initialise the radio
+	if err := a.Board.InitialiseRadio(); err != nil {
+		return []error{err}
+	}
+	defer a.Board.CleanupRadio()
 
 	// Handle delete flags
 	if err := handleDelete(a); err != nil {
@@ -196,10 +201,6 @@ func pause() error {
 		return nil
 	}
 
-	if err := bluetooth.CloseDevice(); err != nil {
-		return err
-	}
-
 	CurrentStatus = processStatus.PAUSED
 	log.WithFields(log.Fields{
 		"Status": CurrentStatus,
@@ -207,10 +208,6 @@ func pause() error {
 
 	for TargetStatus == processStatus.PAUSED {
 		time.Sleep(pauseDelay)
-	}
-
-	if err := bluetooth.OpenDevice(); err != nil {
-		return err
 	}
 
 	CurrentStatus = processStatus.RUNNING

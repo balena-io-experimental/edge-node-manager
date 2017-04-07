@@ -15,7 +15,6 @@ import (
 	"github.com/resin-io/edge-node-manager/config"
 	"github.com/resin-io/edge-node-manager/device"
 	"github.com/resin-io/edge-node-manager/process"
-	"github.com/resin-io/edge-node-manager/radio/bluetooth"
 	"github.com/resin-io/edge-node-manager/supervisor"
 )
 
@@ -112,14 +111,16 @@ func checkVersion() error {
 	}
 
 	if version == latest {
-		return nil
+		log.WithFields(log.Fields{
+			"Current version": version,
+		}).Info("edge-node-manager upto date")
+	} else {
+		log.WithFields(log.Fields{
+			"Current version": version,
+			"Latest version":  latest,
+			"Update command":  "git push resin master:resin-nocache",
+		}).Warn("Please update edge-node-manager")
 	}
-
-	log.WithFields(log.Fields{
-		"Current version": version,
-		"Latest version":  latest,
-		"Update command":  "git push resin master:resin-nocache",
-	}).Warn("Please update edge-node-manager")
 
 	return nil
 }
@@ -158,13 +159,5 @@ func loop() {
 				"Errors":      errs,
 			}).Error("Unable to process application")
 		}
-	}
-
-	// Reset the bluetooth device to clean up any left over go routines etc. Quick fix
-	if err := bluetooth.ResetDevice(); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to reset bluetooth")
-		return
 	}
 }

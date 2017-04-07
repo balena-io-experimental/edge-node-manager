@@ -42,14 +42,6 @@ func CloseDevice() error {
 	return ble.Stop()
 }
 
-func ResetDevice() error {
-	if err := ble.Stop(); err != nil {
-		return err
-	}
-
-	return OpenDevice()
-}
-
 func Connect(id string) (ble.Client, error) {
 	client, err := ble.Dial(ble.WithSigHandler(context.WithTimeout(context.Background(), longTimeout)), hci.RandomAddress{ble.NewAddr(id)})
 	if err != nil {
@@ -247,18 +239,12 @@ func init() {
 		}).Fatal("Unable to load bluetooth timeout")
 	}
 
-	if err := OpenDevice(); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Fatal("Unable to create a new ble device")
-	}
-
 	name, err = GetCharacteristic("2a00", ble.CharRead+ble.CharWrite, 0x02, 0x03)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Debug("Created a new ble device")
+	log.Debug("Initialised bluetooth radio")
 }
 
 func updateLinuxParam(device *linux.Device) error {

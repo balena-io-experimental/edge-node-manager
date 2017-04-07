@@ -56,6 +56,14 @@ var (
 	longTimeout  time.Duration
 )
 
+func (m *Nrf51822) InitialiseRadio() error {
+	return bluetooth.OpenDevice()
+}
+
+func (m *Nrf51822) CleanupRadio() error {
+	return bluetooth.CloseDevice()
+}
+
 func (m *Nrf51822) ExtractFirmware(filePath, bin, data string) error {
 	m.Log.WithFields(log.Fields{
 		"Firmware path": filePath,

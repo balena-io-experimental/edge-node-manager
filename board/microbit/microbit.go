@@ -22,10 +22,18 @@ var (
 	shortTimeout time.Duration
 )
 
-func (b Microbit) Update(path string) error {
+func (b Microbit) InitialiseRadio() error {
+	return b.Micro.InitialiseRadio()
+}
+
+func (b Microbit) CleanupRadio() error {
+	return b.Micro.CleanupRadio()
+}
+
+func (b Microbit) Update(filePath string) error {
 	b.Log.Info("Starting update")
 
-	if err := b.Micro.ExtractFirmware(path, "micro-bit.bin", "micro-bit.dat"); err != nil {
+	if err := b.Micro.ExtractFirmware(filePath, "micro-bit.bin", "micro-bit.dat"); err != nil {
 		return err
 	}
 

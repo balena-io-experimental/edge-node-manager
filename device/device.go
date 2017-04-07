@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/resin-io/edge-node-manager/board"
+	"github.com/resin-io/edge-node-manager/board/esp8266"
 	"github.com/resin-io/edge-node-manager/board/microbit"
 	"github.com/resin-io/edge-node-manager/board/nrf51822dk"
 	"github.com/resin-io/edge-node-manager/device/hook"
@@ -99,6 +100,11 @@ func (d *Device) PopulateBoard() error {
 				Firmware:            nrf51822.FIRMWARE{},
 				NotificationChannel: make(chan []byte),
 			},
+		}
+	case board.ESP8266:
+		d.Board = esp8266.Esp8266{
+			Log:       log,
+			LocalUUID: d.LocalUUID,
 		}
 	default:
 		return fmt.Errorf("Unsupported board type")
