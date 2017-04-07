@@ -31,6 +31,12 @@ func GetPauseDelay() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
+// GetWifiDelay returns the time delay in seconds to allow WiFi devices to connect to the hotspot
+func GetWifiDelay() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_CONFIG_WIFI_DELAY", "5"))
+	return time.Duration(value) * time.Second, err
+}
+
 // GetShortBluetoothTimeout returns the timeout for each instantaneous bluetooth operation
 func GetShortBluetoothTimeout() (time.Duration, error) {
 	value, err := strconv.Atoi(getEnv("ENM_BLUETOOTH_SHORT_TIMEOUT", "1"))

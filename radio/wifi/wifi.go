@@ -10,7 +10,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/lair-framework/go-nmap"
 	"github.com/parnurzeal/gorequest"
+	"github.com/resin-io/edge-node-manager/config"
 )
+
+var wifiDelay time.Duration
 
 type Host struct {
 	id  string
@@ -19,17 +22,17 @@ type Host struct {
 }
 
 func StartHotspot() error {
-	if err := activateConnection("resin-hotspot"); err != nil {
+	if err := switchConnection("resin-hotspot"); err != nil {
 		return err
 	}
 
 	// Give the wifi devices a chance to connect
-	time.Sleep(5 * time.Second)
+	time.Sleep(wifiDelay)
 	return nil
 }
 
 func StopHotspot() error {
-	return activateConnection("resin-wifi")
+	return switchConnection("resin-wifi")
 }
 
 func Scan(id string) (map[string]struct{}, error) {
@@ -94,13 +97,26 @@ func PostForm(url, filePath string) error {
 	return handleResp(resp, errs, http.StatusOK)
 }
 
-func activateConnection(connection string) error {
-	cmd := "python activateConnection.py " + connection
+func init() {
+	log.SetLevel(config.GetLogLevel())
+
+	var err error
+	if wifiDelay, err = config.GetWifiDelay(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load wifi delay")
+	}
+
+	log.Debug("Initialised wifi")
+}
+
+func switchConnection(connection string) error {
+	cmd := "python switchConnection.py " + connection
 	if err := exec.Command("bash", "-c", cmd).Run(); err != nil {
 		log.WithFields(log.Fields{
 			"Cmd":   cmd,
 			"Error": err,
-		}).Error("Unable to activate connection")
+		}).Error("Unable to switch connection")
 		return err
 	}
 

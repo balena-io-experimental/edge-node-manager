@@ -1,6 +1,6 @@
-# Debian base-image for the Raspberry Pi 3
+# Python base-image for the Raspberry Pi 3
 # See more about resin base images here: http://docs.resin.io/runtime/resin-base-images/
-FROM resin/raspberrypi3-debian:latest
+FROM resin/raspberrypi3-python
 
 # Disable systemd init system
 ENV INITSYSTEM off
@@ -12,16 +12,11 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -yq --no-install-recommends \
     bluez \
     bluez-firmware \
-    build-essential \
     curl \
     jq \
     libdbus-1-dev \
     libdbus-glib-1-dev \
-    nmap \
-    pkg-config \
-    python \
-    python-dev \
-    python-pip && \
+    nmap && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies
