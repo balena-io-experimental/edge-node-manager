@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
 # Install python dependencies
 RUN pip install python-networkmanager
 
-# Copy activateConnection script
-COPY activateConnection.py ./
+# Copy switchConnection script
+COPY switchConnection.py ./
 
 # Copy start script into the working directory
 COPY start.sh ./
