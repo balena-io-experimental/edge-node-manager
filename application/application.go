@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/resin-io/edge-node-manager/board"
+	"github.com/resin-io/edge-node-manager/board/esp8266"
 	"github.com/resin-io/edge-node-manager/board/microbit"
 	"github.com/resin-io/edge-node-manager/board/nrf51822dk"
 )
@@ -56,6 +57,8 @@ func Unmarshal(bytes []byte) (map[int]Application, error) {
 			b = microbit.Microbit{}
 		case board.NRF51822DK:
 			b = nrf51822dk.Nrf51822dk{}
+		case board.ESP8266:
+			b = esp8266.Esp8266{}
 		default:
 			continue
 		}

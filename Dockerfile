@@ -12,9 +12,23 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -yq --no-install-recommends \
     bluez \
     bluez-firmware \
+    build-essential \
     curl \
-    jq && \
+    jq \
+    libdbus-1-dev \
+    libdbus-glib-1-dev \
+    nmap \
+    pkg-config \
+    python \
+    python-dev \
+    python-pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies
+RUN pip install python-networkmanager
+
+# Copy activateConnection script
+COPY activateConnection.py ./
 
 # Copy start script into the working directory
 COPY start.sh ./

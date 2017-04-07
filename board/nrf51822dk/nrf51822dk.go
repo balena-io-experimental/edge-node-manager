@@ -22,10 +22,18 @@ var (
 	shortTimeout time.Duration
 )
 
-func (b Nrf51822dk) Update(path string) error {
+func (b Nrf51822dk) InitialiseRadio() error {
+	return b.Micro.InitialiseRadio()
+}
+
+func (b Nrf51822dk) CleanupRadio() error {
+	return b.Micro.CleanupRadio()
+}
+
+func (b Nrf51822dk) Update(filePath string) error {
 	b.Log.Info("Starting update")
 
-	if err := b.Micro.ExtractFirmware(path, "nrf51422_xxac_s130.bin", "nrf51422_xxac_s130.dat"); err != nil {
+	if err := b.Micro.ExtractFirmware(filePath, "nrf51422_xxac_s130.bin", "nrf51422_xxac_s130.dat"); err != nil {
 		return err
 	}
 

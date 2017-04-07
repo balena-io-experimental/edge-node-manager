@@ -1,5 +1,5 @@
-hash: dea38211a3e51c75d8ef473f314e6fbb9cce9ca5aff54b1e8e850ff3a6995725
-updated: 2017-03-22T17:48:37.109769594Z
+hash: b8493ffd36448d2df4e83bfac85ef5e65476973a0dd5d4b939b66d815f6873d7
+updated: 2017-04-04T19:30:00.210962378+01:00
 imports:
 - name: github.com/asdine/storm
   version: c40e8d95426a80b23797ca9818ff2142a9401ddf
@@ -46,6 +46,8 @@ imports:
   version: 392c28fe23e1c45ddba891b0320b3b5df220beea
 - name: github.com/jmoiron/jsonq
   version: e874b168d07ecc7808bc950a17998a8aa3141d82
+- name: github.com/lair-framework/go-nmap
+  version: 5b53e4727b6b269bb22734852b4365dfa7db6c6c
 - name: github.com/mattn/go-colorable
   version: a392f450ea64cee2b268dfaacdc2502b50a22b18
 - name: github.com/mattn/go-isatty
