@@ -1,6 +1,6 @@
-# Python base-image for the Raspberry Pi 3
+# Debian base-image for the Raspberry Pi 3
 # See more about resin base images here: http://docs.resin.io/runtime/resin-base-images/
-FROM resin/raspberrypi3-python
+FROM resin/raspberrypi3-debian
 
 # Disable systemd init system
 ENV INITSYSTEM off
@@ -14,19 +14,8 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     bluez-firmware \
     curl \
     jq \
-    libdbus-1-dev \
-    libdbus-glib-1-dev \
     nmap && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install python dependencies
-RUN pip install python-networkmanager
-
-# Copy switchConnection script
-COPY switchConnection.py ./
-
-# Copy start script into the working directory
-COPY start.sh ./
 
 # Get the edge-node-manager binary, rename and make executable
 RUN TAG=$(curl https://api.github.com/repos/resin-io/edge-node-manager/releases/latest -s | jq .tag_name -r) && \
@@ -39,5 +28,5 @@ RUN TAG=$(curl https://api.github.com/repos/resin-io/edge-node-manager/releases/
 # and copy it into the working directory - good for development
 # COPY edge-node-manager ./
 
-# start.sh will run when container starts up on the device
-CMD ["bash", "start.sh"]
+# The edge-node-manager will run when container starts up on the device
+CMD ["./edge-node-manager"]

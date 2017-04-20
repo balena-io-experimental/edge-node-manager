@@ -57,11 +57,11 @@ var (
 )
 
 func (m *Nrf51822) InitialiseRadio() error {
-	return bluetooth.OpenDevice()
+	return bluetooth.Initialise()
 }
 
 func (m *Nrf51822) CleanupRadio() error {
-	return bluetooth.CloseDevice()
+	return bluetooth.Cleanup()
 }
 
 func (m *Nrf51822) ExtractFirmware(filePath, bin, data string) error {
