@@ -42,8 +42,8 @@ func Initialise() error {
 	}
 
 	log.WithFields(log.Fields{
-		"SSID":      ssid,
-		"Password":  password,
+		"SSID":     ssid,
+		"Password": password,
 	}).Info("Initialised wifi hotspot")
 
 	initialised = true

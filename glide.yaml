@@ -28,3 +28,5 @@ import:
   subpackages:
   - context
 - package: github.com/lair-framework/go-nmap
+- package: github.com/godbus/dbus
+  version: ^4.0.0
