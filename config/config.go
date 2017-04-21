@@ -31,10 +31,14 @@ func GetPauseDelay() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
-// GetWifiDelay returns the time delay in seconds to allow WiFi devices to connect to the hotspot
-func GetWifiDelay() (time.Duration, error) {
-	value, err := strconv.Atoi(getEnv("ENM_CONFIG_WIFI_DELAY", "5"))
-	return time.Duration(value) * time.Second, err
+// GetHotspotSSID returns the SSID to be used for the hotspot
+func GetHotspotSSID() string {
+	return getEnv("ENM_HOTSPOT_SSID", "resin-hotspot")
+}
+
+// GetHotspotPassword returns the password to be used for the hotspot
+func GetHotspotPassword() string {
+	return getEnv("ENM_HOTSPOT_PASSWORD", "resin-hotspot")
 }
 
 // GetShortBluetoothTimeout returns the timeout for each instantaneous bluetooth operation

@@ -2,6 +2,7 @@ package bluetooth
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -17,13 +18,34 @@ import (
 )
 
 var (
+	initialised  bool
 	doneChannel  chan struct{}
 	name         *ble.Characteristic
 	shortTimeout time.Duration
 	longTimeout  time.Duration
 )
 
-func OpenDevice() error {
+func Initialise() error {
+	if !initialised {
+		log.Info("Initialising bluetooth")
+
+		for i := 1; i <= 3; i++ {
+			if err := exec.Command("bash", "-c", "/usr/bin/hciattach /dev/ttyAMA0 bcm43xx 921600 noflow -").Run(); err == nil {
+				if err := exec.Command("bash", "-c", "hciconfig hci0 up").Run(); err != nil {
+					return err
+				}
+
+				log.Info("Initialised bluetooth")
+
+				initialised = true
+				break
+			}
+		}
+
+		// Small sleep to give the bluetooth interface time to settle
+		time.Sleep(shortTimeout)
+	}
+
 	device, err := linux.NewDevice()
 	if err != nil {
 		return err
@@ -38,7 +60,7 @@ func OpenDevice() error {
 	return nil
 }
 
-func CloseDevice() error {
+func Cleanup() error {
 	return ble.Stop()
 }
 

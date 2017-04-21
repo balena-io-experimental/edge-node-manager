@@ -37,6 +37,12 @@ func Run(a application.Application) []error {
 		return []error{err}
 	}
 
+	// Initialise the radio
+	if err := a.Board.InitialiseRadio(); err != nil {
+		return []error{err}
+	}
+	defer a.Board.CleanupRadio()
+
 	if log.GetLevel() == log.DebugLevel {
 		log.WithFields(log.Fields{
 			"Application": a,
@@ -54,12 +60,6 @@ func Run(a application.Application) []error {
 		return []error{err}
 	}
 	defer lock.Unlock()
-
-	// Initialise the radio
-	if err := a.Board.InitialiseRadio(); err != nil {
-		return []error{err}
-	}
-	defer a.Board.CleanupRadio()
 
 	// Handle delete flags
 	if err := handleDelete(a); err != nil {

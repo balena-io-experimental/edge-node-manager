@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/lair-framework/go-nmap"
@@ -13,7 +13,7 @@ import (
 	"github.com/resin-io/edge-node-manager/config"
 )
 
-var wifiDelay time.Duration
+var initialised bool
 
 type Host struct {
 	id  string
@@ -21,18 +21,38 @@ type Host struct {
 	mac string
 }
 
-func StartHotspot() error {
-	if err := switchConnection("resin-hotspot"); err != nil {
+func Initialise() error {
+	if initialised {
+		return nil
+	}
+
+	log.Info("Initialising wifi hotspot")
+
+	os.Setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/host/run/dbus/system_bus_socket")
+
+	ssid := config.GetHotspotSSID()
+	password := config.GetHotspotPassword()
+
+	if err := removeHotspotConnections(ssid); err != nil {
 		return err
 	}
 
-	// Give the wifi devices a chance to connect
-	time.Sleep(wifiDelay)
+	if err := createHotSpotConnection(ssid, password); err != nil {
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"SSID":     ssid,
+		"Password": password,
+	}).Info("Initialised wifi hotspot")
+
+	initialised = true
 	return nil
 }
 
-func StopHotspot() error {
-	return switchConnection("resin-wifi")
+func Cleanup() error {
+	// Return as we do not want to disable the hotspot
+	return nil
 }
 
 func Scan(id string) (map[string]struct{}, error) {
@@ -100,27 +120,7 @@ func PostForm(url, filePath string) error {
 func init() {
 	log.SetLevel(config.GetLogLevel())
 
-	var err error
-	if wifiDelay, err = config.GetWifiDelay(); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Fatal("Unable to load wifi delay")
-	}
-
 	log.Debug("Initialised wifi")
-}
-
-func switchConnection(connection string) error {
-	cmd := "python switchConnection.py " + connection
-	if err := exec.Command("bash", "-c", cmd).Run(); err != nil {
-		log.WithFields(log.Fields{
-			"Cmd":   cmd,
-			"Error": err,
-		}).Error("Unable to switch connection")
-		return err
-	}
-
-	return nil
 }
 
 func scan() ([]Host, error) {

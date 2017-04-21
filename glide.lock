@@ -1,8 +1,8 @@
-hash: b8493ffd36448d2df4e83bfac85ef5e65476973a0dd5d4b939b66d815f6873d7
-updated: 2017-04-04T19:30:00.210962378+01:00
+hash: f09fe3edd4246b10d86c476495e21b77651f228022df9c47a9803788e8c7e978
+updated: 2017-04-20T15:37:35.684497966+01:00
 imports:
 - name: github.com/asdine/storm
-  version: c40e8d95426a80b23797ca9818ff2142a9401ddf
+  version: e8518cc1200f320e508639491f9390b9c7c37970
   subpackages:
   - codec
   - codec/json
@@ -40,6 +40,8 @@ imports:
   - utils
 - name: github.com/fredli74/lockfile
   version: ad36330923e05763a7607f623b98c383bed727e2
+- name: github.com/godbus/dbus
+  version: 5f6efc7ef2759c81b7ba876593971bfce311eab3
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux

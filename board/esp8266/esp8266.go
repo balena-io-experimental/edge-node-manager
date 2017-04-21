@@ -15,11 +15,11 @@ type Esp8266 struct {
 }
 
 func (b Esp8266) InitialiseRadio() error {
-	return wifi.StartHotspot()
+	return wifi.Initialise()
 }
 
 func (b Esp8266) CleanupRadio() error {
-	return wifi.StopHotspot()
+	return wifi.Cleanup()
 }
 
 func (b Esp8266) Update(filePath string) error {
