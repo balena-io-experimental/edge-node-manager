@@ -30,24 +30,27 @@ func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := setField(w, r, "TargetCommit", content.Commit); err != nil {
+	if err := setField(r, "TargetCommit", content.Commit); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusAccepted)
 }
 
 func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
-	if err := setField(w, r, "Delete", true); err != nil {
+	if err := setField(r, "Delete", true); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
 func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
-	if err := setField(w, r, "Restart", true); err != nil {
+	if err := setField(r, "Restart", true); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -112,15 +115,12 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	}).Debug("Get status")
 }
 
-func setField(w http.ResponseWriter, r *http.Request, key string, value interface{}) error {
+func setField(r *http.Request, key string, value interface{}) error {
 	vars := mux.Vars(r)
 	deviceUUID := vars["uuid"]
 
 	db, err := storm.Open(config.GetDbPath())
 	if err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to open database")
 		return err
 	}
 	defer db.Close()
