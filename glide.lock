@@ -1,5 +1,5 @@
-hash: f09fe3edd4246b10d86c476495e21b77651f228022df9c47a9803788e8c7e978
-updated: 2017-04-20T15:37:35.684497966+01:00
+hash: dc972fe30fe316148d466f45fce18de369b8bde620056526982a94294addd6cd
+updated: 2017-04-24T17:37:39.671789907+01:00
 imports:
 - name: github.com/asdine/storm
   version: e8518cc1200f320e508639491f9390b9c7c37970
@@ -41,7 +41,7 @@ imports:
 - name: github.com/fredli74/lockfile
   version: ad36330923e05763a7607f623b98c383bed727e2
 - name: github.com/godbus/dbus
-  version: 5f6efc7ef2759c81b7ba876593971bfce311eab3
+  version: b038411ec341afd52c6d36d8baae92a29e6e8a9e
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux

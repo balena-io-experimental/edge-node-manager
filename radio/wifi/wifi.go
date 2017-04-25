@@ -37,13 +37,29 @@ func Initialise() error {
 		return err
 	}
 
-	if err := createHotSpotConnection(ssid, password); err != nil {
+	// If ethernet is connected, create the hotspot on the first wifi interface found
+	// If ethernet is not connected, create the hotspot on the first FREE wifi interface found
+	var device NmDevice
+	if ethernet, err := isEthernetConnected(); err != nil {
+		return err
+	} else if ethernet {
+		if device, err = getWifiDevice(); err != nil {
+			return err
+		}
+	} else {
+		if device, err = getFreeWifiDevice(); err != nil {
+			return err
+		}
+	}
+
+	if err := createHotspotConnection(device, ssid, password); err != nil {
 		return err
 	}
 
 	log.WithFields(log.Fields{
 		"SSID":     ssid,
 		"Password": password,
+		"Device":   device,
 	}).Info("Initialised wifi hotspot")
 
 	initialised = true
