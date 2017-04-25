@@ -56,6 +56,13 @@ const (
 	NmActiveConnectionStateDeactivated  NmActiveConnectionState = 4
 )
 
+type NmDevice struct {
+	nmPath      dbus.ObjectPath
+	nmState     NmDeviceState
+	nmType      NmDeviceType
+	nmInterface string
+}
+
 func removeHotspotConnections(ssid string) error {
 	connection, err := dbus.SystemBus()
 	if err != nil {
@@ -85,12 +92,52 @@ func removeHotspotConnections(ssid string) error {
 	return nil
 }
 
-func createHotSpotConnection(ssid, password string) error {
-	deviceInterface, devicePath, err := getInterface()
+func isEthernetConnected() (bool, error) {
+	devices, err := getDevices()
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	for _, device := range devices {
+		if device.nmType == NmDeviceTypeEthernet && device.nmState == NmDeviceStateActivated {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func getWifiDevice() (NmDevice, error) {
+	devices, err := getDevices()
+	if err != nil {
+		return NmDevice{}, err
+	}
+
+	for _, device := range devices {
+		if device.nmType == NmDeviceTypeWifi {
+			return device, nil
+		}
+	}
+
+	return NmDevice{}, fmt.Errorf("No wifi device found")
+}
+
+func getFreeWifiDevice() (NmDevice, error) {
+	devices, err := getDevices()
+	if err != nil {
+		return NmDevice{}, err
+	}
+
+	for _, device := range devices {
+		if device.nmType == NmDeviceTypeWifi && device.nmState == NmDeviceStateDisconnected {
+			return device, nil
+		}
+	}
+
+	return NmDevice{}, fmt.Errorf("No free wifi device found")
+}
+
+func createHotspotConnection(device NmDevice, ssid, password string) error {
 	connection, err := dbus.SystemBus()
 	if err != nil {
 		return err
@@ -112,7 +159,7 @@ func createHotSpotConnection(ssid, password string) error {
 	hotspot["connection"] = make(map[string]interface{})
 	hotspot["connection"]["autoconnect"] = false
 	hotspot["connection"]["id"] = ssid
-	hotspot["connection"]["interface-name"] = deviceInterface
+	hotspot["connection"]["interface-name"] = device.nmInterface
 	hotspot["connection"]["type"] = "801-11-wireless"
 
 	hotspot["ipv4"] = make(map[string]interface{})
@@ -124,7 +171,7 @@ func createHotSpotConnection(ssid, password string) error {
 		"org.freedesktop.NetworkManager.AddAndActivateConnection",
 		0,
 		hotspot,
-		devicePath,
+		device.nmPath,
 		dbus.ObjectPath("/")).
 		Store(&path, &activeConnectionPath); err != nil {
 		return err
@@ -147,44 +194,47 @@ func createHotSpotConnection(ssid, password string) error {
 	return nil
 }
 
-func getInterface() (string, dbus.ObjectPath, error) {
+func getDevices() ([]NmDevice, error) {
 	connection, err := dbus.SystemBus()
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	var devicesPaths []dbus.ObjectPath
+	var paths []dbus.ObjectPath
 	rootObject := connection.Object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager")
-	if err := rootObject.Call("org.freedesktop.NetworkManager.GetAllDevices", 0).Store(&devicesPaths); err != nil {
-		return "", "", err
+	if err := rootObject.Call("org.freedesktop.NetworkManager.GetAllDevices", 0).Store(&paths); err != nil {
+		return nil, err
 	}
 
-	for _, devicesPath := range devicesPaths {
-		devicesObject := connection.Object("org.freedesktop.NetworkManager", devicesPath)
+	devices := make([]NmDevice, 5)
+	for _, path := range paths {
+		deviceObject := connection.Object("org.freedesktop.NetworkManager", path)
 
-		value, err := getProperty(devicesObject, "org.freedesktop.NetworkManager.Device.State")
+		device := NmDevice{}
+		device.nmPath = path
+
+		value, err := getProperty(deviceObject, "org.freedesktop.NetworkManager.Device.State")
 		if err != nil {
-			return "", "", err
+			return nil, err
 		}
-		deviceState := NmDeviceState(value.(uint32))
+		device.nmState = NmDeviceState(value.(uint32))
 
-		value, err = getProperty(devicesObject, "org.freedesktop.NetworkManager.Device.DeviceType")
+		value, err = getProperty(deviceObject, "org.freedesktop.NetworkManager.Device.DeviceType")
 		if err != nil {
-			return "", "", err
+			return nil, err
 		}
-		deviceType := NmDeviceType(value.(uint32))
+		device.nmType = NmDeviceType(value.(uint32))
 
-		if deviceState == NmDeviceStateDisconnected && deviceType == NmDeviceTypeWifi {
-			value, err = getProperty(devicesObject, "org.freedesktop.NetworkManager.Device.Interface")
-			if err != nil {
-				return "", "", err
-			}
-
-			return value.(string), devicesPath, nil
+		value, err = getProperty(deviceObject, "org.freedesktop.NetworkManager.Device.Interface")
+		if err != nil {
+			return nil, err
 		}
+		device.nmInterface = value.(string)
+
+		devices = append(devices, device)
 	}
 
-	return "", "", fmt.Errorf("No free wifi interface found")
+	return devices, nil
 }
 
 func getProperty(object dbus.BusObject, property string) (interface{}, error) {
