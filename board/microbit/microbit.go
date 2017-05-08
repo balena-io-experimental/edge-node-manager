@@ -94,16 +94,9 @@ func (b Microbit) Identify() error {
 	return fmt.Errorf("Identify not implemented")
 }
 
-func (b Microbit) UpdateConfig(config interface{}) error {
+func (b Microbit) UpdateEnvironment(env interface{}) error {
 	b.Log.WithFields(log.Fields{
-		"Config": config,
-	}).Info("Updating config...")
-	return fmt.Errorf("Update config not implemented")
-}
-
-func (b Microbit) UpdateEnvironment(config interface{}) error {
-	b.Log.WithFields(log.Fields{
-		"Config": config,
+		"Environment": env,
 	}).Info("Updating environment...")
 	return fmt.Errorf("Update environment not implemented")
 }

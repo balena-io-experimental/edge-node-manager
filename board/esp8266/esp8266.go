@@ -1,6 +1,7 @@
 package esp8266
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -57,16 +58,19 @@ func (b Esp8266) Identify() error {
 	return fmt.Errorf("Identify not implemented")
 }
 
-func (b Esp8266) UpdateConfig(config interface{}) error {
+func (b Esp8266) UpdateEnvironment(env interface{}) error {
 	b.Log.WithFields(log.Fields{
-		"Config": config,
-	}).Info("Updating config...")
-	return fmt.Errorf("Update config not implemented")
-}
-
-func (b Esp8266) UpdateEnvironment(config interface{}) error {
-	b.Log.WithFields(log.Fields{
-		"Config": config,
+		"Environment": env,
 	}).Info("Updating environment...")
-	return fmt.Errorf("Update environment not implemented")
+
+	buffer, err := json.Marshal(env)
+	if err != nil {
+		return err
+	}
+
+	// post Request
+	fmt.Println(string(buffer))
+
+
+	return fmt.Errorf("woooooooo")
 }
