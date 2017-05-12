@@ -27,3 +27,8 @@ _testmain.go
 vendor
 debug
 edge-node-manager
+
+# Editor stuff
+*.swo
+*.swp
+tags
