@@ -6,13 +6,12 @@ env:
   global: BUILD_OS=linux
 matrix:
   include:
-    - env: ARCH=armv5 BUILD_ARCH=arm
-    - env: ARCH=armv6 BUILD_ARCH=arm
-    - env: ARCH=armv7a BUILD_ARCH=arm
-    - env: ARCH=armv7ve BUILD_ARCH=arm
+    - env: ARCH=armel BUILD_ARCH=arm
+    - env: ARCH=rpi BUILD_ARCH=arm
+    - env: ARCH=armv7hf BUILD_ARCH=arm
     - env: ARCH=aarch64 BUILD_ARCH=arm64
-    - env: ARCH=x86 BUILD_ARCH=386
-    - env: ARCH=x86-64 BUILD_ARCH=amd64
+    - env: ARCH=i386 BUILD_ARCH=386
+    - env: ARCH=amd64 BUILD_ARCH=amd64
 before_install: go get github.com/Masterminds/glide
 install: glide install
 # This line builds the edge-node-manager binary and injects the current version tag

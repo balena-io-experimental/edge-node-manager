@@ -33,6 +33,13 @@ elif [ $resp = "422" ]; then
 	\"body\": \"$body\n$1\"
     }"
 
-    curl --data "$json" --header "Content-Type:application/json" \
-	-X PATCH "https://api.github.com/repos/$ACCOUNT/$REPO/releases/$id?access_token=$ACCESS_TOKEN"
+    resp=$(curl --data "$json" --header "Content-Type:application/json" \
+	-X PATCH "https://api.github.com/repos/$ACCOUNT/$REPO/releases/$id?access_token=$ACCESS_TOKEN" | \
+	head -n 1 | cut -d$' ' -f2)
+
+    if [ $resp = "200" ]; then
+	exit 0
+    else
+	exit 1
+    fi
 fi
