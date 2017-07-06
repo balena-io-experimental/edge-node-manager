@@ -21,7 +21,6 @@ script: GOARCH=$BUILD_ARCH GOOS=$BUILD_OS go build -ldflags '-X main.version='$T
 before_deploy:
 - mkdir -p $TRAVIS_TAG
 - mv edge-node-manager $TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$ARCH
-- ls $TRAVIS_TAG
 deploy:
 - provider: s3
   access_key_id: AKIAI45R4ZZQ7YWCO47A
