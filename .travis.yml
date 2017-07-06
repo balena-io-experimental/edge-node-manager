@@ -4,8 +4,15 @@ sudo: false
 go: 1.8.x
 env:
   global: BUILD_OS=linux
-  matrix:
-  - BUILD_ARCH=arm
+matrix:
+  include:
+    - env: ARCH=armv5 BUILD_ARCH=arm
+    - env: ARCH=armv6 BUILD_ARCH=arm
+    - env: ARCH=armv7a BUILD_ARCH=arm
+    - env: ARCH=armv7ve BUILD_ARCH=arm
+    - env: ARCH=aarch64 BUILD_ARCH=arm64
+    - env: ARCH=x86 BUILD_ARCH=386
+    - env: ARCH=x86-64 BUILD_ARCH=amd64
 before_install: go get github.com/Masterminds/glide
 install: glide install
 # This line builds the edge-node-manager binary and injects the current version tag
@@ -13,7 +20,7 @@ install: glide install
 script: GOARCH=$BUILD_ARCH GOOS=$BUILD_OS go build -ldflags '-X main.version='$TRAVIS_TAG
 before_deploy:
 - mkdir -p $TRAVIS_TAG
-- mv edge-node-manager $TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH
+- mv edge-node-manager $TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$ARCH
 deploy:
 - provider: s3
   access_key_id: AKIAI45R4ZZQ7YWCO47A
@@ -28,6 +35,6 @@ deploy:
   on:
     branch: master
     tags: true
-after_deploy: ./release.sh "* [edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH](https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$BUILD_ARCH)"
+after_deploy: ./release.sh "* [edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$ARCH](https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TRAVIS_TAG/edge-node-manager-$TRAVIS_TAG-$BUILD_OS-$ARCH)"
 notifications:
   email: false
