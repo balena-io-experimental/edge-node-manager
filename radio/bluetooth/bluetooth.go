@@ -2,6 +2,7 @@ package bluetooth
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ var (
 )
 
 func Initialise() error {
-	if !initialised {
+	if !initialised && os.Getenv("RESIN_DEVICE_TYPE") == "raspberrypi3" {
 		log.Info("Initialising bluetooth")
 
 		for i := 1; i <= 3; i++ {
