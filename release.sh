@@ -3,7 +3,7 @@
 set -o errexit
 
 # Check all the required variables are defined
-if [ -z "$ACCOUNT" ] || [ -z "$REPO" ] || [ -z "$ACCESS_TOKEN" ] \\ [ -z "$TRAVIS_TAG" ]; then
+if [ -z "$ACCOUNT" ] || [ -z "$REPO" ] || [ -z "$ACCESS_TOKEN" ] || [ -z "$TRAVIS_TAG" ]; then
 	echo "Please set value for ACCOUNT, REPO, ACCESS_TOKEN and TRAVIS_TAG"
 	exit 1
 fi
