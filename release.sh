@@ -31,22 +31,24 @@ echo "release: $release"
 echo "END DEBUG"
 echo ""
 
-# Check the id
-if [ $id = "null" ]; then
-    # Release does not already exist so we create a new one
-    echo "Creating a new $TRAVIS_TAG release"
+# Attempt to create a new release instead of checking whether the release already exists
+# This avoids situations where the release is created by another job mid way through this script
+echo "Attempting to create a new $TRAVIS_TAG release"
+json="{
+    \"tag_name\": \"$TRAVIS_TAG\",
+    \"name\": \"$TRAVIS_TAG\",
+    \"body\": \"Release of $TRAVIS_TAG: [changelog](https://github.com/resin-io/edge-node-manager/blob/master/CHANGELOG.md)\n$release\"
+}"
 
-    json="{
-        \"tag_name\": \"$TRAVIS_TAG\",
-        \"name\": \"$TRAVIS_TAG\",
-        \"body\": \"[Changelog](https://github.com/resin-io/edge-node-manager/blob/master/CHANGELOG.md)\n$release\"
-    }"
+resp=$(curl -i --data "$json" --header "Content-Type:application/json" \
+	"https://api.github.com/repos/$ACCOUNT/$REPO/releases?access_token=$ACCESS_TOKEN" | \
+	head -n 1 | cut -d$' ' -f2)
 
-    curl --data "$json" --header "Content-Type:application/json" \
-	    "https://api.github.com/repos/$ACCOUNT/$REPO/releases?access_token=$ACCESS_TOKEN"
-else
-    # Release already exists so we append to the existing body
-    echo "Appending to existing $TRAVIS_TAG release"
+# Handle the response
+if [ $resp = "201" ]; then
+    echo "Success"
+elif [ $resp = "422" ]; then
+    echo "Release already exists, appending instead"
 
     json="{
 	\"body\": \"$body\n$release\"
