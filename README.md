@@ -4,13 +4,13 @@ resin.io dependent device edge-node-manager written in Go.
 ## Getting started
  - Sign up on [resin.io](https://dashboard.resin.io/signup)
  - Work through the [getting started guide](https://docs.resin.io/raspberrypi3/nodejs/getting-started/)
- - Create a new Raspberry Pi 3 application called `EdgeNodeManager`
+ - Create a new application
  - Set these variables in the `Fleet Configuration` application side tab
     - `RESIN_SUPERVISOR_DELTA=1`
     - `RESIN_UI_ENABLE_DEPENDENT_APPLICATIONS=1`
  - Clone this repository to your local workspace
  - Add the dependent application `resin remote` to your local workspace
- - Provision a Raspberry Pi 3 gateway device
+ - Provision a gateway device
  - Push code to resin as normal :)
  - Follow the readme of the [supported dependent device](#supported-dependent-devices) you would like to use
 
