@@ -1,11 +1,13 @@
 package wifi
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/lair-framework/go-nmap"
@@ -13,7 +15,10 @@ import (
 	"github.com/resin-io/edge-node-manager/config"
 )
 
-var initialised bool
+var (
+	initialised bool
+	nmapTimeout time.Duration
+)
 
 type Host struct {
 	id  string
@@ -136,12 +141,30 @@ func PostForm(url, filePath string) error {
 func init() {
 	log.SetLevel(config.GetLogLevel())
 
+	var err error
+	if nmapTimeout, err = config.GetNmapTimeout(); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load nmap timeout")
+	}
+
 	log.Debug("Initialised wifi")
 }
 
 func scan() ([]Host, error) {
-	cmd := exec.Command("bash", "-c", "nmap -sP 10.42.0.* -oX scan.txt")
-	if err := cmd.Run(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), nmapTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "bash", "-c", "nmap -sP 10.42.0.* -oX scan.txt")
+
+	err := cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
+		log.WithFields(log.Fields{
+			"Cmd":   cmd,
+			"Error": "Command timed out",
+		}).Error("Unable to scan")
+		return nil, err
+	} else if err != nil {
 		log.WithFields(log.Fields{
 			"Cmd":   cmd,
 			"Error": err,

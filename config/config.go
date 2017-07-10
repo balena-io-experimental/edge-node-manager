@@ -53,6 +53,12 @@ func GetLongBluetoothTimeout() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
+// GetNmapTimeout returns the timeout for each nmap scan operation
+func GetNmapTimeout() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_NMAP_TIMEOUT", "30"))
+	return time.Duration(value) * time.Second, err
+}
+
 // GetUpdateRetries returns the number of times the firmware update process should be attempted
 func GetUpdateRetries() (int, error) {
 	return strconv.Atoi(getEnv("ENM_UPDATE_RETRIES", "1"))
