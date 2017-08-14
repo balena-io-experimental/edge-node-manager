@@ -34,7 +34,7 @@ ENM_HOTSPOT_SSID | `resin-hotspot` | the SSID used for the hotspot
 ENM_HOTSPOT_PASSWORD | `resin-hotspot` | the password used for the hotspot
 ENM_BLUETOOTH_SHORT_TIMEOUT | `1` | the timeout in seconds for instantaneous bluetooth operations
 ENM_BLUETOOTH_LONG_TIMEOUT | `10` | the timeout in seconds for long running bluetooth operations
-ENM_NMAP_TIMEOUT | `30` | the timeout in seconds for nmap scan operations
+ENM_AVAHI_TIMEOUT | `10` | the timeout in seconds for Avahi scan operations
 ENM_UPDATE_RETRIES | `1` | the number of times the firmware update process should be retried
 ENM_ASSETS_DIRECTORY | `/data/assets` | the root directory used to store the dependent device firmware
 ENM_DB_DIRECTORY | `/data/database` | the root directory used to store the database
