@@ -18,7 +18,6 @@ import:
   version: b038411ec341afd52c6d36d8baae92a29e6e8a9e
 - package: github.com/gorilla/mux
   version: ^1.3.0
-- package: github.com/lair-framework/go-nmap
 - package: github.com/mholt/archiver
   version: ^2.0.0
 - package: github.com/parnurzeal/gorequest
@@ -30,3 +29,4 @@ import:
   subpackages:
   - context
 - package: github.com/jmoiron/jsonq
+- package: github.com/grandcat/zeroconf

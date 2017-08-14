@@ -53,9 +53,9 @@ func GetLongBluetoothTimeout() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
-// GetNmapTimeout returns the timeout for each nmap scan operation
-func GetNmapTimeout() (time.Duration, error) {
-	value, err := strconv.Atoi(getEnv("ENM_NMAP_TIMEOUT", "30"))
+// GetAvahiTimeout returns the timeout for each Avahi scan operation
+func GetAvahiTimeout() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_AVAHI_TIMEOUT", "10"))
 	return time.Duration(value) * time.Second, err
 }
 

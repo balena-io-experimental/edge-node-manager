@@ -3,27 +3,27 @@ package wifi
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/lair-framework/go-nmap"
+	"github.com/grandcat/zeroconf"
 	"github.com/parnurzeal/gorequest"
 	"github.com/resin-io/edge-node-manager/config"
 )
 
 var (
-	initialised bool
-	nmapTimeout time.Duration
+	initialised  bool
+	avahiTimeout time.Duration
 )
 
 type Host struct {
-	id  string
-	ip  string
-	mac string
+	ip              string
+	deviceType      string
+	applicationUUID string
+	id              string
 }
 
 func Initialise() error {
@@ -84,9 +84,9 @@ func Scan(id string) (map[string]struct{}, error) {
 
 	online := make(map[string]struct{})
 	for _, host := range hosts {
-		if host.id == id {
+		if host.applicationUUID == id {
 			var s struct{}
-			online[host.mac] = s
+			online[host.id] = s
 		}
 	}
 
@@ -100,7 +100,7 @@ func Online(id string) (bool, error) {
 	}
 
 	for _, host := range hosts {
-		if host.mac == id {
+		if host.id == id {
 			return true, nil
 		}
 	}
@@ -115,7 +115,7 @@ func GetIP(id string) (string, error) {
 	}
 
 	for _, host := range hosts {
-		if host.mac == id {
+		if host.id == id {
 			return host.ip, nil
 		}
 	}
@@ -142,78 +142,48 @@ func init() {
 	log.SetLevel(config.GetLogLevel())
 
 	var err error
-	if nmapTimeout, err = config.GetNmapTimeout(); err != nil {
+	if avahiTimeout, err = config.GetAvahiTimeout(); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-		}).Fatal("Unable to load nmap timeout")
+		}).Fatal("Unable to load Avahi timeout")
 	}
 
 	log.Debug("Initialised wifi")
 }
 
 func scan() ([]Host, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), nmapTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), avahiTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "bash", "-c", "nmap -sP 10.42.0.* -oX scan.txt")
-
-	err := cmd.Run()
-	if ctx.Err() == context.DeadlineExceeded {
-		log.WithFields(log.Fields{
-			"Cmd":   cmd,
-			"Error": "Command timed out",
-		}).Error("Unable to scan")
+	resolver, err := zeroconf.NewResolver(nil)
+	if err != nil {
 		return nil, err
-	} else if err != nil {
+	}
+
+	entries := make(chan *zeroconf.ServiceEntry)
+	var hosts []Host
+	go func(entries <-chan *zeroconf.ServiceEntry, hosts *[]Host) {
+		for entry := range entries {
+			parts := strings.Split(entry.ServiceRecord.Instance, "_")
+			host := Host{
+				ip:              entry.AddrIPv4[0].String(),
+				deviceType:      parts[0],
+				applicationUUID: parts[1],
+				id:              parts[2],
+			}
+			*hosts = append(*hosts, host)
+		}
+	}(entries, &hosts)
+
+	err = resolver.Browse(ctx, "_http._tcp", "local", entries)
+	if err != nil {
 		log.WithFields(log.Fields{
-			"Cmd":   cmd,
 			"Error": err,
 		}).Error("Unable to scan")
 		return nil, err
 	}
 
-	file, err := ioutil.ReadFile("scan.txt")
-	if err != nil {
-		return nil, err
-	}
-
-	nmap, err := nmap.Parse(file)
-	if err != nil {
-		return nil, err
-	}
-
-	var hosts []Host
-	for _, host := range nmap.Hosts {
-		h := Host{}
-
-		for _, address := range host.Addresses {
-			if address.AddrType == "mac" {
-				h.mac = address.Addr
-			} else {
-				h.ip = address.Addr
-			}
-		}
-
-		// Ignore the gateway device
-		if h.ip == "10.42.0.1" {
-			continue
-		}
-
-		url := "http://" + h.ip + "/id"
-		resp, body, errs := gorequest.New().Get(url).End()
-		if err := handleResp(resp, errs, 200); err != nil {
-			log.WithFields(log.Fields{
-				"Error": err,
-				"URL":   url,
-				"IP":    h.ip,
-				"MAC":   h.mac,
-			}).Warn("Unable to get device ID")
-			continue
-		}
-		h.id = body
-
-		hosts = append(hosts, h)
-	}
+	<-ctx.Done()
 
 	return hosts, nil
 }

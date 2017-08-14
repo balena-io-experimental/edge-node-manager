@@ -64,32 +64,54 @@ type NmDevice struct {
 }
 
 func removeHotspotConnections(ssid string) error {
-	connection, err := dbus.SystemBus()
+	settingsObject, err := getConnection(ssid)
 	if err != nil {
 		return err
+	} else if settingsObject == nil {
+		return nil
+	}
+
+	if err := settingsObject.Call("org.freedesktop.NetworkManager.Settings.Connection.Delete", 0).Store(); err != nil {
+		return err
+	}
+
+	for {
+		if settingsObject, err := getConnection(ssid); err != nil {
+			return err
+		} else if settingsObject == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil
+}
+
+func getConnection(ssid string) (dbus.BusObject, error) {
+	connection, err := dbus.SystemBus()
+	if err != nil {
+		return nil, err
 	}
 
 	var settingsPaths []dbus.ObjectPath
 	settingsObject := connection.Object("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager/Settings")
 	if err := settingsObject.Call("org.freedesktop.NetworkManager.Settings.ListConnections", 0).Store(&settingsPaths); err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, settingsPath := range settingsPaths {
 		var settings map[string]map[string]dbus.Variant
 		settingsObject := connection.Object("org.freedesktop.NetworkManager", settingsPath)
 		if err := settingsObject.Call("org.freedesktop.NetworkManager.Settings.Connection.GetSettings", 0).Store(&settings); err != nil {
-			return err
+			return nil, err
 		}
 
 		if settings["connection"]["id"].Value().(string) == ssid {
-			if err := settingsObject.Call("org.freedesktop.NetworkManager.Settings.Connection.Delete", 0).Store(); err != nil {
-				return err
-			}
+			return settingsObject, nil
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func isEthernetConnected() (bool, error) {
