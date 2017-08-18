@@ -87,6 +87,38 @@ HTTP/1.1 200 OK
 }
 ```
 
+### GET /v1/devices/{local_id}
+Get a dependent device.
+
+#### Example
+```
+curl -i -X GET localhost:1337/v1/devices/1265892
+```
+
+#### Response
+```
+HTTP/1.1 200 OK
+{
+	"ApplicationUUID": 511898,
+	"BoardType": "esp8266",
+	"Name": "holy-sunset",
+	"LocalUUID": "1265892",
+	"ResinUUID": "64a1ae375b213d7e5af8409da3ad63108df4c8462089a05aa9af358c3f0df1",
+	"Commit": "16b5cd4df8085d2872a6f6fc0c378629a185d78b",
+	"TargetCommit": "16b5cd4df8085d2872a6f6fc0c378629a185d78b",
+	"Status": "Idle",
+	"Config": null,
+	"TargetConfig": {
+		"RESIN_HOST_TYPE": "esp8266",
+		"RESIN_SUPERVISOR_DELTA": "1"
+	},
+	"Environment": null,
+	"TargetEnvironment": {},
+	"RestartFlag": false,
+	"DeleteFlag": false
+}
+```
+
 ## Supported dependent devices
 - [micro:bit](https://github.com/resin-io-projects/micro-bit)
 - [nRF51822-DK](https://github.com/resin-io-projects/nRF51822-DK)

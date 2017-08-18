@@ -56,6 +56,50 @@ func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func DependentDeviceQuery(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deviceUUID := vars["uuid"]
+
+	db, err := storm.Open(config.GetDbPath())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var d device.Device
+	if err := db.One("LocalUUID", deviceUUID, &d); err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+			"UUID":  deviceUUID,
+		}).Error("Unable to find device in database")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	bytes, err := json.Marshal(d)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to encode device")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if written, err := w.Write(bytes); (err != nil) || (written != len(bytes)) {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to write response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"Device": d,
+	}).Debug("Get dependent device")
+}
+
 func SetStatus(w http.ResponseWriter, r *http.Request) {
 	type s struct {
 		TargetStatus status.Status `json:"targetStatus"`
