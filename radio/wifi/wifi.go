@@ -165,6 +165,11 @@ func scan() ([]Host, error) {
 	go func(entries <-chan *zeroconf.ServiceEntry, hosts *[]Host) {
 		for entry := range entries {
 			parts := strings.Split(entry.ServiceRecord.Instance, "_")
+
+			if len(entry.AddrIPv4) < 1 || len(parts) < 3 {
+				continue
+			}
+
 			host := Host{
 				ip:              entry.AddrIPv4[0].String(),
 				deviceType:      parts[0],
