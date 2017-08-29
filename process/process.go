@@ -2,7 +2,9 @@ package process
 
 import (
 	"os"
+	"fmt"
 	"path"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -156,16 +158,29 @@ func Run(a application.Application) []error {
 
 	// Update all online, outdated, provisioned devices associated with this application
 	for _, value := range provisionedDevices {
-		if (value.Commit != value.TargetCommit) && (value.Status != deviceStatus.OFFLINE) {
-			// Populate board (and micro) for the device
-			if err := value.PopulateBoard(); err != nil {
-				return []error{err}
-			}
+		if value.Status == deviceStatus.OFFLINE {
+			continue
+		}
 
-			// Perform the update
+		// Populate board (and micro) for the device
+		if err := value.PopulateBoard(); err != nil {
+			return []error{err}
+		}
+
+		// Update firmware
+		if value.Commit != value.TargetCommit {
 			if errs := updateFirmware(value); errs != nil {
 				return errs
 			}
+		}
+
+		// Update environment
+		if !reflect.DeepEqual(value.Environment, value.TargetEnvironment) && !(len(value.Environment) == 0 && len(value.TargetEnvironment) == 0) {
+			if err := updateEnvironment(value); err != nil {
+				return []error{err}
+			}
+		} else {
+			fmt.Println("yoyoyo")
 		}
 	}
 
@@ -319,18 +334,18 @@ func updateFirmware(d device.Device) []error {
 		log.WithFields(log.Fields{
 			"Name":    d.Name,
 			"Attempt": i,
-		}).Info("Starting update")
+		}).Info("Starting firmware update")
 
 		if err := d.Board.Update(filepath); err != nil {
 			log.WithFields(log.Fields{
 				"Name":  d.Name,
 				"Error": err,
-			}).Error("Update failed")
+			}).Error("Update firmware failed")
 			continue
 		} else {
 			log.WithFields(log.Fields{
 				"Name": d.Name,
-			}).Info("Finished update")
+			}).Info("Finished firmware update")
 			d.Commit = d.TargetCommit
 			break
 		}
@@ -341,6 +356,36 @@ func updateFirmware(d device.Device) []error {
 		return []error{err}
 	}
 	return sendState(d)
+}
+
+
+func updateEnvironment(d device.Device) error {
+	online, err := d.Board.Online()
+	if err != nil {
+		return err
+	} else if !online {
+		return nil
+	}
+
+	log.WithFields(log.Fields{
+		"Name":    d.Name,
+		"Environment": d.TargetEnvironment,
+	}).Info("Starting environment update")
+
+	if err := d.Board.UpdateEnvironment(d.TargetEnvironment); err != nil {
+		log.WithFields(log.Fields{
+			"Name":  d.Name,
+			"Error": err,
+		}).Error("Update environment failed")
+		return nil
+	} else {
+		log.WithFields(log.Fields{
+			"Name": d.Name,
+		}).Info("Finished environment update")
+		d.Environment = d.TargetEnvironment
+	}
+
+	return updateDevice(d)
 }
 
 func getFirmware(d device.Device) (string, error) {

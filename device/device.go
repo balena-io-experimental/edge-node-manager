@@ -24,8 +24,6 @@ type Device struct {
 	Commit            string                 `storm:"index"`
 	TargetCommit      string                 `storm:"index"`
 	Status            status.Status          `storm:"index"`
-	Config            map[string]interface{} `storm:"index"`
-	TargetConfig      map[string]interface{} `storm:"index"`
 	Environment       map[string]interface{} `storm:"index"`
 	TargetEnvironment map[string]interface{} `storm:"index"`
 	RestartFlag       bool                   `storm:"index"`
@@ -42,8 +40,6 @@ func (d Device) String() string {
 			"Commit: %s, "+
 			"Target commit: %s, "+
 			"Status: %s, "+
-			"Config: %v, "+
-			"Target config: %v, "+
 			"Environment: %v, "+
 			"Target environment: %v, "+
 			"Restart: %t, "+
@@ -56,8 +52,6 @@ func (d Device) String() string {
 		d.Commit,
 		d.TargetCommit,
 		d.Status,
-		d.Config,
-		d.TargetConfig,
 		d.Environment,
 		d.TargetEnvironment,
 		d.RestartFlag,
@@ -115,7 +109,6 @@ func (d *Device) PopulateBoard() error {
 
 // Sync device with resin to ensure we have the latest values for:
 // - Device name
-// - Device target config
 // - Device target environment
 func (d *Device) Sync() []error {
 	bytes, errs := supervisor.DependentDeviceInfo(d.ResinUUID)
@@ -131,7 +124,6 @@ func (d *Device) Sync() []error {
 	}
 
 	d.Name = temp.Name
-	d.TargetConfig = temp.TargetConfig
 	d.TargetEnvironment = temp.TargetEnvironment
 
 	return nil

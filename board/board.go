@@ -16,6 +16,5 @@ type Interface interface {
 	Online() (bool, error)
 	Restart() error
 	Identify() error
-	UpdateConfig(interface{}) error
 	UpdateEnvironment(interface{}) error
 }
