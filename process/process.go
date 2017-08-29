@@ -1,6 +1,7 @@
 package process
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strconv"
@@ -133,10 +134,11 @@ func Run(a application.Application) []error {
 
 	// Set state for all provisioned devices associated with this application
 	for _, value := range provisionedDevices {
+		value.Status = deviceStatus.IDLE
 		if _, ok := onlineDevices[value.LocalUUID]; ok {
-			value.Status = deviceStatus.IDLE
+			value.IsOnline = true
 		} else {
-			value.Status = deviceStatus.OFFLINE
+			value.IsOnline = false
 		}
 
 		if err := updateDevice(value); err != nil {
@@ -156,7 +158,7 @@ func Run(a application.Application) []error {
 
 	// Update all online, outdated, provisioned devices associated with this application
 	for _, value := range provisionedDevices {
-		if (value.Commit != value.TargetCommit) && (value.Status != deviceStatus.OFFLINE) {
+		if (value.Commit != value.TargetCommit) && (value.IsOnline == true) {
 			// Populate board (and micro) for the device
 			if err := value.PopulateBoard(); err != nil {
 				return []error{err}
@@ -224,6 +226,8 @@ func getOnlineDevices(a application.Application) (map[string]struct{}, error) {
 		return nil, err
 	}
 
+	fmt.Printf("online device: %v\n", onlineDevices)
+
 	log.WithFields(log.Fields{
 		"Number of online devices": len(onlineDevices),
 	}).Info("Processing application")
@@ -286,12 +290,8 @@ func updateDevice(d device.Device) error {
 }
 
 func sendState(d device.Device) []error {
-	online := true
-	if d.Status == deviceStatus.OFFLINE {
-		online = false
-	}
-
-	return supervisor.DependentDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, online)
+	fmt.Println("Sending state")
+	return supervisor.DependentDeviceInfoUpdate(d.ResinUUID, (string)(d.Status), d.Commit, d.IsOnline)
 }
 
 func updateFirmware(d device.Device) []error {

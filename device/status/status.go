@@ -9,5 +9,4 @@ const (
 	STARTING           = "Starting"
 	STOPPING           = "Stopping"
 	IDLE               = "Idle"
-	OFFLINE            = "Offline"
 )

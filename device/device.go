@@ -24,6 +24,7 @@ type Device struct {
 	Commit            string                 `storm:"index"`
 	TargetCommit      string                 `storm:"index"`
 	Status            status.Status          `storm:"index"`
+	IsOnline          bool                   `storm:"index"`
 	Config            map[string]interface{} `storm:"index"`
 	TargetConfig      map[string]interface{} `storm:"index"`
 	Environment       map[string]interface{} `storm:"index"`
@@ -42,6 +43,7 @@ func (d Device) String() string {
 			"Commit: %s, "+
 			"Target commit: %s, "+
 			"Status: %s, "+
+			"Is Online: %t, "+
 			"Config: %v, "+
 			"Target config: %v, "+
 			"Environment: %v, "+
@@ -56,6 +58,7 @@ func (d Device) String() string {
 		d.Commit,
 		d.TargetCommit,
 		d.Status,
+		d.IsOnline,
 		d.Config,
 		d.TargetConfig,
 		d.Environment,
@@ -73,7 +76,8 @@ func New(applicationUUID int, boardType board.Type, name, localUUID, resinUUID s
 		ResinUUID:       resinUUID,
 		Commit:          "",
 		TargetCommit:    "",
-		Status:          status.OFFLINE,
+		Status:          status.IDLE,
+		IsOnline:        false,
 	}
 }
 

@@ -2,6 +2,7 @@ package supervisor
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -146,7 +147,7 @@ func DependentDeviceLog(UUID, message string) []error {
 	return handleResp(resp, errs, 202)
 }
 
-func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, online bool) []error {
+func DependentDeviceInfoUpdate(UUID, status, commit string, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
@@ -154,14 +155,19 @@ func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 
 	type dependentDeviceInfo struct {
 		Status string `json:"status"`
-		Online bool   `json:"is_online"`
+		Online bool   `json:"is_online,omitempty"`
 		Commit string `json:"commit,omitempty"`
 	}
 
 	content := &dependentDeviceInfo{
 		Status: status,
-		Online: online,
 		Commit: commit,
+	}
+
+	if currentOnline, err := getCurrentOnlineState(UUID); err != nil {
+		return err
+	} else if online != currentOnline {
+		content.Online = online
 	}
 
 	bytes, err := json.Marshal(content)
@@ -180,45 +186,7 @@ func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 		"Method": req.Method,
 		"Query":  req.QueryData,
 		"Body":   (string)(bytes),
-	}).Debug("Transmitting dependent device info")
-
-	resp, _, errs := req.End()
-	return handleResp(resp, errs, 200)
-}
-
-func DependentDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []error {
-	url, err := buildPath(address, []string{version, "devices", UUID})
-	if err != nil {
-		return []error{err}
-	}
-
-	type dependentDeviceInfo struct {
-		Status string `json:"status"`
-		Commit string `json:"commit,omitempty"`
-	}
-
-	content := &dependentDeviceInfo{
-		Status: status,
-		Commit: commit,
-	}
-
-	bytes, err := json.Marshal(content)
-	if err != nil {
-		return []error{err}
-	}
-
-	req := gorequest.New()
-	req.Put(url)
-	req.Set("Content-Type", "application/json")
-	req.Query(key)
-	req.Send((string)(bytes))
-
-	log.WithFields(log.Fields{
-		"URL":    req.Url,
-		"Method": req.Method,
-		"Query":  req.QueryData,
-		"Body":   (string)(bytes),
-	}).Debug("Transmitting dependent device info")
+	}).Info("Transmitting dependent device info")
 
 	resp, _, errs := req.End()
 	return handleResp(resp, errs, 200)
@@ -383,4 +351,23 @@ func handleResp(resp gorequest.Response, errs []error, statusCode int) []error {
 	}).Debug("Valid response received")
 
 	return nil
+}
+
+func getCurrentOnlineState(UUID string) (bool, []error) {
+	bytes, errs := DependentDeviceInfo(UUID)
+	if errs != nil {
+		return false, errs
+	}
+
+	var temp map[string]interface{}
+	if err := json.Unmarshal(bytes, &temp); err != nil {
+		return false, []error{err}
+	}
+
+	if value, ok := temp["is_online"].(float64); !ok {
+		return false, []error{errors.New("is_online key not found")}
+	} else {
+		value := !(int(value) == 0)
+		return value, nil
+	}
 }
