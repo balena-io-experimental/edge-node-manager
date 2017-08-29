@@ -33,6 +33,12 @@ var routes = Routes{
 		DependentDeviceRestart,
 	},
 	Route{
+		"DependentDevicesQuery",
+		"GET",
+		"/v1/devices",
+		DependentDevicesQuery,
+	},
+	Route{
 		"DependentDeviceQuery",
 		"GET",
 		"/v1/devices/{uuid}",
