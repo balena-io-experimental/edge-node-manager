@@ -35,6 +35,7 @@ func Initialise() error {
 
 	os.Setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/host/run/dbus/system_bus_socket")
 
+	deviceInterface := config.GetHotspotInterface()
 	ssid := config.GetHotspotSSID()
 	password := config.GetHotspotPassword()
 
@@ -42,17 +43,29 @@ func Initialise() error {
 		return err
 	}
 
+	var (
+		ethernet bool
+		device   NmDevice
+		err      error
+	)
+
+	// If interface environment variable is defined, create the hotspot on that wifi interface
 	// If ethernet is connected, create the hotspot on the first wifi interface found
 	// If ethernet is not connected, create the hotspot on the first FREE wifi interface found
-	var device NmDevice
-	if ethernet, err := isEthernetConnected(); err != nil {
-		return err
-	} else if ethernet {
-		if device, err = getWifiDevice(); err != nil {
+	if deviceInterface == "" {
+		if ethernet, err = isEthernetConnected(); err != nil {
 			return err
+		} else if ethernet {
+			if device, err = getWifiDevice(); err != nil {
+				return err
+			}
+		} else {
+			if device, err = getFreeWifiDevice(); err != nil {
+				return err
+			}
 		}
 	} else {
-		if device, err = getFreeWifiDevice(); err != nil {
+		if device, err = getSpecifiedWifiDevice(deviceInterface); err != nil {
 			return err
 		}
 	}

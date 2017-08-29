@@ -31,6 +31,11 @@ func GetPauseDelay() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
+// GetHotspotInterface returns the interface to be used for the hotspot
+func GetHotspotInterface() string {
+	return getEnv("ENM_HOTSPOT_INTERFACE", "")
+}
+
 // GetHotspotSSID returns the SSID to be used for the hotspot
 func GetHotspotSSID() string {
 	return getEnv("ENM_HOTSPOT_SSID", "resin-hotspot")

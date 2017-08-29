@@ -159,6 +159,21 @@ func getFreeWifiDevice() (NmDevice, error) {
 	return NmDevice{}, fmt.Errorf("No free wifi device found")
 }
 
+func getSpecifiedWifiDevice(deviceInterface string) (NmDevice, error) {
+	devices, err := getDevices()
+	if err != nil {
+		return NmDevice{}, err
+	}
+
+	for _, device := range devices {
+		if device.nmInterface == deviceInterface {
+			return device, nil
+		}
+	}
+
+	return NmDevice{}, fmt.Errorf("No free wifi device found")
+}
+
 func createHotspotConnection(device NmDevice, ssid, password string) error {
 	connection, err := dbus.SystemBus()
 	if err != nil {

@@ -30,6 +30,7 @@ ENM_LOG_LEVEL | `info` | the edge-node-manager log level
 DEPENDENT_LOG_LEVEL | `info` | the dependent device log level
 ENM_CONFIG_LOOP_DELAY | `10` | the time delay in seconds between each application process loop
 ENM_CONFIG_PAUSE_DELAY | `10` | the time delay in seconds between each pause check
+ENM_HOTSPOT_INTERFACE | ` ` | the interface used for the hotspot (default to using the first free interface found)
 ENM_HOTSPOT_SSID | `resin-hotspot` | the SSID used for the hotspot
 ENM_HOTSPOT_PASSWORD | `resin-hotspot` | the password used for the hotspot
 ENM_BLUETOOTH_SHORT_TIMEOUT | `1` | the timeout in seconds for instantaneous bluetooth operations
