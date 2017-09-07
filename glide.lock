@@ -1,5 +1,5 @@
 hash: fbc8dae34f332f4e4e74ba54b2786f9c7b1141657a9ed4f274456e0792a218b1
-updated: 2017-08-14T15:18:54.065041487+01:00
+updated: 2017-09-07T12:26:28.66483479+01:00
 imports:
 - name: github.com/asdine/storm
   version: 2da548c16156b3197728372bff5614033084aff5
@@ -58,7 +58,7 @@ imports:
 - name: github.com/mholt/archiver
   version: cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006
 - name: github.com/miekg/dns
-  version: 0598bd43cf51d0375c5bcd3a42e807cc19b3b7d9
+  version: e4205768578dc90c2669e75a2f8a8bf77e3083a4
 - name: github.com/moul/http2curl
   version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
 - name: github.com/nwaples/rardecode
@@ -78,17 +78,17 @@ imports:
 - name: github.com/verybluebot/tarinator-go
   version: f75724675c91d0c731b69c81e0985de07663f007
 - name: golang.org/x/net
-  version: a6577fac2d73be281a500b310739095313165611
+  version: 090ebbdfc2aff44cc6674372b72e02e731f7f0ef
   subpackages:
   - bpf
   - context
   - internal/iana
-  - internal/netreflect
+  - internal/socket
   - ipv4
   - ipv6
   - publicsuffix
 - name: golang.org/x/sys
-  version: 99f16d856c9836c42d24e7ab64ea72916925fa97
+  version: d8f5ea21b9295e315e612b4bcf4bedea93454d4d
   subpackages:
   - unix
 testImports: []
