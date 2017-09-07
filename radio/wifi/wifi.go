@@ -42,6 +42,12 @@ func Initialise() error {
 		return err
 	}
 
+	if delay, err := config.GetHotspotDeleteDelay(); err != nil {
+		return err
+	} else {
+		time.Sleep(delay)
+	}
+
 	// If ethernet is connected, create the hotspot on the first wifi interface found
 	// If ethernet is not connected, create the hotspot on the first FREE wifi interface found
 	var device NmDevice

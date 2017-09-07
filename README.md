@@ -29,6 +29,7 @@ Environment Variable | Default | Description
 ENM_LOG_LEVEL | `info` | the edge-node-manager log level
 DEPENDENT_LOG_LEVEL | `info` | the dependent device log level
 ENM_SUPERVISOR_CHECK_DELAY | `1` | the time delay in seconds between each supervisor check at startup
+ENM_HOTSPOT_DELETE_DELAY | `10` | the time delay in seconds between hotspot deletion and creation
 ENM_CONFIG_LOOP_DELAY | `10` | the time delay in seconds between each application process loop
 ENM_CONFIG_PAUSE_DELAY | `10` | the time delay in seconds between each pause check
 ENM_HOTSPOT_SSID | `resin-hotspot` | the SSID used for the hotspot
