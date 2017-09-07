@@ -25,6 +25,13 @@ var (
 func WaitUntilReady() {
 	log.Info("Waiting until supervisor is ready")
 
+	delay, err := config.GetSupervisorCheckDelay()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Fatal("Unable to load supervisor check delay")
+	}
+
 	for {
 		resp, _, errs := gorequest.New().Timeout(1 * time.Second).Get(address).End()
 		if errs == nil && resp.StatusCode == 401 {
@@ -33,7 +40,7 @@ func WaitUntilReady() {
 			return
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(delay)
 	}
 }
 
