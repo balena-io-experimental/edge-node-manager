@@ -2,7 +2,6 @@ package wifi
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/godbus/dbus"
 )
@@ -81,7 +80,6 @@ func removeHotspotConnections(ssid string) error {
 		} else if settingsObject == nil {
 			break
 		}
-		time.Sleep(1 * time.Second)
 	}
 
 	return nil
@@ -209,8 +207,6 @@ func createHotspotConnection(device NmDevice, ssid, password string) error {
 		if NmActiveConnectionState(value.(uint32)) == NmActiveConnectionStateActivated {
 			break
 		}
-
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	return nil

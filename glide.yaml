@@ -14,6 +14,7 @@ import:
   - linux/hci
   - linux/hci/cmd
 - package: github.com/fredli74/lockfile
+# Do not change the dbus version as it breaks things
 - package: github.com/godbus/dbus
   version: b038411ec341afd52c6d36d8baae92a29e6e8a9e
 - package: github.com/gorilla/mux

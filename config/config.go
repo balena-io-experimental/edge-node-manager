@@ -19,6 +19,18 @@ func GetDependentLogLevel() log.Level {
 	return switchLogLevel(getEnv("DEPENDENT_LOG_LEVEL", ""))
 }
 
+// GetSupervisorCheckDelay returns the time delay in seconds between each supervisor check at startup
+func GetSupervisorCheckDelay() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_SUPERVISOR_CHECK_DELAY", "1"))
+	return time.Duration(value) * time.Second, err
+}
+
+// GetHotspotDeleteDelay returns the time delay in seconds between hotspot deletion and creation
+func GetHotspotDeleteDelay() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_HOTSPOT_DELETE_DELAY", "10"))
+	return time.Duration(value) * time.Second, err
+}
+
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {
 	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "10"))
