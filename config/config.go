@@ -25,6 +25,12 @@ func GetSupervisorCheckDelay() (time.Duration, error) {
 	return time.Duration(value) * time.Second, err
 }
 
+// GetHotspotDeleteDelay returns the time delay in seconds between hotspot deletion and creation
+func GetHotspotDeleteDelay() (time.Duration, error) {
+	value, err := strconv.Atoi(getEnv("ENM_HOTSPOT_DELETE_DELAY", "10"))
+	return time.Duration(value) * time.Second, err
+}
+
 // GetLoopDelay returns the time delay in seconds between each application process loop
 func GetLoopDelay() (time.Duration, error) {
 	value, err := strconv.Atoi(getEnv("ENM_CONFIG_LOOP_DELAY", "10"))
