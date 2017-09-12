@@ -11,13 +11,11 @@ import (
 )
 
 type Application struct {
-	Board        board.Interface        `json:"-"`
-	BoardType    board.Type             `json:"-"`
-	Name         string                 `json:"name"`
-	ResinUUID    int                    `json:"id"`
-	Commit       string                 `json:"-"`      // Ignore this when unmarshalling from the supervisor as we want to set the target commit
-	TargetCommit string                 `json:"commit"` // Set json tag to commit as the supervisor has no concept of target commit
-	Config       map[string]interface{} `json:"config"`
+	Board     board.Interface        `json:"-"`
+	BoardType board.Type             `json:"-"`
+	Name      string                 `json:"name"`
+	ResinUUID int                    `json:"id"`
+	Config    map[string]interface{} `json:"config"`
 }
 
 func (a Application) String() string {
@@ -25,14 +23,10 @@ func (a Application) String() string {
 		"Board type: %s, "+
 			"Name: %s, "+
 			"Resin UUID: %d, "+
-			"Commit: %s, "+
-			"Target commit: %s, "+
 			"Config: %v",
 		a.BoardType,
 		a.Name,
 		a.ResinUUID,
-		a.Commit,
-		a.TargetCommit,
 		a.Config)
 }
 

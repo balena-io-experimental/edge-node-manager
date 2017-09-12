@@ -153,22 +153,26 @@ func DependentDeviceLog(UUID, message string) []error {
 	return handleResp(resp, errs, 202)
 }
 
-func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, online bool) []error {
+func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, environment, config map[string]interface{}, online bool) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
 	}
 
 	type dependentDeviceInfo struct {
-		Status string `json:"status"`
-		Online bool   `json:"is_online"`
-		Commit string `json:"commit,omitempty"`
+		Status      string                 `json:"status"`
+		Commit      string                 `json:"commit,omitempty"`
+		Environment map[string]interface{} `json:"environment"`
+		Config      map[string]interface{} `json:"config"`
+		Online      bool                   `json:"is_online,omitempty"`
 	}
 
 	content := &dependentDeviceInfo{
-		Status: status,
-		Online: online,
-		Commit: commit,
+		Status:      status,
+		Commit:      commit,
+		Environment: environment,
+		Config:      config,
+		Online:      online,
 	}
 
 	bytes, err := json.Marshal(content)
@@ -193,20 +197,25 @@ func DependentDeviceInfoUpdateWithOnlineState(UUID, status, commit string, onlin
 	return handleResp(resp, errs, 200)
 }
 
-func DependentDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string) []error {
+func DependentDeviceInfoUpdateWithoutOnlineState(UUID, status, commit string, environment, config map[string]interface{}) []error {
 	url, err := buildPath(address, []string{version, "devices", UUID})
 	if err != nil {
 		return []error{err}
 	}
 
 	type dependentDeviceInfo struct {
-		Status string `json:"status"`
-		Commit string `json:"commit,omitempty"`
+		Status      string                 `json:"status"`
+		Commit      string                 `json:"commit,omitempty"`
+		Environment map[string]interface{} `json:"environment"`
+		Config      map[string]interface{} `json:"config"`
+		Online      bool                   `json:"is_online,omitempty"`
 	}
 
 	content := &dependentDeviceInfo{
-		Status: status,
-		Commit: commit,
+		Status:      status,
+		Commit:      commit,
+		Environment: environment,
+		Config:      config,
 	}
 
 	bytes, err := json.Marshal(content)

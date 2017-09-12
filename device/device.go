@@ -66,14 +66,18 @@ func (d Device) String() string {
 
 func New(applicationUUID int, boardType board.Type, name, localUUID, resinUUID string) Device {
 	return Device{
-		ApplicationUUID: applicationUUID,
-		BoardType:       boardType,
-		Name:            name,
-		LocalUUID:       localUUID,
-		ResinUUID:       resinUUID,
-		Commit:          "",
-		TargetCommit:    "",
-		Status:          status.OFFLINE,
+		ApplicationUUID:   applicationUUID,
+		BoardType:         boardType,
+		Name:              name,
+		LocalUUID:         localUUID,
+		ResinUUID:         resinUUID,
+		Commit:            "",
+		TargetCommit:      "",
+		Status:            status.OFFLINE,
+		Config:            make(map[string]interface{}),
+		TargetConfig:      make(map[string]interface{}),
+		Environment:       make(map[string]interface{}),
+		TargetEnvironment: make(map[string]interface{}),
 	}
 }
 
@@ -115,8 +119,6 @@ func (d *Device) PopulateBoard() error {
 
 // Sync device with resin to ensure we have the latest values for:
 // - Device name
-// - Device target config
-// - Device target environment
 func (d *Device) Sync() []error {
 	bytes, errs := supervisor.DependentDeviceInfo(d.ResinUUID)
 	if errs != nil {
@@ -131,8 +133,6 @@ func (d *Device) Sync() []error {
 	}
 
 	d.Name = temp.Name
-	d.TargetConfig = temp.TargetConfig
-	d.TargetEnvironment = temp.TargetEnvironment
 
 	return nil
 }
