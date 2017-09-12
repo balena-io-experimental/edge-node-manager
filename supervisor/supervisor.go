@@ -102,13 +102,10 @@ func DependentApplicationUpdate(applicationUUID int, targetCommit string) error 
 	}).Debug("Requesting dependent application update")
 
 	client := grab.NewClient()
-	resp, err := client.Do(req)
-
-	if err != nil {
+	if resp, err := client.Do(req); err != nil {
 		return err
-	}
-
-	if resp.HTTPResponse.StatusCode != 200 {
+	} else if resp.HTTPResponse.StatusCode != 200 {
+		os.Remove(filePath)
 		return fmt.Errorf("Dependent application update failed")
 	}
 
