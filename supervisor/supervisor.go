@@ -87,6 +87,7 @@ func DependentApplicationUpdate(applicationUUID int, targetCommit string) error 
 
 	filePath := config.GetAssetsDir()
 	filePath = path.Join(filePath, strconv.Itoa(applicationUUID))
+	os.RemoveAll(filePath)
 	filePath = path.Join(filePath, targetCommit)
 	if err = os.MkdirAll(filePath, os.ModePerm); err != nil {
 		return err
