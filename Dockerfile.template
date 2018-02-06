@@ -1,6 +1,27 @@
+# Define a reusable argument containing the path to the go project
+# see: https://docs.docker.com/engine/reference/builder/#understand-how-arg-and-from-interact
+ARG PROJECT_DIR=/go/src/github.com/resin-io/edge-node-manager
+
+# Build source using an image that has Go and Glide
+FROM billyteves/alpine-golang-glide:1.2.0 as GO
+
+ARG PROJECT_DIR
+
+RUN mkdir -p $PROJECT_DIR
+COPY . $PROJECT_DIR
+WORKDIR $PROJECT_DIR
+
+# Use Glide to install Go dependencies
+RUN glide install
+
+# Cross compile the ENM binary
+RUN env GOOS=linux GOARCH=arm go build
+
 # Debian base-image
 # See more about resin base images here: http://docs.resin.io/runtime/resin-base-images/
 FROM resin/%%RESIN_MACHINE_NAME%%-debian
+
+ARG PROJECT_DIR
 
 # Disable systemd init system
 ENV INITSYSTEM off
@@ -18,16 +39,8 @@ RUN if [ "%%RESIN_MACHINE_NAME%%" = "raspberrypi3" ]; then export EXTRA_PACKAGES
     jq && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Get the edge-node-manager binary, rename and make executable
-RUN TAG=$(curl https://api.github.com/repos/resin-io/edge-node-manager/releases/latest -s | jq .tag_name -r) && \
-    echo "Pulling $TAG of the edge-node-manager binary for %%RESIN_ARCH%%" && \
-    curl -k -O https://resin-production-downloads.s3.amazonaws.com/edge-node-manager/$TAG/edge-node-manager-$TAG-linux-%%RESIN_ARCH%% && \
-    mv edge-node-manager-$TAG-linux-%%RESIN_ARCH%% edge-node-manager && \
-    chmod +x edge-node-manager
-
-# Alternatively cross-compile the binary locally (env GOOS=linux GOARCH=arm go build)
-# and copy it into the working directory - good for development
-# COPY edge-node-manager ./
+# Copy the cross-compiled binary into the working directory
+COPY --from=GO $PROJECT_DIR/edge-node-manager ./
 
 # The edge-node-manager will run when container starts up on the device
 CMD ["./edge-node-manager"]
