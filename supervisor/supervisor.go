@@ -301,7 +301,7 @@ func DependentDeviceProvision(applicationUUID int) (resinUUID, name string, errs
 	}
 
 	resinUUID = buffer["uuid"].(string)
-	name = buffer["name"].(string)
+	name = buffer["device_name"].(string)
 
 	return
 }
