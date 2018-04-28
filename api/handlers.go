@@ -16,14 +16,16 @@ import (
 )
 
 func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
-	type dependentDeviceUpdate struct {
-		Commit      string      `json:"commit"`
-		Environment interface{} `json:"environment"`
+	uuid := mux.Vars(r)["uuid"]
+
+	type deviceTarget struct {
+		Commit      string                 `json:"commit"`
+		Environment map[string]interface{} `json:"environment"`
+		Config      map[string]interface{} `json:"config"`
 	}
 
-	decoder := json.NewDecoder(r.Body)
-	var content dependentDeviceUpdate
-	if err := decoder.Decode(&content); err != nil {
+	var t deviceTarget
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to decode Dependent device update hook")
@@ -31,45 +33,105 @@ func DependentDeviceUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := setField(r, "TargetCommit", content.Commit); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusAccepted)
-}
-
-func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
-	if err := setField(r, "Delete", true); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
-	if err := setField(r, "Restart", true); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func DependentDevicesQuery(w http.ResponseWriter, r *http.Request) {
-	db, err := storm.Open(config.GetDbPath())
+	db, err := openDB()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer db.Close()
 
-	var d []device.Device
-	if err := db.All(&d); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-		}).Error("Unable to find devices in database")
+	d, err := loadDevice(db, uuid)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	d.TargetCommit = t.Commit
+	d.TargetEnvironment = t.Environment
+	d.TargetConfig = t.Config
+
+	if err := updateDevice(db, d); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"UUID": uuid,
+	}).Debug("Dependent device field updated")
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func DependentDeviceDelete(w http.ResponseWriter, r *http.Request) {
+	uuid := mux.Vars(r)["uuid"]
+
+	db, err := openDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	d, err := loadDevice(db, uuid)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	d.DeleteFlag = true
+
+	if err := updateDevice(db, d); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"UUID": uuid,
+	}).Debug("Dependent device field updated")
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func DependentDeviceRestart(w http.ResponseWriter, r *http.Request) {
+	uuid := mux.Vars(r)["uuid"]
+
+	db, err := openDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	d, err := loadDevice(db, uuid)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	d.RestartFlag = true
+
+	if err := updateDevice(db, d); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"UUID": uuid,
+	}).Debug("Dependent device field updated")
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func DependentDevicesQuery(w http.ResponseWriter, r *http.Request) {
+	db, err := openDB()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	d, err := loadDevices(db)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -96,27 +158,17 @@ func DependentDevicesQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func DependentDeviceQuery(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	UUID := vars["uuid"]
+	uuid := mux.Vars(r)["uuid"]
 
-	db, err := storm.Open(config.GetDbPath())
+	db, err := openDB()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer db.Close()
 
-	var d device.Device
-	if err := db.Select(
-		q.Or(
-			q.Eq("LocalUUID", UUID),
-			q.Eq("ResinUUID", UUID),
-		),
-	).First(&d); err != nil {
-		log.WithFields(log.Fields{
-			"Error": err,
-			"UUID":  UUID,
-		}).Error("Unable to find device in database")
+	d, err := loadDevice(db, uuid)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -150,8 +202,7 @@ func SetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var content *s
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&content); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&content); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
 		}).Error("Unable to decode status hook")
@@ -203,55 +254,55 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	}).Debug("Get status")
 }
 
-func setField(r *http.Request, key string, value interface{}) error {
-	vars := mux.Vars(r)
-	deviceUUID := vars["uuid"]
-
+func openDB() (*storm.DB, error) {
 	db, err := storm.Open(config.GetDbPath())
 	if err != nil {
-		return err
+		log.WithFields(log.Fields{
+			"Error": err,
+		}).Error("Unable to open database")
+		return nil, err
 	}
-	defer db.Close()
 
+	return db, nil
+}
+
+func loadDevice(db *storm.DB, uuid string) (device.Device, error) {
 	var d device.Device
-	if err := db.One("ResinUUID", deviceUUID, &d); err != nil {
+	if err := db.Select(
+		q.Or(
+			q.Eq("LocalUUID", uuid),
+			q.Eq("ResinUUID", uuid),
+		),
+	).First(&d); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-			"UUID":  deviceUUID,
+			"UUID":  uuid,
 		}).Error("Unable to find device in database")
-		return err
+		return d, err
 	}
 
-	switch key {
-	case "TargetCommit":
-		d.TargetCommit = value.(string)
-	case "Delete":
-		d.DeleteFlag = value.(bool)
-	case "Restart":
-		d.RestartFlag = value.(bool)
-	default:
+	return d, nil
+}
+
+func loadDevices(db *storm.DB) ([]device.Device, error) {
+	var d []device.Device
+	if err := db.All(&d); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-			"UUID":  deviceUUID,
-			"Key":   key,
-			"value": value,
-		}).Error("Unable to set field")
-		return err
+		}).Error("Unable to find devices in database")
+		return d, err
 	}
 
+	return d, nil
+}
+
+func updateDevice(db *storm.DB, d device.Device) error {
 	if err := db.Update(&d); err != nil {
 		log.WithFields(log.Fields{
 			"Error": err,
-			"UUID":  deviceUUID,
 		}).Error("Unable to update device in database")
 		return err
 	}
-
-	log.WithFields(log.Fields{
-		"UUID":  deviceUUID,
-		"Key":   key,
-		"value": value,
-	}).Debug("Dependent device field updated")
 
 	return nil
 }

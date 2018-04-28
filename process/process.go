@@ -291,7 +291,7 @@ func sendState(d device.Device) []error {
 		online = false
 	}
 
-	return supervisor.DependentDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, online)
+	return supervisor.DependentDeviceInfoUpdateWithOnlineState(d.ResinUUID, (string)(d.Status), d.Commit, d.TargetEnvironment, d.TargetConfig, online)
 }
 
 func updateFirmware(d device.Device) []error {
