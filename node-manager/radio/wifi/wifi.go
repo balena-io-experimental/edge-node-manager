@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -33,7 +32,7 @@ func Initialise() error {
 
 	log.Info("Initialising wifi hotspot")
 
-	os.Setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/host/run/dbus/system_bus_socket")
+	// os.Setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/host/run/dbus/system_bus_socket")
 
 	ssid := config.GetHotspotSSID()
 	password := config.GetHotspotPassword()

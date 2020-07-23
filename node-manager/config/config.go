@@ -45,12 +45,12 @@ func GetPauseDelay() (time.Duration, error) {
 
 // GetHotspotSSID returns the SSID to be used for the hotspot
 func GetHotspotSSID() string {
-	return getEnv("ENM_HOTSPOT_SSID", "resin-hotspot")
+	return getEnv("ENM_HOTSPOT_SSID", "balena-hotspot")
 }
 
 // GetHotspotPassword returns the password to be used for the hotspot
 func GetHotspotPassword() string {
-	return getEnv("ENM_HOTSPOT_PASSWORD", "resin-hotspot")
+	return getEnv("ENM_HOTSPOT_PASSWORD", "balena-hotspot")
 }
 
 // GetShortBluetoothTimeout returns the timeout for each instantaneous bluetooth operation
