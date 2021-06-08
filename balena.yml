@@ -1,0 +1,2 @@
+applicationConfigVariables:
+        - RESIN_UI_ENABLE_DEPENDENT_APPLICATIONS : 1
