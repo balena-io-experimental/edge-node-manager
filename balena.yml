@@ -1,2 +1,3 @@
 applicationConfigVariables:
-        - RESIN_UI_ENABLE_DEPENDENT_APPLICATIONS : 1
+  - RESIN_UI_ENABLE_DEPENDENT_APPLICATIONS: 1
+version: 4.0.0
